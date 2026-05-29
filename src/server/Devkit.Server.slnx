@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Devkit.Server.Domain/Devkit.Server.Domain.csproj" />
+    <Project Path="src/Devkit.Server.Application/Devkit.Server.Application.csproj" />
+    <Project Path="src/Devkit.Server.Infrastructure/Devkit.Server.Infrastructure.csproj" />
+    <Project Path="src/Devkit.Server.Api/Devkit.Server.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Devkit.Server.Application.Tests/Devkit.Server.Application.Tests.csproj" />
+  </Folder>
+</Solution>

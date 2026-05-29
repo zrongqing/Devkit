@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Devkit.Services.Interfaces\Devkit.Services.Interfaces.csproj"/>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json"/>
+    <PackageReference Include="LibGit2Sharp"/>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Remove="Devkit.Services.csproj.DotSettings" />
+  </ItemGroup>
+
+</Project>
