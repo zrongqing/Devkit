@@ -1,0 +1,37 @@
+﻿services:
+  webapplication1:
+    image: webapplication1
+    build:
+      context: .
+      dockerfile: WebApplication1/Dockerfile
+
+  mes.server:
+    image: mes.server
+    build:
+      context: .
+      dockerfile: src/server/MES.Server/Dockerfile
+
+  webapplication1-1:
+    image: webapplication1-1
+    build:
+      context: .
+      dockerfile: WebApplication1/Dockerfile
+
+  webapplication2:
+    image: webapplication2
+    build:
+      context: .
+      dockerfile: WebApplication2/Dockerfile
+
+  webapplication3:
+    image: webapplication3
+    build:
+      context: .
+      dockerfile: WebApplication3/Dockerfile
+
+  mes.application:
+    image: mes.application
+    build:
+      context: .
+      dockerfile: src/client/MES.Application/Dockerfile
+

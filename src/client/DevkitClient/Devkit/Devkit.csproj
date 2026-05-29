@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Devkit</RootNamespace>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Syncfusion.PropertyGrid.WPF" Version="33.1.44" />
+    <PackageReference Include="Syncfusion.SfInput.WPF" Version="33.1.44" />
+    <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Shared.WPF" Version="33.1.44" />
+    <PackageReference Include="Syncfusion.Themes.MaterialDark.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Themes.MaterialDarkBlue.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Themes.MaterialLight.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Themes.MaterialLightBlue.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Themes.Office2019Black.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Themes.Office2019Colorful.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Themes.Office2019DarkGray.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Themes.Office2019HighContrast.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Themes.Office2019White.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Themes.Windows11Dark.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="33.1.44.0" />
+    <PackageReference Include="Syncfusion.Tools.WPF" Version="33.1.44.0" />
+
+    <PackageReference Include="Prism.DryIoc" Version="9.0.537" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Devkit.Services.Interfaces\Devkit.Services.Interfaces.csproj" />
+    <ProjectReference Include="..\Devkit.Services\Devkit.Services.csproj" />
+    <ProjectReference Include="..\DevkitCore\DevkitCore.csproj" />
+    <ProjectReference Include="..\DevkitUI\DevkitUI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

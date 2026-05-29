@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Modules/" />
+  <Folder Name="/Services/" />
+  <Folder Name="/Tests/" />
+  <Project Path="Devkit/Devkit.csproj" />
+  <Project Path="DevkitCore/DevkitCore.csproj" />
+  <Project Path="DevkitUI/DevkitUI.csproj" />
+</Solution>

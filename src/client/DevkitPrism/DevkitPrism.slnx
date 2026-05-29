@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Modules/">
+    <Project Path="Devkit/Modules/Devkit.Modules.ModuleName/Devkit.Modules.ModuleName.csproj" />
+  </Folder>
+  <Folder Name="/Services/">
+    <Project Path="Devkit/Services/Devkit.Services.Interfaces/Devkit.Services.Interfaces.csproj" />
+    <Project Path="Devkit/Services/Devkit.Services/Devkit.Services.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Devkit/Tests/Devkit.Modules.ModuleName.Tests/Devkit.Modules.ModuleName.Tests.csproj" />
+  </Folder>
+  <Project Path="Devkit.Prism/Devkit.Prism.csproj" />
+  <Project Path="Devkit/Devkit.Core/Devkit.Core.csproj" />
+  <Project Path="Devkit/Devkit/Devkit.csproj" />
+</Solution>
