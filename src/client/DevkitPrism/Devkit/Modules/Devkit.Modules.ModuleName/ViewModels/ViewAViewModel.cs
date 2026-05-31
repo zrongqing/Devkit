@@ -1,6 +1,6 @@
 ﻿using Devkit.Core.Mvvm;
 using Devkit.Services.Interfaces;
-using Prism.Regions;
+using Prism.Navigation.Regions;
 
 namespace Devkit.Modules.ModuleName.ViewModels
 {

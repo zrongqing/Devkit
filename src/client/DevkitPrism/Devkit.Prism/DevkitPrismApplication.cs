@@ -1,5 +1,7 @@
 ﻿using System.Data;
 using System.Windows;
+using Devkit.Services;
+using Devkit.Services.Interfaces;
 using DryIoc;
 using DryIoc.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,13 +50,8 @@ abstract class DevkitBasePrismApplication : PrismApplicationBase
     }
 }
 
-public abstract class DevkitPrismApplication : PrismApplicationBase
+public abstract class DevkitPrismApplication : PrismApplication
 {
-    /// <summary>
-    /// Create <see cref="T:DryIoc.Rules" /> to alter behavior of <see cref="T:DryIoc.IContainer" />
-    /// </summary>
-    /// <returns>An instance of <see cref="T:DryIoc.Rules" /></returns>
-    protected virtual Rules CreateContainerRules() => DryIocContainerExtension.DefaultRules;
 
     /// <summary>
     /// Create a new <see cref="T:DryIocContainerExtension" /> used by Prism.
@@ -63,23 +60,14 @@ public abstract class DevkitPrismApplication : PrismApplicationBase
     /// <returns>A new <see cref="T:DryIocContainerExtension" />.</returns>
     protected override IContainerExtension CreateContainerExtension()
     {
-        var rules = this.CreateContainerRules();
-        var container = new DryIoc.Container(rules);
-        
         // 适配Microsoft.Extensions.DependencyInjection，将微软容器中的东西加入到DryIoc中
-        var microsoftServers = GetServiceCollection();
-        container.WithDependencyInjectionAdapter(microsoftServers);
-        
-        return new DryIocContainerExtension(container);
-    }
+        var microsoftServers = GetPrismServiceCollection();
 
-    /// <summary>
-    /// Registers the <see cref="T:System.Type" />s of the Exceptions that are not considered
-    /// root exceptions by the <see cref="T:System.ExceptionExtensions" />.
-    /// </summary>
-    protected override void RegisterFrameworkExceptionTypes()
-    {
-        ExceptionExtensions.RegisterFrameworkExceptionType(typeof (ContainerException));
+        Rules ruls = this.CreateContainerRules();
+        var container = new DryIoc.Container(this.CreateContainerRules());
+        container.WithDependencyInjectionAdapter(microsoftServers);
+    
+        return new DryIocContainerExtension(container);
     }
 
     private IServiceCollection _serviceCollection = new ServiceCollection();
@@ -87,5 +75,5 @@ public abstract class DevkitPrismApplication : PrismApplicationBase
     /// Microsoft.Extensions.DependencyInjection 容器
     /// </summary>
     /// <returns></returns>
-    protected virtual IServiceCollection GetServiceCollection() => _serviceCollection;
+    protected virtual IServiceCollection GetPrismServiceCollection() => _serviceCollection;
 }

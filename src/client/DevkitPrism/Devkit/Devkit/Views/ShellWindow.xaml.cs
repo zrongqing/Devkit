@@ -14,10 +14,11 @@ public partial class ShellWindow : ChromelessWindow
     public static Border _border = null;
     public string themeName = App.Current.Properties["Theme"]?.ToString() != null ? App.Current.Properties["Theme"]?.ToString() : "Windows11Light";
 
-    public ShellWindow(IMessageService  messageService)
+    public ShellWindow(IFileService fileService)
     {
         InitializeComponent();
         SfSkinManager.SetTheme(this, new Theme(themeName));
+        var a = fileService;
     }
 
     public void ShowWindow()

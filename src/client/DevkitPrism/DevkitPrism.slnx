@@ -9,6 +9,10 @@
   <Folder Name="/Tests/">
     <Project Path="Devkit/Tests/Devkit.Modules.ModuleName.Tests/Devkit.Modules.ModuleName.Tests.csproj" />
   </Folder>
+  <Folder Name="/_Solution Items/">
+    <File Path="../../../documents/dev/开发记录.md" />
+    <File Path="../../../README.md" />
+  </Folder>
   <Project Path="Devkit.Prism/Devkit.Prism.csproj" />
   <Project Path="Devkit/Devkit.Core/Devkit.Core.csproj" />
   <Project Path="Devkit/Devkit/Devkit.csproj" />

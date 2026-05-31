@@ -1,5 +1,5 @@
-﻿using Prism.Regions;
-using System;
+﻿using System;
+using Prism.Navigation.Regions;
 
 namespace Devkit.Core.Mvvm
 {

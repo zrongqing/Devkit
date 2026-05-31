@@ -2,7 +2,7 @@
 using Devkit.Modules.ModuleName.Views;
 using Prism.Ioc;
 using Prism.Modularity;
-using Prism.Regions;
+using Prism.Navigation.Regions;
 
 namespace Devkit.Modules.ModuleName
 {

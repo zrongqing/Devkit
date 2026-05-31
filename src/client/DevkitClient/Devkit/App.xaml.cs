@@ -52,8 +52,8 @@ public partial class App : PrismApplication
                 })
                 .ConfigureServices(ConfigureServices)
                 .Build();
-
-        await _host.StartAsync();
+            
+        await _host.StartAsync();   
     }
 
     private void ConfigureServices(HostBuilderContext context, IServiceCollection services)

@@ -9,9 +9,11 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using Devkit.Prism;
+using DryIoc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Prism.DryIoc;
 
 namespace Devkit
 {
@@ -36,7 +38,17 @@ namespace Devkit
         
         protected override void OnStartup(StartupEventArgs e)
         {
-            ConfigureServices(this.GetServiceCollection());
+            // For more information about .NET generic host see  https://docs.microsoft.com/aspnet/core/fundamentals/host/generic-host?view=aspnetcore-3.0
+            // var appLocation = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+            // var builder = Host.CreateDefaultBuilder(e.Args)
+            //     .ConfigureAppConfiguration(c =>
+            //     {
+            //         c.SetBasePath(appLocation);
+            //     })
+            //     .ConfigureServices(ConfigureServices);
+            // _host = builder.Build();
+            
+            ConfigureServices(this.GetPrismServiceCollection());
             base.OnStartup(e);
         }
 
@@ -48,6 +60,15 @@ namespace Devkit
         protected override Window CreateShell()
         {
             var shellWin = Container.Resolve<ShellWindow>();
+            try
+            {
+                var aa = Container.Resolve<IFileService>();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+            
             return shellWin;
         }
 
