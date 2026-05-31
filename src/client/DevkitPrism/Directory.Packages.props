@@ -2,6 +2,7 @@
   <ItemGroup>
     <!-- 注意：这里使用的是 PackageVersion，而不是 PackageReference -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageVersion Include="LibGit2Sharp" Version="0.31.0" />
 
     <PackageVersion Include="Prism.DryIoc" Version="9.0.537" />
     <PackageVersion Include="Prism.Wpf" Version="9.0.537" />

@@ -5,4 +5,8 @@
     <LangVersion>default</LangVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Devkit.Services.Interfaces.csproj.DotSettings" />
+  </ItemGroup>
+
 </Project>

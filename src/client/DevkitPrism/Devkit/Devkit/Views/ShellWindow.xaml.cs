@@ -2,6 +2,7 @@
 using Syncfusion.Windows.Shared;
 using System.Collections.ObjectModel;
 using System.Windows.Controls;
+using Devkit.Core.Contracts.Views;
 using Devkit.Services.Interfaces;
 
 namespace Devkit.Views;
@@ -9,7 +10,7 @@ namespace Devkit.Views;
 /// <summary>
 /// Interaction logic for MainWindow.xaml
 /// </summary>
-public partial class ShellWindow : ChromelessWindow
+public partial class ShellWindow : ChromelessWindow, IShellWindow
 {
     public static Border _border = null;
     public string themeName = App.Current.Properties["Theme"]?.ToString() != null ? App.Current.Properties["Theme"]?.ToString() : "Windows11Light";

@@ -1,12 +1,11 @@
 ﻿using Devkit.Services.Interfaces;
 
-namespace Devkit.Services
+namespace Devkit.Services;
+
+public class MessageService : IMessageService
 {
-    public class MessageService : IMessageService
+    public string GetMessage()
     {
-        public string GetMessage()
-        {
-            return "Hello from the Message Service";
-        }
+        return "Hello from the Message Service";
     }
 }

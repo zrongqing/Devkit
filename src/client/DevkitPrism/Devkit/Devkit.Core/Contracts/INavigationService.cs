@@ -1,7 +1,6 @@
-﻿using System;
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 
-namespace Devkit.Contracts.Services;
+namespace Devkit.Core.Contracts;
 
 public interface INavigationService
 {

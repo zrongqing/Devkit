@@ -1,19 +1,16 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Mvvm;
-using Prism.Navigation;
 
-namespace Devkit.Core.Mvvm
+namespace Devkit.Core.Mvvm;
+
+public abstract class ViewModelBase : ObservableObject, IDestructible
 {
-    public abstract class ViewModelBase : ObservableObject, IDestructible
+    protected ViewModelBase()
     {
-        protected ViewModelBase()
-        {
 
-        }
+    }
 
-        public virtual void Destroy()
-        {
+    public virtual void Destroy()
+    {
 
-        }
     }
 }
