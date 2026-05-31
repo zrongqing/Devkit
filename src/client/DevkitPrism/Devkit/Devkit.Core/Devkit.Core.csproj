@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="Prism.Wpf" Version="9.0.537" />
+    <PackageReference Include="CommunityToolkit.Mvvm"/>
+    <PackageReference Include="Prism.Wpf"/>
   </ItemGroup>
 </Project>

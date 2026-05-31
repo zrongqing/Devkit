@@ -4,7 +4,7 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Prism.Wpf" Version="9.0.537" />
+    <PackageReference Include="Prism.Wpf" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Devkit.Core\Devkit.Core.csproj" />

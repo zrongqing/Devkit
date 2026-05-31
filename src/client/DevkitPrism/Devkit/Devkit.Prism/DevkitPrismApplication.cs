@@ -1,13 +1,6 @@
-﻿using System.Data;
-using System.Windows;
-using Devkit.Services;
-using Devkit.Services.Interfaces;
-using DryIoc;
+﻿using System.Windows;
 using DryIoc.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
-using Prism;
-using Prism.Ioc;
-using Prism.DryIoc;
 
 namespace Devkit.Prism;
 
@@ -52,12 +45,6 @@ abstract class DevkitBasePrismApplication : PrismApplicationBase
 
 public abstract class DevkitPrismApplication : PrismApplication
 {
-
-    /// <summary>
-    /// Create a new <see cref="T:DryIocContainerExtension" /> used by Prism.
-    /// 自定义使用的容器
-    /// </summary>
-    /// <returns>A new <see cref="T:DryIocContainerExtension" />.</returns>
     protected override IContainerExtension CreateContainerExtension()
     {
         // 适配Microsoft.Extensions.DependencyInjection，将微软容器中的东西加入到DryIoc中
@@ -71,9 +58,5 @@ public abstract class DevkitPrismApplication : PrismApplication
     }
 
     private IServiceCollection _serviceCollection = new ServiceCollection();
-    /// <summary>
-    /// Microsoft.Extensions.DependencyInjection 容器
-    /// </summary>
-    /// <returns></returns>
     protected virtual IServiceCollection GetPrismServiceCollection() => _serviceCollection;
 }
