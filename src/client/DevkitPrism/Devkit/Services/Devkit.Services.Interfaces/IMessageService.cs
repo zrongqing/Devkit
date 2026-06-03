@@ -1,7 +1,6 @@
-﻿namespace Devkit.Services.Interfaces
+﻿namespace Devkit.Services.Interfaces;
+
+public interface IMessageService
 {
-    public interface IMessageService
-    {
-        string GetMessage();
-    }
+    string GetMessage();
 }

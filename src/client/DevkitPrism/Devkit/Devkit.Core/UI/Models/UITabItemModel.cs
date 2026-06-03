@@ -5,7 +5,7 @@ namespace Devkit.Core.UI.Models;
 /// <summary>
 /// Tab选项卡
 /// </summary>
-public partial class TabModel : ObservableObject
+public partial class UITabItemModel : ObservableObject
 {
     /// <summary>
     /// 显示
@@ -39,7 +39,7 @@ public partial class TabModel : ObservableObject
 
     public object Content { get; set; }
 
-    public TabModel(string code, string header, object content)
+    public UITabItemModel(string code, string header, object content)
     {
         this.Header = header;
         this.Code = code;

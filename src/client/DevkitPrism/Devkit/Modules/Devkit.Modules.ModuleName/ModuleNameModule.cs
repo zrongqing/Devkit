@@ -4,25 +4,24 @@ using Prism.Ioc;
 using Prism.Modularity;
 using Prism.Navigation.Regions;
 
-namespace Devkit.Modules.ModuleName
+namespace Devkit.Modules.ModuleName;
+
+public class ModuleNameModule : IModule
 {
-    public class ModuleNameModule : IModule
+    private readonly IRegionManager _regionManager;
+
+    public ModuleNameModule(IRegionManager regionManager)
     {
-        private readonly IRegionManager _regionManager;
+        _regionManager = regionManager;
+    }
 
-        public ModuleNameModule(IRegionManager regionManager)
-        {
-            _regionManager = regionManager;
-        }
+    public void OnInitialized(IContainerProvider containerProvider)
+    {
+        _regionManager.RequestNavigate(RegionNames.ContentRegion, "ViewA");
+    }
 
-        public void OnInitialized(IContainerProvider containerProvider)
-        {
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, "ViewA");
-        }
-
-        public void RegisterTypes(IContainerRegistry containerRegistry)
-        {
-            containerRegistry.RegisterForNavigation<ViewA>();
-        }
+    public void RegisterTypes(IContainerRegistry containerRegistry)
+    {
+        containerRegistry.RegisterForNavigation<ViewA>();
     }
 }

@@ -13,16 +13,15 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Devkit.Modules.ModuleName.Views
+namespace Devkit.Modules.ModuleName.Views;
+
+/// <summary>
+/// Interaction logic for ViewA.xaml
+/// </summary>
+public partial class ViewA : UserControl
 {
-    /// <summary>
-    /// Interaction logic for ViewA.xaml
-    /// </summary>
-    public partial class ViewA : UserControl
+    public ViewA()
     {
-        public ViewA()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

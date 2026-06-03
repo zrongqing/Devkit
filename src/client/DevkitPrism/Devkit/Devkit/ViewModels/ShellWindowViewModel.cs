@@ -1,19 +1,18 @@
 ﻿using Prism.Mvvm;
 
-namespace Devkit.ViewModels
+namespace Devkit.ViewModels;
+
+public class ShellWindowViewModel : BindableBase
 {
-    public class ShellWindowViewModel : BindableBase
+    private string _title = "Prism Application";
+    public string Title
     {
-        private string _title = "Prism Application";
-        public string Title
-        {
-            get { return _title; }
-            set { SetProperty(ref _title, value); }
-        }
+        get { return _title; }
+        set { SetProperty(ref _title, value); }
+    }
 
-        public ShellWindowViewModel()
-        {
+    public ShellWindowViewModel()
+    {
 
-        }
     }
 }

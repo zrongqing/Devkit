@@ -2,26 +2,25 @@
 using Devkit.Services.Interfaces;
 using Prism.Navigation.Regions;
 
-namespace Devkit.Modules.ModuleName.ViewModels
+namespace Devkit.Modules.ModuleName.ViewModels;
+
+public class ViewAViewModel : RegionViewModelBase
 {
-    public class ViewAViewModel : RegionViewModelBase
+    private string _message;
+    public string Message
     {
-        private string _message;
-        public string Message
-        {
-            get { return _message; }
-            set { SetProperty(ref _message, value); }
-        }
+        get { return _message; }
+        set { SetProperty(ref _message, value); }
+    }
 
-        public ViewAViewModel(IRegionManager regionManager, IMessageService messageService) :
-            base(regionManager)
-        {
-            Message = messageService.GetMessage();
-        }
+    public ViewAViewModel(IRegionManager regionManager, IMessageService messageService) :
+        base(regionManager)
+    {
+        Message = messageService.GetMessage();
+    }
 
-        public override void OnNavigatedTo(NavigationContext navigationContext)
-        {
-            //do something
-        }
+    public override void OnNavigatedTo(NavigationContext navigationContext)
+    {
+        //do something
     }
 }

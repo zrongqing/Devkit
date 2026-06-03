@@ -1,8 +1,8 @@
 ﻿using Devkit.Core.UI.Models;
 
-namespace DevKitApp.Core.PrismEvents;
+namespace Devkit.Prism.Events;
 
-public class MenuActiveEvent : PubSubEvent<TabModel>
+public class MenuActiveEvent : PubSubEvent<UITabItemModel>
 {
 
 }

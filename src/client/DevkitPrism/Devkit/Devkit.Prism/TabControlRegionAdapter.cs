@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace DevKitApp.Core.Prism;
+namespace Devkit.Prism;
 
 public class TabControlRegionAdapter : RegionAdapterBase<TabControl>
 {

@@ -1,6 +1,6 @@
 ﻿using Devkit.Core.UI.Models;
 
-namespace DevKitApp.Core.PrismEvents;
+namespace Devkit.Prism.Events;
 
 /// <summary>
 /// Represents a publish-subscribe event that is triggered when a menu is registered.
@@ -9,7 +9,7 @@ namespace DevKitApp.Core.PrismEvents;
 /// registered within the application. Subscribers can handle this event to perform actions in response to menu
 /// registration. Thread safety and event delivery semantics depend on the underlying PubSubEvent
 /// implementation.</remarks>
-public class MenuRegisterEvent : PubSubEvent<Menu>
+public class MenuRegisterEvent : PubSubEvent<MenuItemModel>
 {
 
 }

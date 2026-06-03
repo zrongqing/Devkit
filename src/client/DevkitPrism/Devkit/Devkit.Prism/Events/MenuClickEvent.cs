@@ -1,9 +1,4 @@
-﻿using Prism.Events;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace DevKitApp.Core.PrismEvents;
+﻿namespace Devkit.Prism.Events;
 
 /// <summary>
 /// 打开菜单

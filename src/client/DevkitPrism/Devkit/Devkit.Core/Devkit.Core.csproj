@@ -7,4 +7,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm"/>
     <PackageReference Include="Prism.Wpf"/>
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="Devkit.Core.csproj.DotSettings" />
+  </ItemGroup>
 </Project>
