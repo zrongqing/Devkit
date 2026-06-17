@@ -64,6 +64,7 @@ DevKit/
 ```
 
 Application 层负责：
+
 - 用例编排（Use Case）
 - 权限 / 事务 / 聚合协调
 - 把 Domain Entity 转成 DTO

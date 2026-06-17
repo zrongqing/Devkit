@@ -1,23 +1,24 @@
 <Solution>
   <Folder Name="/Modules/">
-    <Project Path="Devkit/Modules/Devkit.Modules.ModuleName/Devkit.Modules.ModuleName.csproj" />
+    <Project Path="src/Modules/Devkit.Modules.ModuleName/Devkit.Modules.ModuleName.csproj"/>
   </Folder>
   <Folder Name="/Services/">
-    <Project Path="Devkit/Services/Devkit.Services.Interfaces/Devkit.Services.Interfaces.csproj" />
-    <Project Path="Devkit/Services/Devkit.Services/Devkit.Services.csproj" />
+    <Project Path="src/Services/Devkit.Services.Interfaces/Devkit.Services.Interfaces.csproj"/>
+    <Project Path="src/Services/Devkit.Services/Devkit.Services.csproj"/>
   </Folder>
   <Folder Name="/Tests/">
-    <Project Path="Devkit/Tests/Devkit.Modules.ModuleName.Tests/Devkit.Modules.ModuleName.Tests.csproj" />
+    <Project Path="src/Tests/Devkit.Modules.ModuleName.Tests/Devkit.Modules.ModuleName.Tests.csproj"/>
   </Folder>
   <Folder Name="/_props/">
-    <File Path="Directory.Build.props" />
-    <File Path="Directory.Packages.props" />
+    <File Path="Directory.Build.props"/>
+    <File Path="Directory.Packages.props"/>
   </Folder>
   <Folder Name="/_Solution Items/">
-    <File Path="../../../documents/dev/开发记录.md" />
-    <File Path="../../../README.md" />
+    <File Path="../../../documents/dev/开发记录.md"/>
+    <File Path="../../../README.md"/>
   </Folder>
-  <Project Path="Devkit/Devkit.Core/Devkit.Core.csproj" />
-  <Project Path="Devkit/Devkit.Prism/Devkit.Prism.csproj" />
-  <Project Path="Devkit/Devkit/Devkit.csproj" />
+  <Project Path="src/Devkit.Core.UI/Devkit.Core.UI.csproj"/>
+  <Project Path="src/Devkit.Core/Devkit.Core.csproj"/>
+  <Project Path="src/Devkit.Prism/Devkit.Prism.csproj"/>
+  <Project Path="src/Devkit/Devkit.csproj"/>
 </Solution>

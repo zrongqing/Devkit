@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm"/>
+    
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf"/>
+    <PackageReference Include="Syncfusion.PropertyGrid.WPF"/>
+    <PackageReference Include="Syncfusion.SfSkinManager.WPF"/>
+    <PackageReference Include="Syncfusion.Shared.WPF"/>
+    <PackageReference Include="Syncfusion.SfTreeView.WPF"/>
+    
+    <PackageReference Include="Syncfusion.Themes.MaterialDark.WPF"/>
+    <PackageReference Include="Syncfusion.Themes.MaterialDarkBlue.WPF"/>
+    <PackageReference Include="Syncfusion.Themes.MaterialLight.WPF"/>
+    <PackageReference Include="Syncfusion.Themes.MaterialLightBlue.WPF"/>
+    <PackageReference Include="Syncfusion.Themes.Office2019Black.WPF"/>
+    <PackageReference Include="Syncfusion.Themes.Office2019Colorful.WPF"/>
+    <PackageReference Include="Syncfusion.Themes.Office2019DarkGray.WPF"/>
+    <PackageReference Include="Syncfusion.Themes.Office2019HighContrast.WPF"/>
+    <PackageReference Include="Syncfusion.Themes.Office2019White.WPF"/>
+    <PackageReference Include="Syncfusion.Themes.Windows11Dark.WPF"/>
+    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF"/>
+    <PackageReference Include="Syncfusion.Tools.WPF"/>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Devkit.Core\Devkit.Core.csproj"/>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Remove="Devkit.Core.UI.csproj.DotSettings"/>
+  </ItemGroup>
+
+</Project>
