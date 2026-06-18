@@ -1,4 +1,5 @@
 ﻿using System.Windows.Controls;
+using Devkit.Core.UI.Models;
 using Devkit.Models;
 using Devkit.ViewModels;
 using Microsoft.Xaml.Behaviors;
@@ -18,7 +19,7 @@ public class TreeViewFilterTrigger : TargetedTriggerAction<SfTreeView>
         var viewModel = this.Target.DataContext as MenuViewModel;
         viewModel.CollectionView?.Filter = (e) =>
         {
-            if (e is MenuTree file)
+            if (e is MenuItemModel file)
             {
                 return MatchesFilter(file, viewModel.FilterText);
             }
@@ -30,7 +31,7 @@ public class TreeViewFilterTrigger : TargetedTriggerAction<SfTreeView>
     }
 
     // 递归检查所有层级
-    private bool MatchesFilter(MenuTree item, string filterText)
+    private bool MatchesFilter(MenuItemModel item, string filterText)
     {
         if (string.IsNullOrEmpty(filterText)) return true;
 
@@ -38,7 +39,7 @@ public class TreeViewFilterTrigger : TargetedTriggerAction<SfTreeView>
         if (item.Title?.ToLower().Contains(filterText.ToLower()) == true)
             return true;
 
-        var children = item.Items ?? item.Items;
+        var children = item.Children ?? item.Children;
         if (children != null)
         {
             foreach (var child in children)

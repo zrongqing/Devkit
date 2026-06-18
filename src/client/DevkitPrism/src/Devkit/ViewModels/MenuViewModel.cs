@@ -20,7 +20,7 @@ public partial class MenuViewModel : ViewModelBase
     private ListCollectionView _collectionView;
 
     [ObservableProperty]
-    private ObservableCollection<MenuTree> _menus = new();
+    private ObservableCollection<MenuItemModel> _menus = new();
 
     public MenuViewModel()
     {
@@ -53,44 +53,44 @@ public partial class MenuViewModel : ViewModelBase
     /// 将扁平的 MenuModel 列表（带 Code / ParentCode）转换为树形结构。
     /// 返回根节点集合，子节点会被加入各自的 Items 集合。
     /// </summary>
-    private static ObservableCollection<MenuTree> BuildHierarchy(IEnumerable<MenuTree> flatList)
+    private static ObservableCollection<MenuItemModel> BuildHierarchy(IEnumerable<MenuItemModel> flatList)
     {
         if (flatList == null)
-            return new ObservableCollection<MenuTree>();
-
+            return new ObservableCollection<MenuItemModel>();
+        
         // 用 Code 建立字典方便查找
-        var dict = new Dictionary<string, MenuTree>();
+        var dict = new Dictionary<string, MenuItemModel>();
         var all = flatList.ToList();
-
+        
         // 重置 Items，避免旧数据残留
         foreach (var item in all)
         {
             // 保证 Items 不为 null 并清空旧值
-            item.Items = new ObservableCollection<MenuTree>();
-            if (!string.IsNullOrEmpty(item.Code))
+            item.Children = new ObservableCollection<MenuItemModel>();
+            if (!string.IsNullOrEmpty(item.Id))
             {
-                if (!dict.ContainsKey(item.Code))
-                    dict[item.Code] = item;
+                if (!dict.ContainsKey(item.Id))
+                    dict[item.Id] = item;
             }
         }
-
-        var roots = new List<MenuTree>();
-
+        
+        var roots = new List<MenuItemModel>();
+        
         foreach (var item in all)
         {
             // 如果 ParentCode 为空或找不到父节点，则认为是根节点
-            if (string.IsNullOrWhiteSpace(item.ParentCode) || !dict.TryGetValue(item.ParentCode, out var parent) || parent == item)
+            if (string.IsNullOrWhiteSpace(item.ParentId) || !dict.TryGetValue(item.ParentId, out var parent) || parent == item)
             {
                 roots.Add(item);
             }
             else
             {
                 // 防止循环引用：如果父节点是当前节点或已在子链中则跳过
-                parent.Items.Add(item);
+                parent.Children.Add(item);
             }
         }
 
-        return new ObservableCollection<MenuTree>(roots);
+        return new ObservableCollection<MenuItemModel>(null);
     }
 
     #region Filtering

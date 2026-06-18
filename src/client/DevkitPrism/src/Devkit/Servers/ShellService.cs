@@ -19,19 +19,19 @@ public class ShellService : IShellService
         return new List<MenuItemModel>
         {
             new()
-                { Title = "首页", TargetViewModelType = typeof(HomeViewModel), IsClosable = false },
+                { Title = "首页", ViewModelType = typeof(HomeViewModel), IsClosable = false },
             new()
-                { Title = "系统设置", TargetViewModelType = typeof(SettingViewModel) }
+                { Title = "系统设置", ViewModelType = typeof(SettingViewModel) }
         };
     }
     public object ResolveContent(MenuItemModel menu)
     {
-        if (menu?.TargetViewModelType == null)
+        if (menu?.ViewModelType == null)
             return null;
 
         // 利用 Prism 的 DI 容器动态解析 ViewModel
         // 这样 ViewModel 的构造函数中注入的服务也能被正常解析
-        return _containerProvider.Resolve(menu.TargetViewModelType);
+        return _containerProvider.Resolve(menu.ViewModelType);
     }
     #endregion
 }
