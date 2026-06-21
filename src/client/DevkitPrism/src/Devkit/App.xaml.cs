@@ -54,6 +54,8 @@ public partial class App : DevkitPrismApplication
     private void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton<IFileService, FileService>();
+        services.AddSingleton<IMessageService, MessageService>();
+        services.AddSingleton<IShellService, ShellService>();
     }
 
     protected override Window CreateShell()
@@ -76,7 +78,8 @@ public partial class App : DevkitPrismApplication
 
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
     {
-        containerRegistry.RegisterSingleton<IMessageService, MessageService>();
+        containerRegistry.RegisterSingleton<IShellService, ShellService>();
+        
         
         containerRegistry.RegisterForNavigation<MenuView, MenuViewModel>(SysViewKeys.Menu);
     }
@@ -86,4 +89,6 @@ public partial class App : DevkitPrismApplication
         moduleCatalog.AddModule<ModuleNameModule>();
     }
     
+    
+
 }

@@ -6,7 +6,7 @@ namespace Devkit.Core.UI.Models;
 /// <summary>
 /// Tab选项卡
 /// </summary>
-public partial class UITabItemModel : ObservableObject
+public partial class TabItemModel : ObservableObject
 {
     [ObservableProperty]
     private bool _allowPin = true;
@@ -38,7 +38,7 @@ public partial class UITabItemModel : ObservableObject
     [ObservableProperty]
     private bool _showPin = true;
 
-    public UITabItemModel(string code, string header, object content)
+    public TabItemModel(string code, string header, object content)
     {
         Header = header;
         Code = code;

@@ -6,6 +6,7 @@ using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Mvvm;
 using Devkit.Core.UI.Views;
 using Devkit.Models;
+using Devkit.Services.Interfaces;
 
 namespace Devkit.ViewModels;
 
@@ -22,16 +23,17 @@ public partial class MenuViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<MenuItemModel> _menus = new();
 
-    public MenuViewModel()
+    public MenuViewModel(IContainerProvider container)
     {
-        // IShellService shellService
-        _shellService = null;
+        _shellService = container.Resolve<IShellService>();
     }
 
     [RelayCommand]
     private void Loaded()
     {
-        // _shellService.ReloadMenus();
+        var meuns = _shellService.LoadMenus().ToList();
+        this.CollectionView = new  ListCollectionView(meuns);
+        
         // var menus = _shellService.GetMenus();
         // var convertedMenus = menus.Adapt<List<MenuItemModelModel>>();
         // var treeMenus = BuildHierarchy(convertedMenus);

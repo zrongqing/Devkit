@@ -1,24 +1,13 @@
 ﻿using System.Collections.ObjectModel;
+using Devkit.Core.UI.Mvvm;
 
 namespace Devkit.Core.UI.Models;
 
 /// <summary>
 /// UI菜单
 /// </summary>
-public class MenuItemModel
+public class MenuItemModel : ViewModelBase
 {
-    public MenuItemModel()
-    {
-    }
-    private MenuItemModel(string id, string title)
-    {
-        Id = id;
-        Title = title;
-    }
-    public MenuItemModel(string id, string title, UIMenuType uiMenuType) : this(id, title)
-    {
-    }
-
     /// <summary>
     /// 菜单标识
     /// </summary>
@@ -48,7 +37,6 @@ public class MenuItemModel
     /// 记录该菜单要打开的 ViewModel 的类型
     /// </summary>
     public Type ViewModelType { get; set; }
-
     /// <summary>
     /// 菜单图标加载路径
     /// </summary>

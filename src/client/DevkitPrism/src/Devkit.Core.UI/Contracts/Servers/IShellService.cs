@@ -23,12 +23,12 @@ public class ShellService : IShellService
     private readonly IRegionManager _regionManager;
     private readonly IModuleCatalog _moduleCatalog;
 
-    public ShellService(IMenuRegistry registry,
-                        IContainerProvider container,
-                        IRegionManager regionManager,
-                        IModuleCatalog moduleCatalog)
+    public ShellService(
+        IContainerProvider container, 
+        IRegionManager regionManager, 
+        IModuleCatalog moduleCatalog)
     {
-        _registry = registry;
+        // _registry = registry;
         _container = container;
         _regionManager = regionManager;
         _moduleCatalog = moduleCatalog;
