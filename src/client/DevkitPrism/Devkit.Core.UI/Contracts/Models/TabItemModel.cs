@@ -38,10 +38,14 @@ public partial class TabItemModel : ObservableObject
     [ObservableProperty]
     private bool _showPin = true;
 
+    [ObservableProperty]
+    private string _menuId;
+
     public TabItemModel(string code, string header, object content)
     {
         Header = header;
         Code = code;
+        MenuId = code;
         Content = content;
     }
 

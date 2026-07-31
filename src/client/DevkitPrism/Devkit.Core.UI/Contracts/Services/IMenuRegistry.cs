@@ -7,28 +7,52 @@ namespace Devkit.Core.UI.Services;
 public interface IMenuRegistry
 {
     void Register(MenuItemModel item);
+    void RegisterRemote(MenuItemModel item);
     void RegisterRange(IEnumerable<MenuItemModel> items);
+    void RegisterRemoteRange(IEnumerable<MenuItemModel> items);
     void ScanFromAssembly(Assembly assembly);
     IReadOnlyList<MenuItemModel> GetFlatMenus();
+    MenuItemModel? Find(string id);
 }
 
 public class MenuRegistry : IMenuRegistry
 {
-    private readonly List<MenuItemModel> _items = new();
+    private readonly Dictionary<string, MenuItemModel> _items = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _remoteMenuIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly IContainerProvider _container;
 
     public MenuRegistry(IContainerProvider container) => _container = container;
 
-    public void Register(MenuItemModel item)
+    public void Register(MenuItemModel item) => RegisterCore(item, isRemote: false);
+
+    public void RegisterRemote(MenuItemModel item) => RegisterCore(item, isRemote: true);
+
+    private void RegisterCore(MenuItemModel item, bool isRemote)
     {
         if (string.IsNullOrEmpty(item.Id))
             throw new InvalidOperationException("菜单项必须指定 Id");
-        _items.Add(item);
+
+        if (!isRemote && _remoteMenuIds.Contains(item.Id))
+        {
+            return;
+        }
+
+        _items[item.Id] = item;
+
+        if (isRemote)
+        {
+            _remoteMenuIds.Add(item.Id);
+        }
     }
 
     public void RegisterRange(IEnumerable<MenuItemModel> items)
     {
         foreach (var it in items) Register(it);
+    }
+
+    public void RegisterRemoteRange(IEnumerable<MenuItemModel> items)
+    {
+        foreach (var it in items) RegisterRemote(it);
     }
 
     /// <summary>扫描程序集中带 [MenuItem] 特性的 View 类型</summary>
@@ -52,5 +76,10 @@ public class MenuRegistry : IMenuRegistry
         }
     }
 
-    public IReadOnlyList<MenuItemModel> GetFlatMenus() => _items;
+    public IReadOnlyList<MenuItemModel> GetFlatMenus() => _items.Values.ToList();
+
+    public MenuItemModel? Find(string id)
+    {
+        return _items.TryGetValue(id, out var item) ? item : null;
+    }
 }

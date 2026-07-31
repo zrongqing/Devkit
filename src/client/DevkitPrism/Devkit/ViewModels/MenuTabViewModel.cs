@@ -6,15 +6,14 @@ using Devkit.Prism.Events;
 
 namespace Devkit.ViewModels;
 
-public class ShellWindowViewModel : BindableBase
+public class MenuTabViewModel : BindableBase
 {
     private readonly IEventAggregator _eventAggregator;
     private readonly IShellService _shellService;
     private SubscriptionToken? _menuClickSubscription;
     private TabItemModel? _selectedTab;
-    private string _title = "Devkit";
 
-    public ShellWindowViewModel(IEventAggregator eventAggregator, IShellService shellService)
+    public MenuTabViewModel(IEventAggregator eventAggregator, IShellService shellService)
     {
         _eventAggregator = eventAggregator;
         _shellService = shellService;
@@ -23,18 +22,18 @@ public class ShellWindowViewModel : BindableBase
         CloseTabCommand = new DelegateCommand<TabItemModel?>(CloseTab);
     }
 
-    public string Title
-    {
-        get => _title;
-        set => SetProperty(ref _title, value);
-    }
-
     public ObservableCollection<TabItemModel> Tabs { get; } = new();
 
     public TabItemModel? SelectedTab
     {
         get => _selectedTab;
-        set => SetProperty(ref _selectedTab, value);
+        set
+        {
+            if (SetProperty(ref _selectedTab, value) && value != null)
+            {
+                _eventAggregator.GetEvent<MenuActiveEvent>().Publish(value);
+            }
+        }
     }
 
     public DelegateCommand LoadedCommand { get; }

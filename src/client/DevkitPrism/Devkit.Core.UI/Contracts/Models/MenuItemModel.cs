@@ -32,16 +32,21 @@ public class MenuItemModel
     /// <summary>
     /// View-first 导航时使用的视图名（注册到 Region 的名字）
     /// </summary>
-    public string ViewName { get; set; }
+    public string? ViewName { get; set; }
     /// <summary>
     /// 记录该菜单要打开的 ViewModel 的类型
     /// </summary>
-    public Type ViewModelType { get; set; }
+    public Type? ViewModelType { get; set; }
     /// <summary>
     /// 菜单图标加载路径
     /// </summary>
     public string? IconPath { get; set; }
-    public byte[] Icon { get; set; }
+    public byte[]? Icon { get; set; }
+
+    /// <summary>
+    /// 是否允许同一个菜单打开多个标签页。
+    /// </summary>
+    public bool AllowMultipleTabs { get; set; }
 
     /// <summary>
     /// 标记该页面是否可关闭（如首页常驻不可关）
@@ -50,5 +55,5 @@ public class MenuItemModel
     
     public bool HasChildren => Children?.Any() == true;
     public ObservableCollection<MenuItemModel> Children { get; set; } = new();
-    public NavigationParameters Parameters { get; set; }
+    public NavigationParameters? Parameters { get; set; }
 }

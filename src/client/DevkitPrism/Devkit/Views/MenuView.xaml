@@ -18,7 +18,7 @@
              xmlns:trigger="clr-namespace:Devkit.Core.UI.Triggers"
              d:DataContext="{d:DesignInstance Type=vm:MenuViewModel}"
              >
-  
+
   <i:Interaction.Triggers>
     <i:EventTrigger EventName="Loaded">
       <i:InvokeCommandAction Command="{Binding LoadedCommand}" />

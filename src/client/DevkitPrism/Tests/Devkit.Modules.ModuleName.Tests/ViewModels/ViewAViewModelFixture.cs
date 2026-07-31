@@ -1,41 +1,38 @@
-﻿using Devkit.Modules.ModuleName.ViewModels;
+using Devkit.Modules.ModuleName.ViewModels;
 using Devkit.Services.Interfaces;
 using Moq;
-using Prism.Regions;
 using Xunit;
 
-namespace Devkit.Modules.ModuleName.Tests.ViewModels
+namespace Devkit.Modules.ModuleName.Tests.ViewModels;
+
+public class ViewAViewModelFixture
 {
-    public class ViewAViewModelFixture
+    private const string MessageServiceDefaultMessage = "Some Value";
+    private readonly Mock<IMessageService> _messageServiceMock;
+    private readonly Mock<IRegionManager> _regionManagerMock;
+
+    public ViewAViewModelFixture()
     {
-        Mock<IMessageService> _messageServiceMock;
-        Mock<IRegionManager> _regionManagerMock;
-        const string MessageServiceDefaultMessage = "Some Value";
+        _messageServiceMock = new Mock<IMessageService>();
+        _messageServiceMock.Setup(x => x.GetMessage()).Returns(MessageServiceDefaultMessage);
 
-        public ViewAViewModelFixture()
-        {
-            var messageService = new Mock<IMessageService>();
-            messageService.Setup(x => x.GetMessage()).Returns(MessageServiceDefaultMessage);
-            _messageServiceMock = messageService;
+        _regionManagerMock = new Mock<IRegionManager>();
+    }
 
-            _regionManagerMock = new Mock<IRegionManager>();
-        }
+    [Fact]
+    public void MessagePropertyValueUpdated()
+    {
+        var vm = new ViewAViewModel(_regionManagerMock.Object, _messageServiceMock.Object);
 
-        [Fact]
-        public void MessagePropertyValueUpdated()
-        {
-            var vm = new ViewAViewModel(_regionManagerMock.Object, _messageServiceMock.Object);
+        _messageServiceMock.Verify(x => x.GetMessage(), Times.Once);
 
-            _messageServiceMock.Verify(x => x.GetMessage(), Times.Once);
+        Assert.Equal(MessageServiceDefaultMessage, vm.Message);
+    }
 
-            Assert.Equal(MessageServiceDefaultMessage, vm.Message);
-        }
-
-        [Fact]
-        public void MessageINotifyPropertyChangedCalled()
-        {
-            var vm = new ViewAViewModel(_regionManagerMock.Object, _messageServiceMock.Object);
-            Assert.PropertyChanged(vm, nameof(vm.Message), () => vm.Message = "Changed");
-        }
+    [Fact]
+    public void MessageINotifyPropertyChangedCalled()
+    {
+        var vm = new ViewAViewModel(_regionManagerMock.Object, _messageServiceMock.Object);
+        Assert.PropertyChanged(vm, nameof(vm.Message), () => vm.Message = "Changed");
     }
 }

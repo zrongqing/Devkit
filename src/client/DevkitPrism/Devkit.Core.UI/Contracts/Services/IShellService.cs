@@ -13,11 +13,12 @@ public interface IShellService
     /// </summary>
     /// <returns></returns>
     IEnumerable<MenuItemModel> LoadAllMenus();
+    MenuItemModel? FindMenu(string id);
 
     /// <summary>
-    /// 根据菜单项解析出对应的 ViewModel 实例
+    /// 根据菜单项解析出对应的 View 实例
     /// </summary>
-    object ResolveContent(MenuItemModel menu);
+    object? ResolveContent(MenuItemModel menu);
 }
 
 public class ShellService : IShellService
@@ -43,11 +44,12 @@ public class ShellService : IShellService
     public IEnumerable<MenuItemModel> LoadMenus()
     {
         var flat = _registry.GetFlatMenus()
+                            .Where(x => x.IsVisible)
                             .OrderBy(x => x.Order)
                             .ToList();
 
-        var lookup = flat.ToLookup(x => x.ParentId);
-        var roots = lookup[null].Concat(lookup[""]);
+        var lookup = flat.ToLookup(x => x.ParentId ?? string.Empty);
+        var roots = lookup[string.Empty].OrderBy(x => x.Order).ToList();
 
         foreach (var root in roots)
             BuildTree(root, lookup);
@@ -57,14 +59,15 @@ public class ShellService : IShellService
 
     public IEnumerable<MenuItemModel> LoadAllMenus()
     {
-        var flat = _registry.GetFlatMenus() .ToList();
-        return flat;
+        return _registry.GetFlatMenus().OrderBy(x => x.Order).ToList();
     }
 
-    private void BuildTree(MenuItemModel node, ILookup<string, MenuItemModel> lookup)
+    public MenuItemModel? FindMenu(string id) => _registry.Find(id);
+
+    private static void BuildTree(MenuItemModel node, ILookup<string, MenuItemModel> lookup)
     {
         node.Children.Clear();
-        foreach (var child in lookup[node.Id])
+        foreach (var child in lookup[node.Id].OrderBy(x => x.Order))
         {
             node.Children.Add(child);
             BuildTree(child, lookup);
@@ -72,20 +75,17 @@ public class ShellService : IShellService
     }
 
     /// <summary>根据菜单解析 ViewModel 实例</summary>
-    public object ResolveContent(MenuItemModel menu)
+    public object? ResolveContent(MenuItemModel menu)
     {
         if (menu == null) return null;
 
-        // 方式 1：View-first，使用 Prism 区域导航
+        // 方式 1：View-first，解析 Prism 导航注册的 View。
         if (!string.IsNullOrEmpty(menu.ViewName))
         {
-            _regionManager.RequestNavigate("ContentRegion", menu.ViewName);
-            // 同时返回已激活视图的 DataContext
-            var view = _regionManager.Regions["ContentRegion"].ActiveViews.FirstOrDefault();
-            return view?.GetType().GetProperty("DataContext")?.GetValue(view);
+            return _container.Resolve<object>(menu.ViewName);
         }
 
-        // 方式 2：ViewModel-first
+        // 方式 2：ViewModel-first。
         if (menu.ViewModelType != null)
         {
             return _container.Resolve(menu.ViewModelType);
