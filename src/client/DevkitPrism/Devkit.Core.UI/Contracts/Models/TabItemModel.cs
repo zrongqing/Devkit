@@ -37,7 +37,8 @@ public partial class TabItemModel : ObservableObject
     private bool _isSelected;
     [ObservableProperty]
     private bool _showPin = true;
-
+    [ObservableProperty]
+    private bool _isPinned;
     [ObservableProperty]
     private string _menuId;
 

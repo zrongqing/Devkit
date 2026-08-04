@@ -4,12 +4,41 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-             xmlns:tools="clr-namespace:Syncfusion.Windows.Tools.Controls;assembly=Syncfusion.Tools.WPF"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
              xmlns:prism="http://prismlibrary.com/"
              prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d"
+             xmlns:vm="clr-namespace:Devkit.ViewModels"
+             d:DataContext="{d:DesignInstance Type=vm:MenuTabViewModel}"
              d:DesignHeight="300"
              d:DesignWidth="300">
+  <UserControl.Resources>
+    <DataTemplate x:Key="HeaderTemplate">
+      <TextBlock Text="{Binding Header, Mode=TwoWay}" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="ContentTemplate">
+      <Label Content="{Binding Content}" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="EditHeaderTemplate">
+      <TextBox Text="{Binding Header, Mode=TwoWay}" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TabListContentTemplate">
+      <TextBlock Text="{Binding Header}" />
+    </DataTemplate>
+
+    <Style x:Key="ItemStyle" TargetType="syncfusion:TabItemExt">
+      <Setter Property="CanClose" Value="{Binding CanClose, Mode=TwoWay}" />
+      <Setter Property="ShowPin" Value="{Binding ShowPin, Mode=TwoWay}" />
+      <Setter Property="AllowPin" Value="{Binding AllowPin, Mode=TwoWay}" />
+      <Setter Property="IsPinned" Value="{Binding IsPinned, Mode=TwoWay}" />
+      <Setter Property="CloseButtonState" Value="{Binding CloseButtonState, Mode=TwoWay}" />
+      <Setter Property="Height" Value="30" />
+    </Style>
+  </UserControl.Resources>
+
   <i:Interaction.Triggers>
     <i:EventTrigger EventName="Loaded">
       <i:InvokeCommandAction Command="{Binding LoadedCommand}" />
@@ -20,11 +49,20 @@
   </i:Interaction.Triggers>
 
   <Grid>
-    <tools:TabControlExt ItemsSource="{Binding Tabs}"
-                         SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
-                         BorderThickness="0"
-                         Padding="0">
-      <tools:TabControlExt.ItemTemplate>
+    <syncfusion:TabControlExt 
+      ItemsSource="{Binding Tabs}"
+      SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
+      BorderThickness="0"
+      Padding="0"
+      EditHeaderTemplate="{StaticResource EditHeaderTemplate}"
+      ItemTemplate="{StaticResource HeaderTemplate}"
+      ItemContainerStyle="{StaticResource ItemStyle}"
+      TabItemLayout="SingleLine"
+      EnableLabelEdit="False"
+      CloseButtonType="Common"
+      TabItemHeaderStyle="Fill"
+      >
+      <!--<syncfusion:TabControlExt.ItemTemplate>
         <DataTemplate>
           <DockPanel LastChildFill="False">
             <TextBlock Text="{Binding Header}"
@@ -45,12 +83,12 @@
             </Button>
           </DockPanel>
         </DataTemplate>
-      </tools:TabControlExt.ItemTemplate>
-      <tools:TabControlExt.ContentTemplate>
+      </syncfusion:TabControlExt.ItemTemplate>-->
+      <syncfusion:TabControlExt.ContentTemplate>
         <DataTemplate>
           <ContentPresenter Content="{Binding Content}" />
         </DataTemplate>
-      </tools:TabControlExt.ContentTemplate>
-    </tools:TabControlExt>
+      </syncfusion:TabControlExt.ContentTemplate>
+    </syncfusion:TabControlExt>
   </Grid>
 </UserControl>
