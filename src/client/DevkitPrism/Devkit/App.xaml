@@ -6,7 +6,6 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
 
-        <ResourceDictionary Source="/Styles/TextBlock.xaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

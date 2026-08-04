@@ -15,18 +15,22 @@ public partial class MenuViewModel : ViewModelBase
     private readonly IEventAggregator _eventAggregator;
     private readonly IShellService _shellService;
 
-    [ObservableProperty]
-    private MenuItemModel _activeMenuItemModel = null;
-    [ObservableProperty]
-    private ListCollectionView _collectionView;
-
-    [ObservableProperty]
-    private ObservableCollection<MenuItemModel> _menus = new();
-
     public MenuViewModel(IContainerProvider container)
     {
         _shellService = container.Resolve<IShellService>();
         _eventAggregator = container.Resolve<IEventAggregator>();
+    }
+
+    [ObservableProperty]
+    private MenuItemModel _activeMenuItemModel = null;
+    [ObservableProperty]
+    private ListCollectionView _collectionView;
+    [ObservableProperty]
+    private ObservableCollection<MenuItemModel> _menus = new();
+
+    partial void OnActiveMenuItemModelChanged(MenuItemModel value)
+    {
+        MenuClicked(value);
     }
 
     [RelayCommand]
@@ -35,7 +39,6 @@ public partial class MenuViewModel : ViewModelBase
         var menus = _shellService.LoadMenus().ToList();
         CollectionView = new ListCollectionView(menus);
     }
-
     [RelayCommand]
     private void MenuClicked(MenuItemModel? menu)
     {
