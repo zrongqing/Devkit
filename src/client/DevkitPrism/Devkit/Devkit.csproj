@@ -9,7 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json"/>
-    
+    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.Extensions.Hosting"/>
     <PackageReference Include="Mapster"/>

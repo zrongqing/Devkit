@@ -17,9 +17,9 @@ public partial class ShellWindow : ChromelessWindow, IShellWindow
 
     public ShellWindow(IFileService fileService)
     {
+        SfSkinManager.ApplyThemeAsDefaultStyle = true;
+        SfSkinManager.ApplicationTheme = new Theme("Windows11Light");
         InitializeComponent();
-        SfSkinManager.SetTheme(this, new Theme(themeName));
-        var a = fileService;
     }
 
     #region IShellWindow Members
