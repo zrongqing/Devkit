@@ -1,10 +1,11 @@
 using System.Net.Http;
+using System.IO;
 using System.Windows;
 using Devkit.Core;
 using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Services;
-using Devkit.Modules.ModuleName;
 using Devkit.Prism;
+using Devkit.Prism.Extensions;
 using Devkit.Services;
 using Devkit.Services.Diagnostics;
 using Devkit.Services.Interfaces.Logging;
@@ -97,14 +98,13 @@ public partial class App : DevkitPrismApplication
 
     protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
     {
-        moduleCatalog.AddModule<ModuleNameModule>();
+        moduleCatalog.AddModulesFromDirectory(Path.Combine(AppContext.BaseDirectory, "modules"));
     }
 
     private void LoadMenus()
     {
         var menuRegistry = Container.Resolve<IMenuRegistry>();
         menuRegistry.ScanFromAssembly(GetType().Assembly);
-        menuRegistry.ScanFromAssembly(typeof(ModuleNameModule).Assembly);
 
         menuRegistry.Register(new MenuItemModel
         {

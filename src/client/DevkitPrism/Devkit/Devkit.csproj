@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <OutputPath>$(DevkitClientOutputRoot)$(Configuration)\$(TargetFramework)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json"/>
@@ -19,7 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Devkit.Prism\Devkit.Prism.csproj"/>
     <ProjectReference Include="..\Devkit.Core\Devkit.Core.csproj"/>
-    <ProjectReference Include="..\Modules\Devkit.Modules.ModuleName\Devkit.Modules.ModuleName.csproj"/>
+    <ProjectReference Include="..\Modules\Devkit.Modules.ModuleName\Devkit.Modules.ModuleName.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\Services\Devkit.Services.Interfaces\Devkit.Services.Interfaces.csproj"/>
     <ProjectReference Include="..\Services\Devkit.Services\Devkit.Services.csproj"/>
   </ItemGroup>

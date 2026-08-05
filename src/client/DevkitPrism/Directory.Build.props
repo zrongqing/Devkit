@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <DevkitClientOutputRoot>$(MSBuildThisFileDirectory)..\..\..\build\client\</DevkitClientOutputRoot>
     
     <!-- 2. 其他全局构建配置（所有项目都会继承） -->
     <Nullable>enable</Nullable>

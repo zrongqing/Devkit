@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <OutputPath>$(DevkitClientOutputRoot)$(Configuration)\$(TargetFramework)\modules\$(AssemblyName)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+</Project>
