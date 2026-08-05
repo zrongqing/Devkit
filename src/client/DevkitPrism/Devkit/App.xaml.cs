@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net.Http;
 using System.Windows;
 using Devkit.Core;
@@ -7,11 +6,14 @@ using Devkit.Core.UI.Services;
 using Devkit.Modules.ModuleName;
 using Devkit.Prism;
 using Devkit.Services;
+using Devkit.Services.Diagnostics;
+using Devkit.Services.Interfaces.Logging;
+using Devkit.Services.Logging;
 using Devkit.Services.Interfaces;
 using Devkit.ViewModels;
 using Devkit.Views;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Syncfusion.Licensing;
 
 namespace Devkit;
@@ -21,10 +23,18 @@ namespace Devkit;
 /// </summary>
 public partial class App : DevkitPrismApplication
 {
-    private IHost _host;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly ClientCrashHandler _crashHandler;
 
     public App()
     {
+        _loggerFactory = ClientLoggingExtensions.CreateBootstrapLoggerFactory();
+        _crashHandler = new ClientCrashHandler(new ClientLogger(_loggerFactory.CreateLogger<ClientLogger>()));
+
+        DispatcherUnhandledException += _crashHandler.HandleDispatcherException;
+        AppDomain.CurrentDomain.UnhandledException += _crashHandler.HandleAppDomainException;
+        TaskScheduler.UnobservedTaskException += _crashHandler.HandleUnobservedTaskException;
+
         // Add your Syncfusion license key for WPF platform with corresponding Syncfusion NuGet version referred in project.
         var licenseKey = Environment.GetEnvironmentVariable("SYNCFUSION_LICENSE_KEY")
                          ?? Environment.GetEnvironmentVariable("SYNFUSION_LICENSE_KEY");
@@ -43,8 +53,18 @@ public partial class App : DevkitPrismApplication
         base.OnStartup(e);
     }
 
+    protected override void OnExit(ExitEventArgs e)
+    {
+        DispatcherUnhandledException -= _crashHandler.HandleDispatcherException;
+        AppDomain.CurrentDomain.UnhandledException -= _crashHandler.HandleAppDomainException;
+        TaskScheduler.UnobservedTaskException -= _crashHandler.HandleUnobservedTaskException;
+        _loggerFactory.Dispose();
+        base.OnExit(e);
+    }
+
     private void ConfigureServices(IServiceCollection services)
     {
+        services.AddClientLogging();
         var apiBaseUrl = Environment.GetEnvironmentVariable("DEVKIT_API_BASE_URL") ?? "http://localhost:5000/";
         services.AddSingleton(new HttpClient { BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute) });
         services.AddSingleton<ISystemInfoClient, SystemInfoClient>();
@@ -127,7 +147,7 @@ public partial class App : DevkitPrismApplication
         }
         catch (Exception exception)
         {
-            Debug.WriteLine($"Remote menu configuration is unavailable: {exception.Message}");
+            GetService<IClientLogger>()?.Warning(exception, "Remote menu configuration is unavailable.");
         }
     }
 }

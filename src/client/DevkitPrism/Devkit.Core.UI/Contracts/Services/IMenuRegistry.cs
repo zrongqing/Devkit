@@ -4,6 +4,9 @@ using Devkit.Core.UI.Models;
 
 namespace Devkit.Core.UI.Services;
 
+/// <summary>
+/// 菜单注册
+/// </summary>
 public interface IMenuRegistry
 {
     void Register(MenuItemModel item);
