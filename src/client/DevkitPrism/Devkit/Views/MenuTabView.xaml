@@ -49,7 +49,8 @@
   </i:Interaction.Triggers>
 
   <Grid>
-    <syncfusion:TabControlExt 
+    <syncfusion:TabControlExt
+      x:Name="MenuTabs"
       ItemsSource="{Binding Tabs}"
       SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
       BorderThickness="0"
@@ -58,9 +59,12 @@
       ItemTemplate="{StaticResource HeaderTemplate}"
       ItemContainerStyle="{StaticResource ItemStyle}"
       TabItemLayout="SingleLine"
+      AllowDragDrop="True"
       EnableLabelEdit="False"
       CloseButtonType="Common"
       TabItemHeaderStyle="Fill"
+      PreviewMouseLeftButtonDown="OnTabControlPreviewMouseLeftButtonDown"
+      PreviewMouseLeftButtonUp="OnTabControlPreviewMouseLeftButtonUp"
       >
       <!--<syncfusion:TabControlExt.ItemTemplate>
         <DataTemplate>
