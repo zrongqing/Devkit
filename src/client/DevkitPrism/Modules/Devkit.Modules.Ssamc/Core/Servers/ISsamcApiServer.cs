@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace Ssamc.Core.Servers;
+namespace Devkit.Modules.Ssamc.Core.Servers;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public sealed class ActionCodeAttribute : Attribute

@@ -12,6 +12,7 @@
     <PackageReference Include="Newtonsoft.Json"/>
     <PackageReference Include="LibGit2Sharp"/>
     <PackageReference Include="Serilog.Extensions.Logging"/>
+    <PackageReference Include="Microsoft.Data.Sqlite"/>
   </ItemGroup>
   
   <ItemGroup>

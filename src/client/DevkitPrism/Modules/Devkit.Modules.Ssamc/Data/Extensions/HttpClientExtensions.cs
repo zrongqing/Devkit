@@ -1,8 +1,9 @@
 using System.Text;
 using System.Net.Http;
 using Newtonsoft.Json;
+using Devkit.Modules.Ssamc.Data.Api;
 
-namespace SSAMC.DB;
+namespace Devkit.Modules.Ssamc.Data.Extensions;
 
 public static class HttpClientExtensions
 {

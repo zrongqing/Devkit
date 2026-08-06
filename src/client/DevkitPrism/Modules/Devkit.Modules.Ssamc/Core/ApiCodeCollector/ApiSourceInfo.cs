@@ -1,6 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 
-namespace Ssamc.Core.ApiCodeCollector;
+namespace Devkit.Modules.Ssamc.Core.ApiCodeCollector;
 
 /// <summary>
 /// API源代码信息

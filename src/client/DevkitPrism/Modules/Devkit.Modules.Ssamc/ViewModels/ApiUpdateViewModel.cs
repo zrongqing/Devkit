@@ -4,10 +4,10 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Devkit.Core.UI.Mvvm;
+using Devkit.Modules.Ssamc.Configuration;
+using Devkit.Modules.Ssamc.Servers;
 using Devkit.Services.Interfaces;
 using HandyControl.Controls;
-using Module.Ssamc.Configuration;
-using Module.Ssamc.Servers;
 using Ssamc.Core.ApiCodeCollector;
 
 namespace Module.Ssamc.ViewModels;

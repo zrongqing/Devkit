@@ -1,7 +1,7 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using Devkit.Modules.Ssamc.Core.Attributes;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Ssamc.Core.Attributes;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Ssamc.Core.ApiCodeCollector;
+namespace Devkit.Modules.Ssamc.Core.ApiCodeCollector;
 
 
 /// Roslyn实现的API扫描器

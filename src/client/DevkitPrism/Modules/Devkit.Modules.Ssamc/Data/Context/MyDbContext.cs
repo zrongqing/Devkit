@@ -1,6 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Devkit.Modules.Ssamc.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using SSAMC.DB.Entities;
 
 namespace SSAMC.DB;
 

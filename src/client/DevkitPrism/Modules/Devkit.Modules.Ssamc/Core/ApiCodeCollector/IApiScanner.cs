@@ -1,4 +1,4 @@
-﻿namespace Ssamc.Core.ApiCodeCollector;
+﻿namespace Devkit.Modules.Ssamc.Core.ApiCodeCollector;
 
 /// <summary>
 /// API扫描器接口

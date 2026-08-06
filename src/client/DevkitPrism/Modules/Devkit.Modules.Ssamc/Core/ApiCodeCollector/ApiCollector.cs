@@ -1,7 +1,7 @@
 ﻿using System.Reflection.Emit;
 using System.Text;
 
-namespace Ssamc.Core.ApiCodeCollector;
+namespace Devkit.Modules.Ssamc.Core.ApiCodeCollector;
 
 /// <summary>
 /// API管理器

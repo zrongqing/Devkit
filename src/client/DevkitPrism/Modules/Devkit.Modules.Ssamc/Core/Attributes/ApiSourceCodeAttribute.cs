@@ -1,4 +1,4 @@
-﻿namespace Ssamc.Core.Attributes;
+﻿namespace Devkit.Modules.Ssamc.Core.Attributes;
 
 /// <summary>
 /// 标记方法

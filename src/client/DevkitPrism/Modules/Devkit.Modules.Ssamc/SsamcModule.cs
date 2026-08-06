@@ -1,9 +1,9 @@
 using Devkit.Core.UI.Services;
-using Module.Ssamc.Servers;
+using Devkit.Modules.Ssamc.Core.ApiCodeCollector;
+using Devkit.Modules.Ssamc.Servers;
 using Module.Ssamc.Views;
-using Ssamc.Core.ApiCodeCollector;
 
-namespace Module.Ssamc;
+namespace Devkit.Modules.Ssamc;
 
 public class SsamcModule : IModule
 {

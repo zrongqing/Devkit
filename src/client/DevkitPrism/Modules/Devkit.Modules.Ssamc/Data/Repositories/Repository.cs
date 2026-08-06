@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
-namespace SSAMC.DB.Repositories;
+namespace Devkit.Modules.Ssamc.Data.Repositories;
 
 public class Repository<T> : IRepository<T> where T : class
 {

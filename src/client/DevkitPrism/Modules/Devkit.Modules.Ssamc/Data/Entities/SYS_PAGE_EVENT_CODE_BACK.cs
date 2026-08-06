@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace SSAMC.DB.Entities;
+namespace Devkit.Modules.Ssamc.Data.Entities;
 
 /// <summary>
 /// 事件附加代码

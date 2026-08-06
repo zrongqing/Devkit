@@ -1,4 +1,4 @@
-namespace Module.Ssamc.Configuration;
+namespace Devkit.Modules.Ssamc.Configuration;
 
 public static class SsamcEnvironment
 {

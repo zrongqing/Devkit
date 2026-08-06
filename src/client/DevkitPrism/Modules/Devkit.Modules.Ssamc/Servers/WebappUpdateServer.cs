@@ -5,9 +5,9 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using Module.Ssamc.Configuration;
+using Devkit.Modules.Ssamc.Configuration;
 
-namespace Module.Ssamc.Servers;
+namespace Devkit.Modules.Ssamc.Servers;
 
 /// <summary>
 /// Web应用程序更新服务器类

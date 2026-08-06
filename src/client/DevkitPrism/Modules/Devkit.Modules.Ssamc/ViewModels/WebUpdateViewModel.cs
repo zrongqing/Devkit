@@ -6,9 +6,9 @@ using Devkit.Core.UI;
 using Devkit.Core.UI.Helpers;
 using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Mvvm;
+using Devkit.Modules.Ssamc.Configuration;
 using Devkit.Services.Interfaces;
 using HandyControl.Controls;
-using Module.Ssamc.Configuration;
 
 namespace Module.Ssamc.ViewModels;
 
