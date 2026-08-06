@@ -35,7 +35,8 @@
 
       <Grid Grid.Row="0">
         <StackPanel Orientation="Horizontal">
-          <Button Content="git pull" />
+          <Button Content="git pull" 
+                  Visibility="Collapsed"/>
           <Button Command="{Binding SearchFilesCommand}"
                   CommandParameter="{Binding Text,ElementName=WebappPath}"
                   Content="读取文件夹"

@@ -13,6 +13,9 @@
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Oracle.EntityFrameworkCore" />
     <PackageReference Include="Prism.Wpf" />
+    <PackageReference Include="Syncfusion.SfInput.WPF" />
+    <PackageReference Include="Syncfusion.SfTreeView.WPF" />
+    <PackageReference Include="Syncfusion.Shared.WPF" />
   </ItemGroup>
 
   <ItemGroup>

@@ -16,6 +16,12 @@ namespace Ssamc.Core.ApiCodeCollector;
 /// </summary>
 public class RoslynApiScanner : IApiScanner
 {
+    private static readonly HashSet<string> ExecutionSourceAttributes =
+    [
+        nameof(ApiSourceCodeAttribute),
+        "ApiSourceCode"
+    ];
+
     public RoslynApiScanner()
     {
         Attributes = new List<string>();
@@ -24,6 +30,77 @@ public class RoslynApiScanner : IApiScanner
     }
 
     public List<string> Attributes { get; set; }
+
+    /// <inheritdoc />
+    public string GetExecutionSourceCode(string sourcePath, string apiCode)
+    {
+        if (string.IsNullOrWhiteSpace(sourcePath) ||
+            string.IsNullOrWhiteSpace(apiCode) ||
+            !Directory.Exists(sourcePath))
+        {
+            return string.Empty;
+        }
+
+        var sourceCode = new StringBuilder();
+
+        foreach (var file in Directory.GetFiles(sourcePath, "*.cs", SearchOption.AllDirectories)
+                     .Where(file => !file.Contains("\\obj\\") && !file.Contains("\\bin\\")))
+        {
+            try
+            {
+                var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file));
+                var methods = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>();
+
+                foreach (var method in methods.Where(method => HasExecutionSourceAttribute(method, apiCode)))
+                {
+                    var methodSource = GetMethodBodySource(method);
+                    if (string.IsNullOrWhiteSpace(methodSource))
+                    {
+                        continue;
+                    }
+
+                    if (sourceCode.Length > 0)
+                    {
+                        sourceCode.AppendLine().AppendLine();
+                    }
+
+                    sourceCode.Append(methodSource);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"解析执行源代码文件 {file} 时出错: {ex.Message}");
+            }
+        }
+
+        return sourceCode.ToString();
+    }
+
+    private bool HasExecutionSourceAttribute(MethodDeclarationSyntax method, string apiCode)
+    {
+        return method.AttributeLists
+            .SelectMany(attributeList => attributeList.Attributes)
+            .Where(attribute => ExecutionSourceAttributes.Contains(attribute.Name.ToString()))
+            .Any(attribute => string.Equals(GetApiCodeValue(attribute), apiCode, StringComparison.Ordinal));
+    }
+
+    private static string GetMethodBodySource(MethodDeclarationSyntax method)
+    {
+        if (method.Body is not null)
+        {
+            return string.Concat(method.Body.Statements.Select(statement => statement.ToFullString())).Trim();
+        }
+
+        if (method.ExpressionBody is not null)
+        {
+            var isVoid = method.ReturnType is PredefinedTypeSyntax predefinedType &&
+                         predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword);
+            var returnPrefix = isVoid ? string.Empty : "return ";
+            return $"{returnPrefix}{method.ExpressionBody.Expression};";
+        }
+
+        return string.Empty;
+    }
 
     /// <summary>
     /// 扫描指定路径下的所有C#源代码文件

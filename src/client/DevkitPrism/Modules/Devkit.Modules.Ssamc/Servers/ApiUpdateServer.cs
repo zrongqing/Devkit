@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.EntityFrameworkCore;
 using Ssamc.Core.ApiCodeCollector;
 using SSAMC.DB;
@@ -40,12 +42,39 @@ public class ApiUpdateServer
 
     public string GetSourceCodeByApiCode(string sourcePath, string apiCode)
     {
-        return _apiCollector.GetApiExtendCode(sourcePath, apiCode);
+        var sourceCode = _apiCollector.GetApiExtendCode(sourcePath, apiCode);
+        return FormatSourceCode(sourceCode);
     }
 
     public string GetSourceCodeByApiCode(List<ApiSourceInfo> apiSourceInfos, string apiCode)
     {
-        return _apiCollector.GetApiExtendCode(apiSourceInfos, apiCode);
+        var sourceCode = _apiCollector.GetApiExtendCode(apiSourceInfos, apiCode);
+        return FormatSourceCode(sourceCode);
+    }
+
+    private static string FormatSourceCode(string sourceCode)
+    {
+        if (string.IsNullOrWhiteSpace(sourceCode))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
+            return syntaxTree.GetRoot()
+                .NormalizeWhitespace(indentation: "    ", eol: Environment.NewLine)
+                .ToFullString();
+        }
+        catch (Exception)
+        {
+            return sourceCode;
+        }
+    }
+
+    public string GetExecutionSourceCodeByApiCode(string sourcePath, string apiCode)
+    {
+        return _apiScanner.GetExecutionSourceCode(sourcePath, apiCode);
     }
 
     public bool UpdateExtendCode(string apiCode, string extendCode, string connectionString)

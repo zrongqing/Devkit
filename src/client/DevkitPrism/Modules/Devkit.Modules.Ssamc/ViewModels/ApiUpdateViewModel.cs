@@ -52,6 +52,8 @@ public partial class ApiUpdateViewModel : ViewModelBase
     [ObservableProperty]
     private string _codePreview = string.Empty;
     [ObservableProperty]
+    private string _sourceCodePreview = string.Empty;
+    [ObservableProperty]
     private string _strUpdateApis = string.Empty;
 
     private List<ApiSourceInfo> _apiSourceInfos = new List<ApiSourceInfo>();
@@ -90,8 +92,12 @@ public partial class ApiUpdateViewModel : ViewModelBase
             // if (string.IsNullOrEmpty(apiCode)) return;
             var apiCode = this.StrSelectApiCodes;
 
-            var str = _apiUpdateServer.GetSourceCodeByApiCode(sourcePath: this.SourceCodePath, apiCode: apiCode);
-            this.CodePreview = str;
+            this.SourceCodePreview = _apiUpdateServer.GetExecutionSourceCodeByApiCode(
+                sourcePath: this.SourceCodePath,
+                apiCode: apiCode);
+            this.CodePreview = _apiUpdateServer.GetSourceCodeByApiCode(
+                sourcePath: this.SourceCodePath,
+                apiCode: apiCode);
         }
         catch (Exception e)
         {
