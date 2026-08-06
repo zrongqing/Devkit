@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Devkit.Modules.Ssamc</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="HandyControl" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Oracle.EntityFrameworkCore" />
+    <PackageReference Include="Prism.Wpf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Devkit.Core.UI\Devkit.Core.UI.csproj" />
+    <ProjectReference Include="..\..\Devkit.Core\Devkit.Core.csproj" />
+    <ProjectReference Include="..\..\Services\Devkit.Services.Interfaces\Devkit.Services.Interfaces.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\Module.Build.props" />
+</Project>

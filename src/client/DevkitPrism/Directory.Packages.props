@@ -8,6 +8,10 @@
     <PackageVersion Include="Prism.Wpf" Version="9.0.537"/>
     <PackageVersion Include="DryIoc.Microsoft.DependencyInjection" Version="6.2.0"/>
     <PackageVersion Include="Mapster" Version="10.0.7"/>
+    <PackageVersion Include="HandyControl" Version="3.5.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.21" />
+    <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.26100" />
     
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.8"/>
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8"/>

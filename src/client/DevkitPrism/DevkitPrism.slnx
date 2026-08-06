@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Modules/">
     <Project Path="Modules/Devkit.Modules.ModuleName/Devkit.Modules.ModuleName.csproj" />
+    <Project Path="Modules/Devkit.Modules.Ssamc/Devkit.Modules.Ssamc.csproj" />
   </Folder>
   <Folder Name="/Services/">
     <Project Path="Services/Devkit.Services.Interfaces/Devkit.Services.Interfaces.csproj" />

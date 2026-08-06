@@ -70,6 +70,7 @@ public partial class App : DevkitPrismApplication
         services.AddSingleton(new HttpClient { BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute) });
         services.AddSingleton<ISystemInfoClient, SystemInfoClient>();
         services.AddSingleton<IFileService, FileService>();
+        services.AddSingleton<IModuleStorage, ModuleStorage>();
         services.AddSingleton<IMessageService, MessageService>();
         services.AddSingleton<IShellService, ShellService>();
         services.AddSingleton<IMenuRegistry, MenuRegistry>();

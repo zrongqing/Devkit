@@ -1,0 +1,133 @@
+﻿<UserControl
+  x:Class="Module.Ssamc.Views.ApiUpdateView"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:hc="https://handyorg.github.io/handycontrol"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+  xmlns:prism="http://prismlibrary.com/"
+  xmlns:behaviors="clr-namespace:Devkit.Core.UI.Behaviors;assembly=Devkit.Core.UI"
+  xmlns:viewModels="clr-namespace:Module.Ssamc.ViewModels"
+  d:Background="White"
+  d:DataContext="{d:DesignInstance viewModels:ApiUpdateViewModel}"
+  d:DesignHeight="800"
+  d:DesignWidth="1200"
+  prism:ViewModelLocator.AutoWireViewModel="True"
+  mc:Ignorable="d">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/SkinDefault.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    
+    <StackPanel Orientation="Vertical"
+                Grid.Row="0">
+
+      <StackPanel Orientation="Horizontal">
+        <Button Command="{Binding UpdateCommand}"
+                CommandParameter="{Binding Content, RelativeSource={RelativeSource Self}}"
+                Content="215.58"
+                Style="{StaticResource ButtonPrimary}" />
+        <Button Margin="10,0,0,0" 
+                Command="{Binding UpdateCommand}"
+                CommandParameter="{Binding Content, RelativeSource={RelativeSource Self}}"
+                Content="20.54"
+                Style="{StaticResource ButtonPrimary}" />
+        <Button Margin="10,0,0,0"
+                Command="{Binding ScanSourceCodeCommand}"
+                CommandParameter="{Binding Text,ElementName=TbApiFolder}"
+                Content="扫描"
+                Style="{StaticResource ButtonPrimary}" />
+        <Button Margin="10,0,0,0"
+                Command="{Binding PreviewCommand}"
+                ToolTip="只能预览单个"
+                Content="预览"
+                Style="{StaticResource ButtonPrimary}" />
+
+        <Button Margin="10,0,0,0"
+                Click="Button_Click"
+                Visibility="Collapsed"
+                Content="测试"
+                Style="{StaticResource ButtonPrimary}" />
+      </StackPanel>
+
+      <TextBox Margin="0,10,0,0"
+               x:Name="TbApiFolder"
+               hc:InfoElement.Necessary="True"
+               hc:InfoElement.Title="当前路径下接口"
+               IsReadOnly="False"
+               behaviors:TextBoxBehavior.EnterCommand="{Binding ScanSourceCodeCommand}"
+               Style="{StaticResource TextBoxExtend}"
+               Text="{Binding SourceCodePath,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}">
+        <!--<i:Interaction.Triggers>
+          <i:EventTrigger EventName="KeyDown">
+            <i:InvokeCommandAction Command="{Binding ScanSourceCodeCommand}"
+                                   PassEventArgsToCommand="True" />
+          </i:EventTrigger>
+        </i:Interaction.Triggers>-->
+      </TextBox>
+
+      <!-- update apis -->
+      <TextBox Margin="0,10,0,0"
+               hc:InfoElement.Necessary="True"
+               hc:InfoElement.Title="update apis ( ; 作为分隔符)"
+               Style="{StaticResource TextBoxExtend}"
+               Text="{Binding StrUpdateApis}" />
+      
+      <!--  -->
+      <hc:CheckComboBox Margin="0,10,0,0"
+                        x:Name="CheckComboBox"
+                        hc:InfoElement.Necessary="True"
+                        hc:InfoElement.ShowClearButton="True"
+                        hc:InfoElement.Title="Update ApiCodes"
+                        hc:ListBoxAttach.SelectedItems="{Binding SelectApiCodes, Mode=OneWay}"
+                        ItemsSource="{Binding AllApiCodes}"
+                        ShowSelectAllButton="True"
+                        Style="{StaticResource CheckComboBoxExtend}">
+      </hc:CheckComboBox>
+
+      <TextBox
+        Margin="0,10,0,0"
+        hc:InfoElement.Necessary="True"
+        hc:InfoElement.Title="预览ApiCode"
+        Style="{StaticResource TextBoxExtend}"
+        Text="{Binding StrSelectApiCodes}" />
+    
+    </StackPanel>
+
+    <Grid Grid.Row="1">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="auto"></RowDefinition>
+        <RowDefinition Height="auto"></RowDefinition>
+      </Grid.RowDefinitions>
+
+      <RichTextBox Margin="0,10,0,0"
+                   Background="Transparent"
+                   BorderThickness="0"
+                   IsReadOnly="True"
+                   Grid.Row="1"
+                   MinHeight="200">
+        <RichTextBox.Document>
+          <FlowDocument ScrollViewer.VerticalScrollBarVisibility="Visible"
+                        ScrollViewer.CanContentScroll="True"
+                        PagePadding="5">
+            <Paragraph>
+              <Run Text="{Binding CodePreview, Mode=OneWay}" />
+            </Paragraph>
+          </FlowDocument>
+        </RichTextBox.Document>
+      </RichTextBox>
+
+    </Grid>
+    
+  </Grid>
+</UserControl>
