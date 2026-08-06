@@ -7,16 +7,19 @@
     <PackageVersion Include="Prism.DryIoc" Version="9.0.537"/>
     <PackageVersion Include="Prism.Wpf" Version="9.0.537"/>
     <PackageVersion Include="DryIoc.Microsoft.DependencyInjection" Version="6.2.0"/>
-    <PackageVersion Include="Mapster" Version="10.0.7"/>
-    <PackageVersion Include="HandyControl" Version="3.5.1" />
+
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
+    <PackageVersion Include="Mapster" Version="10.0.7"/>
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.21" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.26100" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.10" />
     
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.8"/>
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8"/>
+    
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2"/>
     <PackageVersion Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142"/>
+    <PackageVersion Include="HandyControl" Version="3.5.1" />
     
     <PackageVersion Include="Syncfusion.SfBusyIndicator.WPF" Version="33.1.44" />
     <PackageVersion Include="Syncfusion.SfGridCommon.WPF" Version="33.1.44" />
@@ -39,11 +42,11 @@
     <PackageVersion Include="Syncfusion.Themes.Windows11Light.WPF" Version="33.1.44.0"/>
     <PackageVersion Include="Syncfusion.Tools.WPF" Version="33.1.44.0"/>
 
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.4.3"></PackageVersion>
     <PackageVersion Include="coverlet.collector" Version="3.1.2"></PackageVersion>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.1.0"/>
     <PackageVersion Include="Serilog.Extensions.Logging" Version="10.0.0" />
     <PackageVersion Include="Moq" Version="4.17.2"/>
-    <PackageVersion Include="xunit" Version="2.4.1"/>
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5"></PackageVersion>
   </ItemGroup>
 </Project>
