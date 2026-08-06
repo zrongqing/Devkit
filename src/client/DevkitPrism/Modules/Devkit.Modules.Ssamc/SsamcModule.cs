@@ -25,7 +25,7 @@ public class SsamcModule : IModule
         containerRegistry.RegisterForNavigation<ApiUpdateView>();
         containerRegistry.RegisterForNavigation<WebappUpdateView>();
         containerRegistry.RegisterSingleton<IApiScanner, RoslynApiScanner>();
-        containerRegistry.Register<ApiUpdateServer>();
+        containerRegistry.Register<IApiUpdateServer, ApiUpdateServer>();
         containerRegistry.Register<WebappUpdateServer>();
     }
 }

@@ -6,7 +6,7 @@ using SSAMC.DB;
 
 namespace Module.Ssamc.Servers;
 
-public class ApiUpdateServer
+public class ApiUpdateServer : IApiUpdateServer
 {
     private readonly ApiCollector _apiCollector;
     private readonly IApiScanner _apiScanner;

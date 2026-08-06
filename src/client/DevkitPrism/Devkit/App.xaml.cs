@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using Devkit.Core;
 using Devkit.Core.UI.Models;
+using Devkit.Core.UI.Mvvm;
 using Devkit.Core.UI.Services;
 using Devkit.Prism;
 using Devkit.Prism.Extensions;
@@ -72,6 +73,7 @@ public partial class App : DevkitPrismApplication
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IModuleStorage, ModuleStorage>();
         services.AddSingleton<IMessageService, MessageService>();
+        services.AddSingleton<DelayedLoadingState>();
         services.AddSingleton<IShellService, ShellService>();
         services.AddSingleton<IMenuRegistry, MenuRegistry>();
         services.AddSingleton<IRemoteMenuConfigurationClient, RemoteMenuConfigurationClient>();

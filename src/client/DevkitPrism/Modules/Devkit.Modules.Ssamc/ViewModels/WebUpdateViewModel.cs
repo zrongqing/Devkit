@@ -27,7 +27,17 @@ public partial class WebappUpdateViewModel : ViewModelBase
     {
         _fileService = fileService;
         _moduleStorage = moduleStorage;
-        LoadFile();
+    }
+
+    protected override async Task OnInitializeAsync(CancellationToken cancellationToken)
+    {
+        var settings = await Task.Run(ReadSettings, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!string.IsNullOrWhiteSpace(settings?.WebappPath))
+        {
+            WebappPath = settings.WebappPath;
+        }
     }
 
     [RelayCommand]
@@ -128,23 +138,19 @@ public partial class WebappUpdateViewModel : ViewModelBase
         }
     }
 
-    private void LoadFile()
+    private WebappUpdateSettings? ReadSettings()
     {
         try
         {
             var folderPath = _moduleStorage.GetModulePath("ssamc");
-            var settings = _fileService.Read<WebappUpdateSettings>(
+            return _fileService.Read<WebappUpdateSettings>(
                 folderPath,
                 $"{nameof(WebappUpdateViewModel)}.json");
-
-            if (!string.IsNullOrWhiteSpace(settings?.WebappPath))
-            {
-                WebappPath = settings.WebappPath;
-            }
         }
         catch
         {
             // 无历史配置时使用环境变量或空值。
+            return null;
         }
     }
 

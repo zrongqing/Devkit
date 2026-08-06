@@ -42,7 +42,14 @@ public partial class TabItemModel : ObservableObject
     [ObservableProperty]
     private string _menuId;
 
-    public TabItemModel(string code, string header, object content)
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLoadError))]
+    private string? _loadErrorMessage;
+
+    [ObservableProperty]
+    private object? _content;
+
+    public TabItemModel(string code, string header, object? content = null)
     {
         Header = header;
         Code = code;
@@ -50,5 +57,5 @@ public partial class TabItemModel : ObservableObject
         Content = content;
     }
 
-    public object Content { get; set; }
+    public bool HasLoadError => !string.IsNullOrWhiteSpace(LoadErrorMessage);
 }

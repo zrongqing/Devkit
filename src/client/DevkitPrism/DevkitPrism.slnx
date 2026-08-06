@@ -8,6 +8,7 @@
     <Project Path="Services/Devkit.Services/Devkit.Services.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="Tests/Devkit.Loading.Tests/Devkit.Loading.Tests.csproj" />
     <Project Path="Tests/Devkit.Modules.ModuleName.Tests/Devkit.Modules.ModuleName.Tests.csproj" />
   </Folder>
   <Folder Name="/_props/">

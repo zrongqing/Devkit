@@ -8,6 +8,7 @@
   xmlns:prism="http://prismlibrary.com/"
   prism:ViewModelLocator.AutoWireViewModel="True"
   xmlns:core="clr-namespace:Devkit.Core;assembly=Devkit.Core"
+  xmlns:coreViews="clr-namespace:Devkit.Core.UI.Views;assembly=Devkit.Core.UI"
   mc:Ignorable="d"
   MinWidth="500"
   MinHeight="350">
@@ -29,6 +30,11 @@
     <!-- 右边 Tab 区域 -->
     <ContentControl Grid.Column="2"
                     prism:RegionManager.RegionName="{x:Static core:RegionNames.MenuTabRegion}"/>
+
+    <coreViews:LoadingOverlay Grid.ColumnSpan="3"
+                              IsActive="{Binding GlobalLoading.IsVisible}"
+                              Message="正在加载模块…"
+                              Panel.ZIndex="10000" />
   </Grid>
   
 </syncfusion:ChromelessWindow>

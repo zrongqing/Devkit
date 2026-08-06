@@ -15,12 +15,5 @@ public partial class ApiUpdateView : UserControl
     public ApiUpdateView()
     {
         InitializeComponent();
-
-        HandyControl.Controls.Dialog.Register("ApiUpdate", System.Windows.Application.Current.MainWindow);
-    }
-
-    private void Button_Click(object sender, System.Windows.RoutedEventArgs e)
-    {
-
     }
 }
