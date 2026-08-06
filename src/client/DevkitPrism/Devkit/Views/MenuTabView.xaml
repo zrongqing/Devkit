@@ -30,6 +30,10 @@
     </DataTemplate>
 
     <Style x:Key="ItemStyle" TargetType="syncfusion:TabItemExt">
+      <EventSetter Event="PreviewMouseLeftButtonDown"
+                   Handler="OnTabItemPreviewMouseLeftButtonDown" />
+      <EventSetter Event="PreviewMouseLeftButtonUp"
+                   Handler="OnTabItemPreviewMouseLeftButtonUp" />
       <Setter Property="CanClose" Value="{Binding CanClose, Mode=TwoWay}" />
       <Setter Property="ShowPin" Value="{Binding ShowPin, Mode=TwoWay}" />
       <Setter Property="AllowPin" Value="{Binding AllowPin, Mode=TwoWay}" />
@@ -63,8 +67,6 @@
       EnableLabelEdit="False"
       CloseButtonType="Common"
       TabItemHeaderStyle="Fill"
-      PreviewMouseLeftButtonDown="OnTabControlPreviewMouseLeftButtonDown"
-      PreviewMouseLeftButtonUp="OnTabControlPreviewMouseLeftButtonUp"
       >
       <!--<syncfusion:TabControlExt.ItemTemplate>
         <DataTemplate>

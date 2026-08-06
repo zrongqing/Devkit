@@ -2,8 +2,10 @@
 
 using System.Windows;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 
 namespace Devkit.Views;
 
@@ -16,9 +18,9 @@ public partial class MenuTabView : UserControl
         InitializeComponent();
     }
 
-    private void OnTabControlPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void OnTabItemPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.OriginalSource is not DependencyObject source || FindVisualAncestor<ButtonBase>(source) == null)
+        if (e.OriginalSource is not DependencyObject source || FindAncestor<ButtonBase>(source) == null)
         {
             return;
         }
@@ -29,7 +31,7 @@ public partial class MenuTabView : UserControl
         MenuTabs.AllowDragDrop = false;
     }
 
-    private void OnTabControlPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    private void OnTabItemPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (!_tabDragSuspended)
         {
@@ -40,16 +42,34 @@ public partial class MenuTabView : UserControl
         MenuTabs.AllowDragDrop = true;
     }
 
-    private static T? FindVisualAncestor<T>(DependencyObject current) where T : DependencyObject
+    private static T? FindAncestor<T>(DependencyObject current) where T : DependencyObject
     {
-        while (current != null)
+        DependencyObject? candidate = current;
+
+        while (candidate != null)
         {
-            if (current is T ancestor)
+            if (candidate is T ancestor)
             {
                 return ancestor;
             }
 
-            current = VisualTreeHelper.GetParent(current);
+            candidate = GetParent(candidate);
+        }
+
+        return null;
+    }
+
+    private static DependencyObject? GetParent(DependencyObject current)
+    {
+        if (current is Visual or Visual3D)
+        {
+            return VisualTreeHelper.GetParent(current);
+        }
+
+        if (current is ContentElement contentElement)
+        {
+            return ContentOperations.GetParent(contentElement)
+                ?? (contentElement as FrameworkContentElement)?.Parent;
         }
 
         return null;
