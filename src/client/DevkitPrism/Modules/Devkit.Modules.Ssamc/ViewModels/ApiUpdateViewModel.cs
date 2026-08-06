@@ -8,7 +8,6 @@ using Devkit.Modules.Ssamc.Configuration;
 using Devkit.Modules.Ssamc.Servers;
 using Devkit.Services.Interfaces;
 using HandyControl.Controls;
-using Ssamc.Core.ApiCodeCollector;
 
 namespace Module.Ssamc.ViewModels;
 

@@ -19,9 +19,8 @@ public class ApiCollector
     /// </summary>
     public string GetApiExtendCode(string sourcePath, string apiCode)
     {
-        var apiInfos = _scanner.ScanSourceFiles(sourcePath);
-        var targetInfos = apiInfos.Where(info => info.ApiCodes.Contains(apiCode)).ToList();
-        return GetApiExtendCode(targetInfos, apiCode);
+        var apiInfos = _scanner.GetApiSourceInfos(sourcePath, apiCode);
+        return GetApiExtendCode(apiInfos, apiCode);
     }
 
     public string GetApiExtendCode(List<ApiSourceInfo> apiInfos,string apiCode)

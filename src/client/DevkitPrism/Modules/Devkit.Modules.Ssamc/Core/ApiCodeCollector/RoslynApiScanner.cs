@@ -22,11 +22,31 @@ public class RoslynApiScanner : IApiScanner
         "ApiSourceCode"
     ];
 
+    private readonly SqliteApiSourceCache _cache;
+    private readonly object _cacheSync = new();
+
     public RoslynApiScanner()
+        : this(new SqliteApiSourceCache(SqliteApiSourceCache.GetDefaultDatabasePath()))
     {
-        Attributes = new List<string>();
-        Attributes.Add(nameof(ApiExtendCodeAttribute));
-        Attributes.Add("ApiExtendCode");
+    }
+
+    private RoslynApiScanner(SqliteApiSourceCache cache)
+    {
+        _cache = cache;
+        Attributes =
+        [
+            nameof(ApiExtendCodeAttribute),
+            "ApiExtendCode"
+        ];
+    }
+
+    /// <summary>
+    /// 创建使用指定 SQLite 数据库的扫描器。主要用于隔离测试或宿主自定义缓存位置。
+    /// </summary>
+    public static RoslynApiScanner CreateWithCacheDatabase(string cacheDatabasePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cacheDatabasePath);
+        return new RoslynApiScanner(new SqliteApiSourceCache(cacheDatabasePath));
     }
 
     public List<string> Attributes { get; set; }
@@ -41,47 +61,30 @@ public class RoslynApiScanner : IApiScanner
             return string.Empty;
         }
 
-        var sourceCode = new StringBuilder();
-
-        foreach (var file in Directory.GetFiles(sourcePath, "*.cs", SearchOption.AllDirectories)
-                     .Where(file => !file.Contains("\\obj\\") && !file.Contains("\\bin\\")))
+        lock (_cacheSync)
         {
-            try
+            var files = GetSourceFiles(sourcePath, "*.cs");
+            if (TrySynchronizeCache(sourcePath, "*.cs", files) &&
+                _cache.TryGetExecutionSources(sourcePath, "*.cs", apiCode, out var cachedSources))
             {
-                var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file));
-                var methods = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>();
-
-                foreach (var method in methods.Where(method => HasExecutionSourceAttribute(method, apiCode)))
-                {
-                    var methodSource = GetMethodBodySource(method);
-                    if (string.IsNullOrWhiteSpace(methodSource))
-                    {
-                        continue;
-                    }
-
-                    if (sourceCode.Length > 0)
-                    {
-                        sourceCode.AppendLine().AppendLine();
-                    }
-
-                    sourceCode.Append(methodSource);
-                }
+                return JoinExecutionSources(cachedSources);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"解析执行源代码文件 {file} 时出错: {ex.Message}");
-            }
+
+            var analyses = AnalyzeFilesWithoutCache(files);
+            var sources = analyses
+                .SelectMany(analysis => analysis.ExecutionSources.TryGetValue(apiCode, out var matches)
+                    ? matches
+                    : [])
+                .ToList();
+            return JoinExecutionSources(sources);
         }
-
-        return sourceCode.ToString();
     }
 
-    private bool HasExecutionSourceAttribute(MethodDeclarationSyntax method, string apiCode)
+    private static string JoinExecutionSources(IEnumerable<string> sources)
     {
-        return method.AttributeLists
-            .SelectMany(attributeList => attributeList.Attributes)
-            .Where(attribute => ExecutionSourceAttributes.Contains(attribute.Name.ToString()))
-            .Any(attribute => string.Equals(GetApiCodeValue(attribute), apiCode, StringComparison.Ordinal));
+        return string.Join(
+            Environment.NewLine + Environment.NewLine,
+            sources.Where(source => !string.IsNullOrWhiteSpace(source)));
     }
 
     private static string GetMethodBodySource(MethodDeclarationSyntax method)
@@ -107,43 +110,59 @@ public class RoslynApiScanner : IApiScanner
     /// </summary>
     public List<ApiSourceInfo> ScanSourceFiles(string sourcePath, string searchPattern = "*.cs")
     {
-        var apiInfos = new List<ApiSourceInfo>();
-
-        try
+        if (string.IsNullOrWhiteSpace(sourcePath) || !Directory.Exists(sourcePath))
         {
-            // 递归获取所有.cs文件
-            var sourceFiles = Directory.GetFiles(sourcePath, searchPattern, SearchOption.AllDirectories)
-                .Where(file => !file.Contains("\\obj\\") && !file.Contains("\\bin\\"))
-                .ToList();
+            return [];
+        }
 
-            foreach (var file in sourceFiles)
+        lock (_cacheSync)
+        {
+            var files = GetSourceFiles(sourcePath, searchPattern);
+            if (TrySynchronizeCache(sourcePath, searchPattern, files) &&
+                _cache.TryGetAllApiSources(sourcePath, searchPattern, out var cachedSources))
             {
-                try
-                {
-                    var fileApiInfos = ParseSourceFile(file);
-                    apiInfos.AddRange(fileApiInfos);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"解析文件 {file} 时出错: {ex.Message}");
-                }
+                return cachedSources;
             }
+
+            return AnalyzeFilesWithoutCache(files)
+                .SelectMany(analysis => analysis.ApiSources)
+                .ToList();
         }
-        catch (Exception e)
+    }
+
+    /// <inheritdoc />
+    public List<ApiSourceInfo> GetApiSourceInfos(string sourcePath, string apiCode)
+    {
+        if (string.IsNullOrWhiteSpace(sourcePath) ||
+            string.IsNullOrWhiteSpace(apiCode) ||
+            !Directory.Exists(sourcePath))
         {
-            // ignored
+            return [];
         }
 
-        return apiInfos;
+        lock (_cacheSync)
+        {
+            const string searchPattern = "*.cs";
+            var files = GetSourceFiles(sourcePath, searchPattern);
+            if (TrySynchronizeCache(sourcePath, searchPattern, files) &&
+                _cache.TryGetApiSources(sourcePath, searchPattern, apiCode, out var cachedSources))
+            {
+                return cachedSources;
+            }
+
+            return AnalyzeFilesWithoutCache(files)
+                .SelectMany(analysis => analysis.ApiSources)
+                .Where(info => info.ApiCodes.Contains(apiCode, StringComparer.Ordinal))
+                .ToList();
+        }
     }
 
     /// <summary>
     /// 解析单个源代码文件
     /// </summary>
-    private List<ApiSourceInfo> ParseSourceFile(string filePath)
+    private SourceFileAnalysis ParseSourceFile(string filePath, string sourceCode)
     {
         var apiInfos = new List<ApiSourceInfo>();
-        var sourceCode = File.ReadAllText(filePath);
         var tree = CSharpSyntaxTree.ParseText(sourceCode);
         var root = tree.GetRoot();
 
@@ -194,7 +213,100 @@ public class RoslynApiScanner : IApiScanner
             }
         }
 
-        return apiInfos;
+        var executionSources = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        var methods = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
+        foreach (var method in methods)
+        {
+            var methodSource = GetMethodBodySource(method);
+            if (string.IsNullOrWhiteSpace(methodSource))
+            {
+                continue;
+            }
+
+            var apiCodes = method.AttributeLists
+                .SelectMany(attributeList => attributeList.Attributes)
+                .Where(attribute => ExecutionSourceAttributes.Contains(attribute.Name.ToString()))
+                .Select(GetApiCodeValue)
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Distinct(StringComparer.Ordinal);
+
+            foreach (var apiCode in apiCodes)
+            {
+                if (!executionSources.TryGetValue(apiCode, out var sources))
+                {
+                    sources = [];
+                    executionSources.Add(apiCode, sources);
+                }
+
+                sources.Add(methodSource);
+            }
+        }
+
+        return new SourceFileAnalysis
+        {
+            ApiSources = apiInfos,
+            ExecutionSources = executionSources
+        };
+    }
+
+    private bool TrySynchronizeCache(
+        string sourcePath,
+        string searchPattern,
+        IReadOnlyList<string> files)
+    {
+        var parserKey = $"2|{string.Join('|', Attributes.OrderBy(attribute => attribute, StringComparer.Ordinal))}";
+        return _cache.TrySynchronize(
+            sourcePath,
+            searchPattern,
+            files,
+            parserKey,
+            ParseSourceFile);
+    }
+
+    private List<SourceFileAnalysis> AnalyzeFilesWithoutCache(IEnumerable<string> files)
+    {
+        var analyses = new List<SourceFileAnalysis>();
+        foreach (var file in files)
+        {
+            try
+            {
+                analyses.Add(ParseSourceFile(file, File.ReadAllText(file)));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"解析源代码文件 {file} 时出错: {ex.Message}");
+            }
+        }
+
+        return analyses;
+    }
+
+    private static List<string> GetSourceFiles(string sourcePath, string searchPattern)
+    {
+        try
+        {
+            return Directory.GetFiles(sourcePath, searchPattern, SearchOption.AllDirectories)
+                .Where(file => !IsBuildOutputFile(sourcePath, file))
+                .Select(Path.GetFullPath)
+                .OrderBy(file => file, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"枚举源代码目录 {sourcePath} 时出错: {ex.Message}");
+            return [];
+        }
+    }
+
+    private static bool IsBuildOutputFile(string sourcePath, string filePath)
+    {
+        var relativePath = Path.GetRelativePath(sourcePath, filePath);
+        return relativePath
+            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+                StringSplitOptions.RemoveEmptyEntries)
+            .Any(segment =>
+                string.Equals(segment, "bin", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(segment, "obj", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

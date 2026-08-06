@@ -14,6 +14,16 @@ public interface IApiScanner
     List<ApiSourceInfo> ScanSourceFiles(string sourcePath, string searchPattern = "*.cs");
 
     /// <summary>
+    /// 扫描并返回包含指定 API 编码的源代码信息。
+    /// </summary>
+    List<ApiSourceInfo> GetApiSourceInfos(string sourcePath, string apiCode)
+    {
+        return ScanSourceFiles(sourcePath)
+            .Where(info => info.ApiCodes.Contains(apiCode))
+            .ToList();
+    }
+
+    /// <summary>
     /// 获取由 <c>ApiSourceCode</c> 标记的执行源代码。
     /// </summary>
     /// <param name="sourcePath">源代码路径</param>
