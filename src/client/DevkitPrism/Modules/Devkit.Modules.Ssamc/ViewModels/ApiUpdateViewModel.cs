@@ -35,9 +35,6 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
     [ObservableProperty]
     private string _sourceCodePath = SsamcEnvironment.SourceCodePath;
 
-    [ObservableProperty]
-    private ObservableCollection<string> _allApiCodes = [];
-
     public IList<string> SelectApiCodes
     {
         get => _selectedApiCodes;
@@ -87,13 +84,8 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
             var allApiSourceInfos = await Task.Run(
                 () => _apiUpdateServer.GetAllApiSourceInfos(SourceCodePath),
                 cancellationToken);
-            var apiCodes = await Task.Run(
-                () => _apiUpdateServer.GetAllApiCodes(allApiSourceInfos),
-                cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
-            AllApiCodes = new ObservableCollection<string>(apiCodes);
-            SelectApiCodes = new ObservableCollection<string>(apiCodes);
 
             await SaveSettingsAsync(cancellationToken);
         });

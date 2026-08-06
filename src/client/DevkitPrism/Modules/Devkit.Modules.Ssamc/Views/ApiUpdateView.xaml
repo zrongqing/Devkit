@@ -38,7 +38,8 @@
     </ResourceDictionary>
   </UserControl.Resources>
   <Grid>
-    <Grid x:Name="PageContent">
+    <Grid x:Name="PageContent"
+          Margin="5">
       <Grid.Style>
         <Style TargetType="{x:Type Grid}">
           <Setter Property="IsEnabled" Value="True" />
@@ -78,39 +79,31 @@
 
       <StackPanel Orientation="Vertical"
                 Grid.Row="1">
-        <TextBox Margin="0,10,0,0"
-               x:Name="TbApiFolder"
-               hc:InfoElement.Necessary="True"
-               hc:InfoElement.Title="当前路径下接口"
-               IsReadOnly="False"
-               behaviors:TextBoxBehavior.EnterCommand="{Binding ScanSourceCodeCommand}"
-               Style="{StaticResource TextBoxExtend}"
-               Text="{Binding SourceCodePath,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}">
+        <TextBox 
+          Margin="0,10,0,0"
+          x:Name="TbApiFolder"
+          hc:InfoElement.Title="扫码路径"
+          hc:InfoElement.TitlePlacement="Left"
+          IsReadOnly="False"
+          behaviors:TextBoxBehavior.EnterCommand="{Binding ScanSourceCodeCommand}"
+          Style="{StaticResource TextBoxExtend}"
+          Text="{Binding SourceCodePath,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}">
         </TextBox>
 
         <!-- update apis -->
-        <TextBox Margin="0,10,0,0"
-               hc:InfoElement.Necessary="True"
-               hc:InfoElement.Title="update apis ( ; 作为分隔符)"
-               Style="{StaticResource TextBoxExtend}"
-               Text="{Binding StrUpdateApis}" />
-
-        <!--  -->
-        <hc:CheckComboBox Margin="0,10,0,0"
-                        x:Name="CheckComboBox"
-                        hc:InfoElement.Necessary="True"
-                        hc:InfoElement.ShowClearButton="True"
-                        hc:InfoElement.Title="Update ApiCodes"
-                        hc:ListBoxAttach.SelectedItems="{Binding SelectApiCodes, Mode=OneWay}"
-                        ItemsSource="{Binding AllApiCodes}"
-                        ShowSelectAllButton="True"
-                        Style="{StaticResource CheckComboBoxExtend}">
-        </hc:CheckComboBox>
+        <TextBox
+          Margin="0,10,0,0"
+          hc:InfoElement.Title="更新接口"
+          hc:InfoElement.TitlePlacement="Left"
+          ToolTip="(';'作为分隔符)"
+          Style="{StaticResource TextBoxExtend}"
+          Text="{Binding StrUpdateApis}" />
 
       </StackPanel>
 
       <!--API预览-->
-      <Grid Grid.Row="2">
+      <Grid Grid.Row="2"
+            Margin="0,5,0,0">
         <Grid.RowDefinitions>
           <RowDefinition Height="auto"/>
           <RowDefinition/>
@@ -127,7 +120,6 @@
           </Grid.ColumnDefinitions>
           <Button
           Grid.Column="0"
-          Margin="10,0,0,0"
           Command="{Binding PreviewCommand}"
           ToolTip="只能预览单个"
           Content="预览"
@@ -176,7 +168,7 @@
         </Grid>
       </Grid>
     </Grid>
-    
+
     <coreViews:LoadingOverlay IsActive="{Binding PageLoading.IsVisible}"
                               IndicatorSize="44"
                               Message="正在处理…"
