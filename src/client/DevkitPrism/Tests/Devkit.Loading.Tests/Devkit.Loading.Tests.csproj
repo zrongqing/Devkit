@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\Devkit.Core.UI\Devkit.Core.UI.csproj" />
     <ProjectReference Include="..\..\Devkit\Devkit.csproj" />
     <ProjectReference Include="..\..\Modules\Devkit.Modules.Ssamc\Devkit.Modules.Ssamc.csproj" />
+    <ProjectReference Include="..\..\Modules\Devkit.Modules.Demo\Devkit.Modules.Demo.csproj" />
     <ProjectReference Include="..\..\Services\Devkit.Services.Interfaces\Devkit.Services.Interfaces.csproj" />
   </ItemGroup>
 </Project>

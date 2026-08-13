@@ -1,0 +1,85 @@
+<coreViews:LoadingView x:Class="Devkit.Modules.Demo.Views.LoadingDemoView"
+                       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:prism="http://prismlibrary.com/"
+                       xmlns:coreViews="clr-namespace:Devkit.Core.UI.Views;assembly=Devkit.Core.UI"
+                       xmlns:viewModels="clr-namespace:Devkit.Modules.Demo.ViewModels"
+                       d:DataContext="{d:DesignInstance viewModels:LoadingDemoViewModel}"
+                       d:DesignHeight="620"
+                       d:DesignWidth="960"
+                       prism:ViewModelLocator.AutoWireViewModel="True"
+                       mc:Ignorable="d">
+  <Grid Margin="24">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <TextBlock FontSize="24"
+               FontWeight="SemiBold"
+               Text="LoadingView 功能测试" />
+
+    <TextBlock Grid.Row="1"
+               Margin="0,8,0,20"
+               Foreground="#64748B"
+               Text="遮罩延迟 1 秒显示；操作执行期间页面内容会自动禁用。" />
+
+    <WrapPanel Grid.Row="2">
+      <Button MinWidth="120"
+              Margin="0,0,10,10"
+              Padding="14,8"
+              Command="{Binding FastSuccessCommand}"
+              Content="快速成功" />
+      <Button MinWidth="120"
+              Margin="0,0,10,10"
+              Padding="14,8"
+              Command="{Binding SlowSuccessCommand}"
+              Content="慢速成功" />
+      <Button MinWidth="120"
+              Margin="0,0,10,10"
+              Padding="14,8"
+              Command="{Binding ServerFailureCommand}"
+              Content="服务器失败" />
+      <Button MinWidth="120"
+              Margin="0,0,10,10"
+              Padding="14,8"
+              Command="{Binding MissingConfigurationCommand}"
+              Content="配置缺失" />
+    </WrapPanel>
+
+    <Border Grid.Row="3"
+            Margin="0,14,0,0"
+            Padding="18"
+            VerticalAlignment="Top"
+            Background="#F8FAFC"
+            BorderBrush="#CBD5E1"
+            BorderThickness="1"
+            CornerRadius="6">
+      <StackPanel>
+        <TextBlock FontWeight="SemiBold" Text="最近一次结果" />
+        <TextBlock Margin="0,8,0,0"
+                   FontSize="15"
+                   Text="{Binding StatusMessage}"
+                   TextWrapping="Wrap">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Setter Property="Foreground" Value="#15803D" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding HasError}" Value="True">
+                  <Setter Property="Foreground" Value="#B91C1C" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+        <TextBlock Margin="0,12,0,0"
+                   Foreground="#64748B"
+                   Text="{Binding OperationCount, StringFormat=已执行操作：{0}}" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</coreViews:LoadingView>

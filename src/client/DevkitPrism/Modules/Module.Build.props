@@ -4,4 +4,26 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="HandyControl" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Oracle.EntityFrameworkCore" />
+    <PackageReference Include="Prism.Wpf" />
+    <PackageReference Include="Syncfusion.SfInput.WPF" />
+    <PackageReference Include="Syncfusion.SfTreeView.WPF" />
+    <PackageReference Include="Syncfusion.Shared.WPF" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Devkit.Core\Devkit.Core.csproj" />
+    <ProjectReference Include="..\..\Devkit.Core.UI\Devkit.Core.UI.csproj" />
+    <ProjectReference Include="..\..\Devkit.Prism\Devkit.Prism.csproj" />
+    <ProjectReference Include="..\..\Services\Devkit.Services.Interfaces\Devkit.Services.Interfaces.csproj" />
+  </ItemGroup>
 </Project>
