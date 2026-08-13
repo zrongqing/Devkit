@@ -76,7 +76,7 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
     [RelayCommand]
     private Task ScanSourceCode()
     {
-        return RunPageOperationAsync(async cancellationToken =>
+        return RunWithLoadingAsync(async cancellationToken =>
         {
             ValidateSourcePath();
 
@@ -87,13 +87,13 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
             cancellationToken.ThrowIfCancellationRequested();
 
             await SaveSettingsAsync(cancellationToken);
-        });
+        }, HandleOperationError);
     }
 
     [RelayCommand]
     private Task Preview()
     {
-        return RunPageOperationAsync(async cancellationToken =>
+        return RunWithLoadingAsync(async cancellationToken =>
         {
             ValidateSourcePath();
 
@@ -118,13 +118,13 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
             SourceCodePreview = previews.executionSource;
             CodePreview = previews.extendSource;
             await SaveSettingsAsync(cancellationToken);
-        });
+        }, HandleOperationError);
     }
 
     [RelayCommand]
     private Task Update(object? buttonParameter)
     {
-        return RunPageOperationAsync(async cancellationToken =>
+        return RunWithLoadingAsync(async cancellationToken =>
         {
             ValidateSourcePath();
 
@@ -157,7 +157,7 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
             }
 
             await SaveSettingsAsync(cancellationToken);
-        });
+        }, HandleOperationError);
     }
 
     private List<string> UpdateApis(
@@ -179,21 +179,7 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
         return results;
     }
 
-    private async Task RunPageOperationAsync(Func<CancellationToken, Task> operation)
-    {
-        try
-        {
-            await RunWithLoadingAsync(operation);
-        }
-        catch (OperationCanceledException) when (LifetimeCancellationToken.IsCancellationRequested)
-        {
-            // The tab was closed while the command was running.
-        }
-        catch (Exception exception)
-        {
-            ShowError(exception.Message);
-        }
-    }
+    private void HandleOperationError(Exception exception) => ShowError(exception.Message);
 
     private void ValidateSourcePath()
     {

@@ -11,6 +11,31 @@ public abstract class LoadingViewModelBase : ViewModelBase
     public DelayedLoadingState PageLoading { get; } = new();
 
     /// <summary>
+    /// Runs a page operation with loading feedback and reports non-lifetime
+    /// failures through the supplied handler.
+    /// </summary>
+    protected async Task RunWithLoadingAsync(
+        Func<CancellationToken, Task> operation,
+        Action<Exception> errorHandler)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+        ArgumentNullException.ThrowIfNull(errorHandler);
+
+        try
+        {
+            await RunWithLoadingAsync(operation);
+        }
+        catch (OperationCanceledException) when (LifetimeCancellationToken.IsCancellationRequested)
+        {
+            // Closing the view ends its current operation without surfacing an error.
+        }
+        catch (Exception exception)
+        {
+            errorHandler(exception);
+        }
+    }
+
+    /// <summary>
     /// Runs an operation when no other page operation is active. Calls made
     /// while another operation is running are ignored.
     /// </summary>
