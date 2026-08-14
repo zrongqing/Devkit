@@ -129,27 +129,30 @@ public class MenuTabViewModel : BindableBase
 
         try
         {
-            await _globalLoading.RunAsync(async cancellationToken =>
+            cancellation.Token.ThrowIfCancellationRequested();
+
+            var content = _shellService.ResolveContent(menu)
+                ?? throw new InvalidOperationException($"无法创建模块“{menu.Title}”。");
+
+            cancellation.Token.ThrowIfCancellationRequested();
+            tab.Content = content;
+
+            var asyncLoadable = content as IAsyncLoadable;
+            if (content is FrameworkElement element && element.DataContext is IAsyncLoadable viewModelLoadable)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                asyncLoadable = viewModelLoadable;
+            }
 
-                var content = _shellService.ResolveContent(menu)
-                    ?? throw new InvalidOperationException($"无法创建模块“{menu.Title}”。");
-
-                cancellationToken.ThrowIfCancellationRequested();
-                tab.Content = content;
-
-                var asyncLoadable = content as IAsyncLoadable;
-                if (content is FrameworkElement element && element.DataContext is IAsyncLoadable viewModelLoadable)
-                {
-                    asyncLoadable = viewModelLoadable;
-                }
-
-                if (asyncLoadable != null)
-                {
-                    await asyncLoadable.InitializeAsync(cancellationToken);
-                }
-            }, cancellation.Token);
+            if (asyncLoadable is IUsesPageLoading)
+            {
+                await asyncLoadable.InitializeAsync(cancellation.Token);
+            }
+            else if (asyncLoadable != null)
+            {
+                await _globalLoading.RunAsync(
+                    asyncLoadable.InitializeAsync,
+                    cancellation.Token);
+            }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {

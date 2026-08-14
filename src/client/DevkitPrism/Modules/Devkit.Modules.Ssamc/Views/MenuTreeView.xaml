@@ -90,6 +90,7 @@
           ItemDoubleTapped="MenuTree_OnItemDoubleTapped"
           ItemsSource="{Binding TreeNodes}"
           SelectedItem="{Binding SelectedMenu, Mode=TwoWay}"
+          SelectionChanged="MenuTree_OnSelectionChanged"
           ShowLines="True"
           ShowRootLines="True">
           <syncfusion:SfTreeView.HierarchyPropertyDescriptors>
@@ -154,10 +155,12 @@
             FontWeight="SemiBold"
             Text="菜单详细" />
           <syncfusion:PropertyGrid
+            x:Name="MenuDetailsPropertyGrid"
             Grid.Row="1"
             AutoGenerateItems="True"
             ButtonPanelVisibility="Collapsed"
             DescriptionPanelVisibility="Collapsed"
+            DisableAnimationOnObjectSelection="True"
             EnableGrouping="True"
             SearchBoxVisibility="Collapsed"
             SelectedObject="{Binding SelectedDetails}"

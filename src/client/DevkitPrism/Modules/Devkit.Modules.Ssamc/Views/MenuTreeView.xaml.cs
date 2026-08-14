@@ -3,6 +3,7 @@ using Devkit.Core.UI.Views;
 using Ssamc.Models;
 using Ssamc.ViewModels;
 using Syncfusion.UI.Xaml.TreeView;
+using System.Windows.Threading;
 
 namespace Ssamc.Views;
 
@@ -12,6 +13,24 @@ public partial class MenuTreeView : LoadingView
     public MenuTreeView()
     {
         InitializeComponent();
+    }
+
+    private void MenuTree_OnSelectionChanged(
+        object sender,
+        ItemSelectionChangedEventArgs eventArgs)
+    {
+        if (DataContext is not MenuTreeViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.SelectedMenu = eventArgs.AddedItems
+            .OfType<MenuTreeNode>()
+            .FirstOrDefault();
+
+        _ = MenuDetailsPropertyGrid.Dispatcher.BeginInvoke(
+            DispatcherPriority.DataBind,
+            new Action(MenuDetailsPropertyGrid.RefreshPropertygrid));
     }
 
     private async void MenuTree_OnItemDoubleTapped(

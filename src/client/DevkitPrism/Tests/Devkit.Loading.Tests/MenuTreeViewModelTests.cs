@@ -72,6 +72,23 @@ public sealed class MenuTreeViewModelTests
     }
 
     [Fact]
+    public async Task Changing_selection_replaces_module_and_main_page_details()
+    {
+        var viewModel = CreateViewModel(CreateMenuTree());
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        var menus = viewModel.TreeNodes[0].Children;
+
+        viewModel.SelectedMenu = menus[0];
+        var firstDetails = viewModel.SelectedDetails;
+        viewModel.SelectedMenu = menus[1];
+
+        Assert.NotSame(firstDetails, viewModel.SelectedDetails);
+        Assert.Equal("Logs module", viewModel.SelectedDetails?.ModuleName);
+        Assert.Equal("20002", viewModel.SelectedDetails?.MainPageId);
+        Assert.Equal("Logs main page", viewModel.SelectedDetails?.MainPageName);
+    }
+
+    [Fact]
     public void Detail_fields_are_grouped_in_the_requested_order()
     {
         var properties = typeof(MenuDetails)

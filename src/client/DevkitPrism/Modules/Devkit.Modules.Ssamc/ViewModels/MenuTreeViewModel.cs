@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Devkit.Core.UI.Contracts;
 using Devkit.Core.UI.Mvvm;
 using Ssamc.Configuration;
 using Ssamc.Models;
@@ -11,7 +12,7 @@ using HandyControl.Controls;
 
 namespace Ssamc.ViewModels;
 
-public partial class MenuTreeViewModel : LoadingViewModelBase
+public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
 {
     private const string ModuleName = "ssamc";
     private const string SettingsFileName = "menu-tree.json";

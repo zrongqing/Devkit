@@ -83,6 +83,25 @@ public class MenuTabViewModelTests
     }
 
     [Fact]
+    public async Task Page_loading_view_model_does_not_activate_global_loading()
+    {
+        var loadable = new PageLoadingLoadable();
+        var context = CreateContext(_ => loadable);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+
+        await WaitUntilAsync(() => loadable.PageLoading.IsBusy);
+        Assert.False(context.GlobalLoading.IsBusy);
+        Assert.False(context.GlobalLoading.IsVisible);
+
+        loadable.Complete();
+        await loadable.Finished.Task.WaitAsync(
+            TimeSpan.FromSeconds(2),
+            Xunit.TestContext.Current.CancellationToken);
+        context.ViewModel.UnloadedCommand.Execute();
+    }
+
+    [Fact]
     public async Task Closed_tab_releases_content_and_can_be_opened_again()
     {
         var contents = new List<DestructibleLoadable>();
@@ -205,5 +224,22 @@ public class MenuTabViewModelTests
         {
             DestroyCount++;
         }
+    }
+
+    private sealed class PageLoadingLoadable : LoadingViewModelBase, IUsesPageLoading
+    {
+        private readonly TaskCompletionSource _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Finished { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        protected override async Task OnInitializeAsync(CancellationToken cancellationToken)
+        {
+            await RunWithLoadingAsync(token => _completion.Task.WaitAsync(token));
+            Finished.TrySetResult();
+        }
+
+        public void Complete() => _completion.TrySetResult();
     }
 }
