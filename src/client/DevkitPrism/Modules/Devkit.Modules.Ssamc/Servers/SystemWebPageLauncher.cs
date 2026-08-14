@@ -34,13 +34,10 @@ public sealed class SystemWebPageLauncher : IWebPageLauncher
             throw new InvalidOperationException("菜单未配置有效的模块 ID。");
         }
 
-        var title = string.IsNullOrWhiteSpace(request.Title)
-            ? request.ModuleId.ToString()
-            : request.Title.Trim();
-        var pageUrl = $"/Page/?moduleid={request.ModuleId}";
         var builder = new UriBuilder(baseAddress)
         {
-            Path = $"{pageUrl}",
+            Path = "/Page/",
+            Query = $"moduleid={request.ModuleId}"
         };
 
         return builder.Uri;

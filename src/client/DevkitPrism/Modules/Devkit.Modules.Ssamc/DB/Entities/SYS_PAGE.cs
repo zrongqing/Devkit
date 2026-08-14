@@ -254,4 +254,7 @@ public partial class SYS_PAGE
     /// </summary>
     [Column(TypeName = "NUMBER(1)")]
     public bool? IS_MENU { get; set; }
+
+    [ForeignKey(nameof(ID_MODULE))]
+    public SYS_MODULE SYS_MODULE { get; set; }
 }

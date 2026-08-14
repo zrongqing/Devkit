@@ -154,19 +154,16 @@ public sealed class MenuTreeViewModelTests
     }
 
     [Fact]
-    public void Deep_link_contains_an_encoded_tab_request()
+    public void Deep_link_points_to_the_requested_module_page()
     {
         var address = SystemWebPageLauncher.BuildDeepLink(new WebTabOpenRequest(
             "菜单 标题",
             "http://192.168.10.41/base",
             1435766981386702849));
 
-        Assert.Equal("http://192.168.10.41/", address.GetLeftPart(UriPartial.Path));
-        var query = ParseQuery(address.Query);
-        Assert.Equal("菜单 标题", query["devkit_tab_title"]);
         Assert.Equal(
-            "/Page/?moduleid=1435766981386702849",
-            query["devkit_tab_url"]);
+            "http://192.168.10.41/Page/?moduleid=1435766981386702849",
+            address.AbsoluteUri);
     }
 
     [Fact]

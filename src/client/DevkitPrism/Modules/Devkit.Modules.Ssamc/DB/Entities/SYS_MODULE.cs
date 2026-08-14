@@ -276,4 +276,6 @@ public partial class SYS_MODULE
     [StringLength(50)]
     [Unicode(false)]
     public string? STR_HOST { get; set; }
+
+    public List<SYS_PAGE> SYS_PAGE_LIST { get; set; }
 }
