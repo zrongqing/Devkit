@@ -1,4 +1,7 @@
 using System.Net.Http;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using Ssamc.Configuration;
 using Ssamc.Models;
 using Ssamc.Servers;
@@ -49,7 +52,7 @@ public sealed class MenuTreeViewModelTests
     }
 
     [Fact]
-    public async Task Selection_populates_the_six_detail_fields()
+    public async Task Selection_populates_menu_module_and_main_page_details()
     {
         var viewModel = CreateViewModel(CreateMenuTree());
         await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
@@ -64,10 +67,31 @@ public sealed class MenuTreeViewModelTests
         Assert.Equal("Platform", viewModel.SelectedDetails.ParentDirectory);
         Assert.Equal("Swagger module", viewModel.SelectedDetails.ModuleName);
         Assert.Equal("10001", viewModel.SelectedDetails.ModuleId);
+        Assert.Equal("20001", viewModel.SelectedDetails.MainPageId);
+        Assert.Equal("Swagger main page", viewModel.SelectedDetails.MainPageName);
     }
 
     [Fact]
-    public async Task Open_delegates_the_selected_environment_and_module_to_the_launcher()
+    public void Detail_fields_are_grouped_in_the_requested_order()
+    {
+        var properties = typeof(MenuDetails)
+            .GetProperties()
+            .Select(property => new
+            {
+                Category = property.GetCustomAttribute<CategoryAttribute>()?.Category,
+                Order = property.GetCustomAttribute<DisplayAttribute>()?.GetOrder()
+            })
+            .OrderBy(property => property.Order)
+            .ToArray();
+
+        Assert.All(properties, property => Assert.NotNull(property.Order));
+        Assert.Equal(
+            ["菜单信息", "菜单模块", "模块主页面"],
+            properties.Select(property => property.Category).Distinct());
+    }
+
+    [Fact]
+    public async Task Open_delegates_the_selected_environment_and_main_page_to_the_launcher()
     {
         var launcher = new Mock<IWebPageLauncher>();
         var viewModel = CreateViewModel(CreateMenuTree(), launcher.Object);
@@ -82,7 +106,7 @@ public sealed class MenuTreeViewModelTests
                 It.Is<WebTabOpenRequest>(request =>
                     request.Title == "Swagger" &&
                     request.BaseAddress == viewModel.SelectedEnvironment.BaseAddress &&
-                    request.ModuleId == 10001),
+                    request.MainPageId == 20001),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -96,6 +120,31 @@ public sealed class MenuTreeViewModelTests
         var directory = viewModel.TreeNodes[0];
 
         Assert.False(viewModel.OpenCommand.CanExecute(directory));
+        launcher.Verify(
+            service => service.OpenTabAsync(
+                It.IsAny<WebTabOpenRequest>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task A_module_without_main_page_cannot_be_opened()
+    {
+        var launcher = new Mock<IWebPageLauncher>();
+        var viewModel = CreateViewModel(
+        [
+            new MenuTreeItem
+            {
+                MenuId = 1,
+                Name = "Module without main page",
+                ModuleId = 10001,
+                ModuleName = "Configured module"
+            }
+        ], launcher.Object);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        var menu = Assert.Single(viewModel.TreeNodes);
+
+        Assert.False(viewModel.OpenCommand.CanExecute(menu));
         launcher.Verify(
             service => service.OpenTabAsync(
                 It.IsAny<WebTabOpenRequest>(),
@@ -154,7 +203,7 @@ public sealed class MenuTreeViewModelTests
     }
 
     [Fact]
-    public void Deep_link_points_to_the_requested_module_page()
+    public void Deep_link_uses_the_requested_main_page_as_moduleid()
     {
         var address = SystemWebPageLauncher.BuildDeepLink(new WebTabOpenRequest(
             "菜单 标题",
@@ -314,7 +363,9 @@ public sealed class MenuTreeViewModelTests
             MenuId = 12,
             Name = "Mapped menu",
             ModuleId = 34,
-            ModuleName = "Mapped module"
+            ModuleName = "Mapped module",
+            MainPageId = 56,
+            MainPageName = "Mapped main page"
         };
 
         var record = row.Adapt<MenuTreeRecord>(MenuTreeRecordMapping.Configuration);
@@ -323,6 +374,8 @@ public sealed class MenuTreeViewModelTests
         Assert.Equal(row.Name, record.Name);
         Assert.Equal(row.ModuleId, record.ModuleId);
         Assert.Equal(row.ModuleName, record.ModuleName);
+        Assert.Equal(row.MainPageId, record.MainPageId);
+        Assert.Equal(row.MainPageName, record.MainPageName);
     }
 
     [Fact]
@@ -337,6 +390,8 @@ public sealed class MenuTreeViewModelTests
         Assert.Contains("= 0", sql);
         Assert.DoesNotContain("IS_STATE", sql);
         Assert.Contains("SYS_MODULE", sql);
+        Assert.Contains("SYS_PAGE", sql);
+        Assert.Contains("IS_MAIN", sql);
     }
 
     private static MenuTreeViewModel CreateViewModel(
@@ -385,7 +440,9 @@ public sealed class MenuTreeViewModelTests
                         Code = "swagger-code",
                         ParentName = "Platform",
                         ModuleId = 10001,
-                        ModuleName = "Swagger module"
+                        ModuleName = "Swagger module",
+                        MainPageId = 20001,
+                        MainPageName = "Swagger main page"
                     },
                     new MenuTreeItem
                     {
@@ -395,7 +452,9 @@ public sealed class MenuTreeViewModelTests
                         Code = "logs-code",
                         ParentName = "Platform",
                         ModuleId = 10002,
-                        ModuleName = "Logs module"
+                        ModuleName = "Logs module",
+                        MainPageId = 20002,
+                        MainPageName = "Logs main page"
                     }
                 ]
             }

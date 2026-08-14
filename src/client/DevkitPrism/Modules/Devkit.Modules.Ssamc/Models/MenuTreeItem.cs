@@ -19,6 +19,10 @@ public sealed class MenuTreeItem
 
     public string? ModuleName { get; init; }
 
+    public long? MainPageId { get; init; }
+
+    public string? MainPageName { get; init; }
+
     public short? SortOrder { get; init; }
 
     public IReadOnlyList<MenuTreeItem> Children { get; init; } = [];

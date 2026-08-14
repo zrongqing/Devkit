@@ -29,15 +29,15 @@ public sealed class SystemWebPageLauncher : IWebPageLauncher
             throw new InvalidOperationException($"页面环境地址无效：{request.BaseAddress}");
         }
 
-        if (request.ModuleId <= 0)
+        if (request.MainPageId <= 0)
         {
-            throw new InvalidOperationException("菜单未配置有效的模块 ID。");
+            throw new InvalidOperationException("菜单模块未配置有效的主页面 ID。");
         }
 
         var builder = new UriBuilder(baseAddress)
         {
             Path = "/Page/",
-            Query = $"moduleid={request.ModuleId}"
+            Query = $"moduleid={request.MainPageId}"
         };
 
         return builder.Uri;

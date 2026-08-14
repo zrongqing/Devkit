@@ -19,7 +19,11 @@ public partial class MenuTreeNode : ObservableObject
 
     public string? ModuleName { get; init; }
 
-    public bool CanOpen => ModuleId > 0;
+    public long? MainPageId { get; init; }
+
+    public string? MainPageName { get; init; }
+
+    public bool CanOpen => MainPageId > 0;
 
     public MenuDetails Details => new()
     {
@@ -28,7 +32,9 @@ public partial class MenuTreeNode : ObservableObject
         MenuCode = Code ?? string.Empty,
         ParentDirectory = ParentName ?? string.Empty,
         ModuleName = ModuleName ?? string.Empty,
-        ModuleId = ModuleId?.ToString() ?? string.Empty
+        ModuleId = ModuleId?.ToString() ?? string.Empty,
+        MainPageId = MainPageId?.ToString() ?? string.Empty,
+        MainPageName = MainPageName ?? string.Empty
     };
 
     public ObservableCollection<MenuTreeNode> Children { get; init; } = [];

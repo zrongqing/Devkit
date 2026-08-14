@@ -158,8 +158,10 @@
             AutoGenerateItems="True"
             ButtonPanelVisibility="Collapsed"
             DescriptionPanelVisibility="Collapsed"
+            EnableGrouping="True"
             SearchBoxVisibility="Collapsed"
-            SelectedObject="{Binding SelectedDetails}" />
+            SelectedObject="{Binding SelectedDetails}"
+            SortDirection="{x:Null}" />
         </Grid>
       </Border>
     </Grid>

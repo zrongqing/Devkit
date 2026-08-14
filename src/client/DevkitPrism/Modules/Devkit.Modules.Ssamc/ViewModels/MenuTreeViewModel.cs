@@ -85,9 +85,9 @@ public partial class MenuTreeViewModel : LoadingViewModelBase
     private async Task Open(MenuTreeNode? node)
     {
         node ??= SelectedMenu;
-        if (node?.ModuleId is not > 0)
+        if (node?.MainPageId is not > 0)
         {
-            ShowInformation("该菜单未配置模块 ID，无法打开页面。");
+            ShowInformation("该菜单模块未配置主页面 ID，无法打开页面。");
             return;
         }
 
@@ -102,7 +102,7 @@ public partial class MenuTreeViewModel : LoadingViewModelBase
             var request = new WebTabOpenRequest(
                 node.Name,
                 SelectedEnvironment.BaseAddress,
-                node.ModuleId.Value);
+                node.MainPageId.Value);
             await _webPageLauncher.OpenTabAsync(request, cancellationToken);
             LastNotificationMessage = $"已在{SelectedEnvironment.DisplayName}打开：{node.Name}";
         }, HandleOperationError);
@@ -191,7 +191,9 @@ public partial class MenuTreeViewModel : LoadingViewModelBase
                Contains(item.Code, keyword) ||
                Contains(item.ParentName, keyword) ||
                Contains(item.ModuleName, keyword) ||
-               Contains(item.ModuleId?.ToString(), keyword);
+               Contains(item.ModuleId?.ToString(), keyword) ||
+               Contains(item.MainPageName, keyword) ||
+               Contains(item.MainPageId?.ToString(), keyword);
     }
 
     private static bool Contains(string? value, string keyword) =>
@@ -211,6 +213,8 @@ public partial class MenuTreeViewModel : LoadingViewModelBase
             ParentName = item.ParentName,
             ModuleId = item.ModuleId,
             ModuleName = item.ModuleName,
+            MainPageId = item.MainPageId,
+            MainPageName = item.MainPageName,
             IsExpanded = expand,
             Children = new ObservableCollection<MenuTreeNode>(
                 children ?? item.Children.Select(child => CreateNode(child, expand)))

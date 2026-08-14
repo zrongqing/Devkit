@@ -47,7 +47,8 @@ API 更新和 Webapp 更新所需凭据只从进程环境读取。菜单数据�
 
 ## Menu tree extension points
 
-`MenuTreeView` 通过 `IMenuTreeDataSource` 从 Oracle 的 `SYS_MENU` 和
-`SYS_MODULE` 获取层级菜单，只加载 `IS_DELETE = 0` 的记录，不过滤
-`IS_STATE`。`IWebPageLauncher` 生成 Barcode 主框架深链，由主框架调用
-`wrapper.refreshTab` 打开 `/Page/?moduleid=...` 选项卡。
+`MenuTreeView` 通过 `IMenuTreeDataSource` 从 Oracle 的 `SYS_MENU`、
+`SYS_MODULE` 和 `SYS_PAGE` 获取层级菜单及模块主页面，只加载菜单中
+`IS_DELETE = 0` 的记录，不过滤 `IS_STATE`。`IWebPageLauncher` 生成 Barcode
+主框架深链，使用模块主页面 ID 作为 `moduleid` 的值打开
+`/Page/?moduleid=...` 选项卡。

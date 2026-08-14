@@ -8,4 +8,4 @@ public interface IWebPageLauncher
     Task OpenTabAsync(WebTabOpenRequest request, CancellationToken cancellationToken);
 }
 
-public sealed record WebTabOpenRequest(string Title, string BaseAddress, long ModuleId);
+public sealed record WebTabOpenRequest(string Title, string BaseAddress, long MainPageId);

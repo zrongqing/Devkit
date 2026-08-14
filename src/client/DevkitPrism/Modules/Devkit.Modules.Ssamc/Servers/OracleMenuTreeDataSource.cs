@@ -72,6 +72,22 @@ public sealed class OracleMenuTreeDataSource : IMenuTreeDataSource
                 Code = menu.STR_CODE,
                 ModuleId = menu.ID_MODULE,
                 ModuleName = module == null ? null : module.STR_NAME,
+                MainPageId = module == null
+                    ? null
+                    : context.SYS_PAGE
+                        .Where(page => page.ID_MODULE == module.ID && page.IS_MAIN == true)
+                        .OrderBy(page => page.INT_SORT)
+                        .ThenBy(page => page.ID)
+                        .Select(page => (long?)page.ID)
+                        .FirstOrDefault(),
+                MainPageName = module == null
+                    ? null
+                    : context.SYS_PAGE
+                        .Where(page => page.ID_MODULE == module.ID && page.IS_MAIN == true)
+                        .OrderBy(page => page.INT_SORT)
+                        .ThenBy(page => page.ID)
+                        .Select(page => page.STR_NAME)
+                        .FirstOrDefault(),
                 SortOrder = menu.INT_SORT
             };
     }

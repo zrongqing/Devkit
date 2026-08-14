@@ -18,6 +18,10 @@ public sealed class MenuTreeRecord
 
     public string? ModuleName { get; init; }
 
+    public long? MainPageId { get; init; }
+
+    public string? MainPageName { get; init; }
+
     public short? SortOrder { get; init; }
 }
 
@@ -36,6 +40,10 @@ internal sealed class MenuTreeQueryRow
     public long? ModuleId { get; init; }
 
     public string? ModuleName { get; init; }
+
+    public long? MainPageId { get; init; }
+
+    public string? MainPageName { get; init; }
 
     public short? SortOrder { get; init; }
 }

@@ -77,6 +77,8 @@ public static class MenuTreeBuilder
             ParentName = parentName,
             ModuleId = record.ModuleId,
             ModuleName = record.ModuleName,
+            MainPageId = record.MainPageId,
+            MainPageName = record.MainPageName,
             SortOrder = record.SortOrder,
             Children = Sort(draft.Children)
                 .Select(child => CreateItem(child, records))
