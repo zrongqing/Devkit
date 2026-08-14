@@ -48,7 +48,7 @@
       IsAnimationEnabled="True" 
       EmptyContent="No Items"
       FocusVisualStyle="{x:Null}"
-      SelectedItem="{Binding ActiveMenuItemModel}"
+      SelectedItem="{Binding ActiveMenuItemModel, Mode=TwoWay}"
       >
       
       <i:Interaction.Triggers>

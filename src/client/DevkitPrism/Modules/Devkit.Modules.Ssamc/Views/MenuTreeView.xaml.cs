@@ -6,7 +6,7 @@ using Syncfusion.UI.Xaml.TreeView;
 
 namespace Ssamc.Views;
 
-[MenuItem(Id = "modules.ssamc.menutree", ParentId = "ssamc", Title = "menutree", Order = 22, ViewName = nameof(MenuTreeView))]
+[MenuItem(Id = "modules.ssamc.menusearch", ParentId = "ssamc", Title = "菜单检索", Order = 22, ViewName = nameof(MenuTreeView))]
 public partial class MenuTreeView : LoadingView
 {
     public MenuTreeView()

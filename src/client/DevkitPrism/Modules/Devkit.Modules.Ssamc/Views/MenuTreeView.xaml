@@ -48,7 +48,7 @@
         </syncfusion:SfTextBoxExt.InputBindings>
       </syncfusion:SfTextBoxExt>
 
-      <syncfusion:ButtonAdv
+      <Button
         Grid.Column="2"
         MinWidth="72"
         Height="30"
@@ -56,7 +56,7 @@
         Command="{Binding SearchCommand}"
         Content="搜索" />
 
-      <syncfusion:ButtonAdv
+      <Button
         Grid.Column="3"
         MinWidth="72"
         Height="30"
@@ -65,7 +65,7 @@
         CommandParameter="{Binding SelectedMenu}"
         Content="打开" />
 
-      <syncfusion:ButtonAdv
+      <Button
         Grid.Column="4"
         MinWidth="72"
         Height="30"
@@ -158,7 +158,6 @@
             AutoGenerateItems="True"
             ButtonPanelVisibility="Collapsed"
             DescriptionPanelVisibility="Collapsed"
-            MenuButtonVisibility="Collapsed"
             SearchBoxVisibility="Collapsed"
             SelectedObject="{Binding SelectedDetails}" />
         </Grid>

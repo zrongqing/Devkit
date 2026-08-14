@@ -82,6 +82,40 @@ public class MenuTabViewModelTests
         context.ViewModel.UnloadedCommand.Execute();
     }
 
+    [Fact]
+    public async Task Closed_tab_releases_content_and_can_be_opened_again()
+    {
+        var contents = new List<DestructibleLoadable>();
+        TabItemModel? activeTab = null;
+        var context = CreateContext(_ =>
+        {
+            var content = new DestructibleLoadable();
+            contents.Add(content);
+            return content;
+        });
+        context.Events.GetEvent<MenuActiveEvent>().Subscribe(tab => activeTab = tab);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+        var firstTab = context.ViewModel.Tabs.Single();
+        await WaitUntilAsync(() => contents.Count == 1 && contents[0].InitializeCount == 1);
+        Assert.Same(firstTab, activeTab);
+
+        context.ViewModel.CloseTabCommand.Execute(firstTab);
+
+        Assert.Empty(context.ViewModel.Tabs);
+        Assert.Null(context.ViewModel.SelectedTab);
+        Assert.Null(activeTab);
+        Assert.Equal(1, contents[0].DestroyCount);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+        await WaitUntilAsync(() => contents.Count == 2 && contents[1].InitializeCount == 1);
+
+        var reopenedTab = Assert.Single(context.ViewModel.Tabs);
+        Assert.NotSame(firstTab, reopenedTab);
+        Assert.Same(contents[1], reopenedTab.Content);
+        context.ViewModel.UnloadedCommand.Execute();
+    }
+
     private static TestContext CreateContext(Func<MenuItemModel, object> contentFactory)
     {
         var menu = new MenuItemModel
@@ -154,5 +188,22 @@ public class MenuTabViewModelTests
         }
 
         public void Complete() => _completion.TrySetResult();
+    }
+
+    private sealed class DestructibleLoadable : IAsyncLoadable, IDestructible
+    {
+        public int InitializeCount { get; private set; }
+        public int DestroyCount { get; private set; }
+
+        public Task InitializeAsync(CancellationToken cancellationToken)
+        {
+            InitializeCount++;
+            return Task.CompletedTask;
+        }
+
+        public void Destroy()
+        {
+            DestroyCount++;
+        }
     }
 }

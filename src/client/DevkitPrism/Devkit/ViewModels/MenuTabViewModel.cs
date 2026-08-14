@@ -42,7 +42,7 @@ public class MenuTabViewModel : BindableBase
         get => _selectedTab;
         set
         {
-            if (SetProperty(ref _selectedTab, value) && value != null)
+            if (SetProperty(ref _selectedTab, value))
             {
                 _eventAggregator.GetEvent<MenuActiveEvent>().Publish(value);
             }

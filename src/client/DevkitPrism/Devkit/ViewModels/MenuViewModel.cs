@@ -14,23 +14,41 @@ public partial class MenuViewModel : ViewModelBase
 {
     private readonly IEventAggregator _eventAggregator;
     private readonly IShellService _shellService;
+    private bool _isSynchronizingActiveMenu;
 
     public MenuViewModel(IContainerProvider container)
     {
         _shellService = container.Resolve<IShellService>();
         _eventAggregator = container.Resolve<IEventAggregator>();
+        _eventAggregator.GetEvent<MenuActiveEvent>().Subscribe(SynchronizeActiveMenu);
     }
 
     [ObservableProperty]
-    private MenuItemModel _activeMenuItemModel = null;
+    private MenuItemModel? _activeMenuItemModel;
     [ObservableProperty]
     private ListCollectionView _collectionView;
     [ObservableProperty]
     private ObservableCollection<MenuItemModel> _menus = new();
 
-    partial void OnActiveMenuItemModelChanged(MenuItemModel value)
+    partial void OnActiveMenuItemModelChanged(MenuItemModel? value)
     {
-        MenuClicked(value);
+        if (!_isSynchronizingActiveMenu)
+        {
+            MenuClicked(value);
+        }
+    }
+
+    private void SynchronizeActiveMenu(TabItemModel? tab)
+    {
+        try
+        {
+            _isSynchronizingActiveMenu = true;
+            ActiveMenuItemModel = tab == null ? null : _shellService.FindMenu(tab.MenuId);
+        }
+        finally
+        {
+            _isSynchronizingActiveMenu = false;
+        }
     }
 
     [RelayCommand]

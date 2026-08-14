@@ -2,6 +2,6 @@
 
 namespace Devkit.Prism.Events;
 
-public class MenuActiveEvent : PubSubEvent<TabItemModel>
+public class MenuActiveEvent : PubSubEvent<TabItemModel?>
 {
 }
