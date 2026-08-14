@@ -4,20 +4,20 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Devkit.Modules.Ssamc.Data.Entities;
+namespace Ssamc.DB.Entities;
 
 /// <summary>
 /// 事件附加代码
 /// </summary>
-[Table("SYS_PAGE_EVENT_CODE_BACK2")]
-public partial class SYS_PAGE_EVENT_CODE_BACK2
+[Table("SYS_PAGE_EVENT_CODE_BACK")]
+public partial class SYS_PAGE_EVENT_CODE_BACK
 {
     /// <summary>
     /// 页面名称
     /// </summary>
     [StringLength(32)]
     [Unicode(false)]
-    public string? ID_PAGE { get; set; }
+    public long? ID_PAGE { get; set; }
 
     /// <summary>
     /// 源代码
@@ -66,7 +66,7 @@ public partial class SYS_PAGE_EVENT_CODE_BACK2
     /// <summary>
     /// 名称
     /// </summary>
-    [StringLength(100)]
+    [StringLength(50)]
     [Unicode(false)]
     public string? STR_NAME { get; set; }
 
@@ -190,34 +190,4 @@ public partial class SYS_PAGE_EVENT_CODE_BACK2
     /// </summary>
     [Precision(10)]
     public int? DBL_EXEC { get; set; }
-
-    /// <summary>
-    /// 源代码(VUE)
-    /// </summary>
-    [Column(TypeName = "NCLOB")]
-    public string? STR_SOURCE_VUE { get; set; }
-
-    /// <summary>
-    /// 扩展源代码(VUE)
-    /// </summary>
-    [Column(TypeName = "NCLOB")]
-    public string? STR_EXTEND_VUE { get; set; }
-
-    /// <summary>
-    /// 已编译
-    /// </summary>
-    [Column(TypeName = "NUMBER(1)")]
-    public bool? IS_COMPILE { get; set; }
-
-    /// <summary>
-    /// 编译错误
-    /// </summary>
-    [Column(TypeName = "NUMBER(1)")]
-    public bool? IS_ERROR { get; set; }
-
-    /// <summary>
-    /// 数据库
-    /// </summary>
-    [Precision(19)]
-    public long? ID_DB { get; set; }
 }

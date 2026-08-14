@@ -1,10 +1,10 @@
-using Devkit.Modules.Ssamc.Core.ApiCodeCollector;
+using Ssamc.Core.ApiCodeCollector;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.EntityFrameworkCore;
-using SSAMC.DB;
+using Ssamc.DB;
 
-namespace Devkit.Modules.Ssamc.Servers;
+namespace Ssamc.Servers;
 
 public class ApiUpdateServer : IApiUpdateServer
 {

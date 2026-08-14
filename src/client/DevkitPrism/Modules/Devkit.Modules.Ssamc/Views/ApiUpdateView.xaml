@@ -1,5 +1,5 @@
 ﻿<coreViews:LoadingView
-  x:Class="Module.Ssamc.Views.ApiUpdateView"
+  x:Class="Ssamc.Views.ApiUpdateView"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -9,7 +9,7 @@
   xmlns:prism="http://prismlibrary.com/"
   xmlns:behaviors="clr-namespace:Devkit.Core.UI.Behaviors;assembly=Devkit.Core.UI"
   xmlns:coreViews="clr-namespace:Devkit.Core.UI.Views;assembly=Devkit.Core.UI"
-  xmlns:viewModels="clr-namespace:Module.Ssamc.ViewModels"
+  xmlns:viewModels="clr-namespace:Ssamc.ViewModels"
   d:Background="White"
   d:DataContext="{d:DesignInstance viewModels:ApiUpdateViewModel}"
   d:DesignHeight="800"

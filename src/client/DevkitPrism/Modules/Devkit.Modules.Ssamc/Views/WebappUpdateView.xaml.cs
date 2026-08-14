@@ -15,7 +15,7 @@ using System.Windows.Shapes;
 
 using Devkit.Core.UI.Attributes;
 
-namespace Module.Ssamc.Views;
+namespace Ssamc.Views;
 
 /// <summary>
 /// WebUpdateView.xaml 的交互逻辑

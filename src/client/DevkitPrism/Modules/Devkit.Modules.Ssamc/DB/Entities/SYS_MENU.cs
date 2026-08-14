@@ -4,33 +4,26 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Devkit.Modules.Ssamc.Data.Entities;
+namespace Ssamc.DB.Entities;
 
 /// <summary>
-/// 事件附加代码
+/// 菜单
 /// </summary>
-[Table("SYS_PAGE_EVENT_CODE_BACK")]
-public partial class SYS_PAGE_EVENT_CODE_BACK
+[Table("SYS_MENU")]
+public partial class SYS_MENU
 {
     /// <summary>
-    /// 页面名称
-    /// </summary>
-    [StringLength(32)]
-    [Unicode(false)]
-    public string? ID_PAGE { get; set; }
-
-    /// <summary>
-    /// 源代码
-    /// </summary>
-    [Column(TypeName = "NCLOB")]
-    public string? STR_SOURCE { get; set; }
-
-    /// <summary>
-    /// 事件
+    /// ID
     /// </summary>
     [Key]
     [Precision(19)]
     public long ID { get; set; }
+
+    /// <summary>
+    /// 上级目录
+    /// </summary>
+    [Precision(19)]
+    public long? ID_TOP { get; set; }
 
     /// <summary>
     /// 开发项目
@@ -39,84 +32,97 @@ public partial class SYS_PAGE_EVENT_CODE_BACK
     public long? ID_PROJECT { get; set; }
 
     /// <summary>
+    /// 菜单分组
+    /// </summary>
+    [Precision(19)]
+    public long? ID_GROUP { get; set; }
+
+    /// <summary>
     /// 模块名称
     /// </summary>
     [Precision(19)]
     public long? ID_MODULE { get; set; }
 
     /// <summary>
-    /// 列表名称
-    /// </summary>
-    [Column(TypeName = "NUMBER(32)")]
-    public decimal? ID_PAGE_LIST { get; set; }
-
-    /// <summary>
-    /// 事件
+    /// 页面名称
     /// </summary>
     [Precision(19)]
-    public long? ID_EVENT { get; set; }
+    public long? ID_PAGE { get; set; }
 
     /// <summary>
-    /// 编码
+    /// 菜单类型
+    /// </summary>
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? STR_TYPE { get; set; }
+
+    /// <summary>
+    /// 菜单编码
     /// </summary>
     [StringLength(50)]
     [Unicode(false)]
     public string? STR_CODE { get; set; }
 
     /// <summary>
-    /// 名称
+    /// 中文名称
     /// </summary>
     [StringLength(50)]
     [Unicode(false)]
     public string? STR_NAME { get; set; }
 
     /// <summary>
-    /// 引用 文件
+    /// 英文名称
     /// </summary>
-    [StringLength(3000)]
+    [StringLength(50)]
     [Unicode(false)]
-    public string? STR_USING { get; set; }
+    public string? STR_NAMEEN { get; set; }
 
     /// <summary>
-    /// 扩展源代码
+    /// 按钮图标
     /// </summary>
-    [Column(TypeName = "NCLOB")]
-    public string? STR_EXTEND { get; set; }
-
-    /// <summary>
-    /// 详细设计
-    /// </summary>
-    [Column(TypeName = "NCLOB")]
-    public string? STR_DETAIL { get; set; }
-
-    /// <summary>
-    /// 数据库
-    /// </summary>
-    [StringLength(20)]
+    [StringLength(50)]
     [Unicode(false)]
-    public string? STR_DB { get; set; }
+    public string? STR_ICON { get; set; }
 
     /// <summary>
-    /// 打包编译
+    /// 展开状态
     /// </summary>
     [Column(TypeName = "NUMBER(1)")]
-    public bool? IS_PACK { get; set; }
+    public bool? IS_EXPAND { get; set; }
 
     /// <summary>
-    /// 待完成
+    /// 主目录
     /// </summary>
     [Column(TypeName = "NUMBER(1)")]
-    public bool? IS_WAIT { get; set; }
+    public bool? IS_MAIN { get; set; }
 
     /// <summary>
-    /// 备注
+    /// 是节点
     /// </summary>
-    [StringLength(255)]
-    [Unicode(false)]
-    public string? STR_NOTES { get; set; }
+    [Column(TypeName = "NUMBER(1)")]
+    public bool? IS_NODE { get; set; }
 
     /// <summary>
-    /// 单据状态
+    /// 系统菜单
+    /// </summary>
+    [Column(TypeName = "NUMBER(1)")]
+    public bool? IS_SYS { get; set; }
+
+    /// <summary>
+    /// 适用平台
+    /// </summary>
+    [StringLength(10)]
+    [Unicode(false)]
+    public string? STR_FOR { get; set; }
+
+    /// <summary>
+    /// 排序
+    /// </summary>
+    [Precision(5)]
+    public short? INT_SORT { get; set; }
+
+    /// <summary>
+    /// 更新状态
     /// </summary>
     [Column(TypeName = "NUMBER(1)")]
     public bool? IS_STATE { get; set; }
@@ -126,13 +132,6 @@ public partial class SYS_PAGE_EVENT_CODE_BACK
     /// </summary>
     [Precision(19)]
     public long? ID_BY { get; set; }
-
-    /// <summary>
-    /// 生成日期
-    /// </summary>
-    [StringLength(20)]
-    [Unicode(false)]
-    public string? DT_CREATE { get; set; }
 
     /// <summary>
     /// 操作日期
@@ -145,7 +144,7 @@ public partial class SYS_PAGE_EVENT_CODE_BACK
     /// 删除标记
     /// </summary>
     [Column(TypeName = "NUMBER(1)")]
-    public bool? IS_DELETE { get; set; }
+    public int? IS_DELETE { get; set; }
 
     /// <summary>
     /// 处理标志
@@ -173,21 +172,25 @@ public partial class SYS_PAGE_EVENT_CODE_BACK
     public string? DT_UPGRADE { get; set; }
 
     /// <summary>
-    /// 忽略升级
+    /// 报表菜单
     /// </summary>
     [Column(TypeName = "NUMBER(1)")]
-    public bool? IS_IGNORE { get; set; }
+    public bool? IS_REPORT { get; set; }
 
     /// <summary>
-    /// 最后执行时间
+    /// URL参数
     /// </summary>
-    [StringLength(20)]
+    [StringLength(100)]
     [Unicode(false)]
-    public string? DT_EXEC { get; set; }
+    public string? STR_PARAM { get; set; }
 
     /// <summary>
-    /// 执行时长
+    /// URL变量
     /// </summary>
-    [Precision(10)]
-    public int? DBL_EXEC { get; set; }
+    [StringLength(100)]
+    [Unicode(false)]
+    public string? STR_QUERY { get; set; }
+
+    [ForeignKey(nameof(ID_MODULE))]
+    public SYS_MODULE? SYS_MODULE { get; set; }
 }

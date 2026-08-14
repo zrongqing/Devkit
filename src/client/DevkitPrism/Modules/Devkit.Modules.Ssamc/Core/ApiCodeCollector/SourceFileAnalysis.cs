@@ -1,4 +1,4 @@
-namespace Devkit.Modules.Ssamc.Core.ApiCodeCollector;
+namespace Ssamc.Core.ApiCodeCollector;
 
 internal sealed class SourceFileAnalysis
 {

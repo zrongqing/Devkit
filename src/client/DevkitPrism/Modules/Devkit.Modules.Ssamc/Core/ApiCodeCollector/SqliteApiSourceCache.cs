@@ -5,7 +5,7 @@ using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.Data.Sqlite;
 
-namespace Devkit.Modules.Ssamc.Core.ApiCodeCollector;
+namespace Ssamc.Core.ApiCodeCollector;
 
 internal sealed class SqliteApiSourceCache
 {

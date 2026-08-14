@@ -1,9 +1,9 @@
 using Devkit.Core.UI.Services;
-using Devkit.Modules.Ssamc.Core.ApiCodeCollector;
-using Devkit.Modules.Ssamc.Servers;
-using Module.Ssamc.Views;
+using Ssamc.Core.ApiCodeCollector;
+using Ssamc.Servers;
+using Ssamc.Views;
 
-namespace Devkit.Modules.Ssamc;
+namespace Ssamc;
 
 public class SsamcModule : IModule
 {
@@ -23,9 +23,12 @@ public class SsamcModule : IModule
     public void RegisterTypes(IContainerRegistry containerRegistry)
     {
         containerRegistry.RegisterForNavigation<ApiUpdateView>();
+        containerRegistry.RegisterForNavigation<MenuTreeView>();
         containerRegistry.RegisterForNavigation<WebappUpdateView>();
         containerRegistry.RegisterSingleton<IApiScanner, RoslynApiScanner>();
         containerRegistry.Register<IApiUpdateServer, ApiUpdateServer>();
+        containerRegistry.RegisterSingleton<IMenuTreeDataSource, OracleMenuTreeDataSource>();
+        containerRegistry.RegisterSingleton<IWebPageLauncher, SystemWebPageLauncher>();
         containerRegistry.Register<WebappUpdateServer>();
     }
 }

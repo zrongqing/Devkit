@@ -1,6 +1,6 @@
 using System.Dynamic;
 
-namespace Devkit.Modules.Ssamc.Data.Extensions;
+namespace Ssamc.Data.Extensions;
 
 public static class ExpandoObjectExtensions
 {

@@ -1,6 +1,6 @@
-using Devkit.Modules.Ssamc.Core.ApiCodeCollector;
+using Ssamc.Core.ApiCodeCollector;
 
-namespace Devkit.Modules.Ssamc.Servers;
+namespace Ssamc.Servers;
 
 public interface IApiUpdateServer
 {

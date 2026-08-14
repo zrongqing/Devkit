@@ -4,12 +4,12 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Devkit.Core.UI.Mvvm;
-using Devkit.Modules.Ssamc.Configuration;
-using Devkit.Modules.Ssamc.Servers;
+using Ssamc.Configuration;
+using Ssamc.Servers;
 using Devkit.Services.Interfaces;
 using HandyControl.Controls;
 
-namespace Module.Ssamc.ViewModels;
+namespace Ssamc.ViewModels;
 
 public partial class ApiUpdateViewModel : LoadingViewModelBase
 {

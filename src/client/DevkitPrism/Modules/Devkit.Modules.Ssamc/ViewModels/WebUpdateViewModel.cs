@@ -6,11 +6,11 @@ using Devkit.Core.UI;
 using Devkit.Core.UI.Helpers;
 using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Mvvm;
-using Devkit.Modules.Ssamc.Configuration;
+using Ssamc.Configuration;
 using Devkit.Services.Interfaces;
 using HandyControl.Controls;
 
-namespace Module.Ssamc.ViewModels;
+namespace Ssamc.ViewModels;
 
 public partial class WebappUpdateViewModel : ViewModelBase
 {

@@ -1,4 +1,4 @@
-namespace Devkit.Modules.Ssamc.Data.Entities.Common;
+namespace Ssamc.Data.Entities.Common;
 
 public abstract class EntityBase
 {

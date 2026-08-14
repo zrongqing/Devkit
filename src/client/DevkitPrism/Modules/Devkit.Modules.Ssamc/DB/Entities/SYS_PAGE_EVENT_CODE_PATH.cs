@@ -4,27 +4,12 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Devkit.Modules.Ssamc.Data.Entities;
+namespace Ssamc.DB.Entities;
 
 /// <summary>
 /// 事件附加代码历史
 /// </summary>
 [Table("SYS_PAGE_EVENT_CODE_PATH")]
-[Index("IS_MODIFY", Name = "IN_1451555954792992768")]
-[Index("IS_STATE", Name = "IN_1451555954935599104")]
-[Index("IS_DELETE", Name = "IN_1451555955074011136")]
-[Index("IS_DO", Name = "IN_1451555955208228864")]
-[Index("DT_UP", Name = "IN_1451555955409555456")]
-[Index("STR_CODE", Name = "IN_1451555955686379520")]
-[Index("IS_PACK", Name = "IN_1451555955963203584")]
-[Index("IS_EXTEND", Name = "IN_1451555956504268800")]
-[Index("ID_", Name = "IN_1451555956638486528")]
-[Index("ID_BY", Name = "IN_1451555956772704256")]
-[Index("ID_MODULE", Name = "IN_1451555956906921984")]
-[Index("ID_PAGE", Name = "IN_1451555957045334016")]
-[Index("ID_PAGE_LIST", Name = "IN_1451555957179551744")]
-[Index("ID_EVENT", Name = "IN_1451555957309575168")]
-[Index("IS_WAIT", Name = "IN_1462634968978690048")]
 public partial class SYS_PAGE_EVENT_CODE_PATH
 {
     /// <summary>
@@ -33,7 +18,7 @@ public partial class SYS_PAGE_EVENT_CODE_PATH
     [Key]
     [StringLength(32)]
     [Unicode(false)]
-    public string ID { get; set; } = null!;
+    public long? ID { get; set; } = null!;
 
     /// <summary>
     /// 名称

@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Devkit.Modules.Ssamc.Core.ApiCodeCollector;
+namespace Ssamc.Core.ApiCodeCollector;
 
 public static class SyntaxNodeExtensions
 {

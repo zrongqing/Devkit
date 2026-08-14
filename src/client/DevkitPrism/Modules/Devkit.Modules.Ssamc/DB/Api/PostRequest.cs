@@ -1,6 +1,6 @@
 using System.Dynamic;
 
-namespace Devkit.Modules.Ssamc.Data.Api;
+namespace Ssamc.Data.Api;
 
 public class PostRequest
 {

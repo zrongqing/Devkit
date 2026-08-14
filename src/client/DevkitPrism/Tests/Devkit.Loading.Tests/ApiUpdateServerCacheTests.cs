@@ -1,6 +1,6 @@
 using System.IO;
-using Devkit.Modules.Ssamc.Core.ApiCodeCollector;
-using Devkit.Modules.Ssamc.Servers;
+using Ssamc.Core.ApiCodeCollector;
+using Ssamc.Servers;
 using Xunit;
 
 namespace Devkit.Loading.Tests;

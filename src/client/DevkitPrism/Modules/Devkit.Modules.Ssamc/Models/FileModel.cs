@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Module.Ssamc.Models;
+namespace Ssamc.Models;
 
 public partial class FileModel : ObservableObject
 {

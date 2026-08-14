@@ -1,8 +1,11 @@
-namespace Devkit.Modules.Ssamc.Configuration;
+namespace Ssamc.Configuration;
 
 public static class SsamcEnvironment
 {
     private const string Prefix = "DEVKIT_SSAMC_";
+    public const string ProductionEnvironment = "production";
+    public const string TestEnvironment = "test";
+    public const string DevelopmentEnvironment = "development";
 
     public static string SourceCodePath =>
         Environment.GetEnvironmentVariable(Prefix + "SOURCE_PATH") ?? string.Empty;
@@ -13,6 +16,27 @@ public static class SsamcEnvironment
     public static string GetDatabaseConnection(string target)
     {
         return GetRequired($"DB_{Normalize(target)}_CONNECTION");
+    }
+
+    public static string GetMenuDatabaseConnection() => GetRequired("MENU_DB_CONNECTION");
+
+    public static IReadOnlyList<SsamcPageEnvironment> GetPageEnvironments()
+    {
+        return
+        [
+            new(
+                ProductionEnvironment,
+                "正式环境",
+                GetOptional("PAGE_PRODUCTION_BASE_URL", "http://192.168.10.41")),
+            new(
+                TestEnvironment,
+                "测试环境",
+                GetOptional("PAGE_TEST_BASE_URL", "http://192.168.20.54")),
+            new(
+                DevelopmentEnvironment,
+                "开发环境",
+                GetOptional("PAGE_DEVELOPMENT_BASE_URL", "http://192.168.215.57"))
+        ];
     }
 
     public static IReadOnlyList<SsamcShareTarget> GetShareTargets(string target)
@@ -48,6 +72,12 @@ public static class SsamcEnvironment
         return value;
     }
 
+    private static string GetOptional(string suffix, string fallback)
+    {
+        var value = Environment.GetEnvironmentVariable(Prefix + suffix);
+        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+    }
+
     private static string Normalize(string target)
     {
         if (string.IsNullOrWhiteSpace(target))
@@ -60,3 +90,5 @@ public static class SsamcEnvironment
 }
 
 public sealed record SsamcShareTarget(string Root, string Username, string Password);
+
+public sealed record SsamcPageEnvironment(string Key, string DisplayName, string BaseAddress);

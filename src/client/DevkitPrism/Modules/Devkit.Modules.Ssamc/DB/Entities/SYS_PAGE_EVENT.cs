@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Devkit.Modules.Ssamc.Data.Entities;
+namespace Ssamc.DB.Entities;
 
 /// <summary>
 /// 页面事件
