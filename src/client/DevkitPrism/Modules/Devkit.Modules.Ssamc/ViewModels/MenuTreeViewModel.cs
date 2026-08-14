@@ -130,7 +130,14 @@ public partial class MenuTreeViewModel : LoadingViewModelBase
     {
         return RunWithLoadingAsync(async cancellationToken =>
         {
-            _allItems = await _menuTreeDataSource.GetMenuTreeAsync(cancellationToken) ?? [];
+            if (SelectedEnvironment is null)
+            {
+                throw new InvalidOperationException("请选择菜单数据库环境。");
+            }
+
+            _allItems = await _menuTreeDataSource.GetMenuTreeAsync(
+                SelectedEnvironment.Key,
+                cancellationToken) ?? [];
             cancellationToken.ThrowIfCancellationRequested();
             ApplyFilter();
 
@@ -220,10 +227,9 @@ public partial class MenuTreeViewModel : LoadingViewModelBase
         try
         {
             var folderPath = _moduleStorage.GetModulePath(ModuleName);
-            _fileService.Save(
-                folderPath,
-                SettingsFileName,
-                new MenuTreeSettings { PageEnvironmentKey = SelectedEnvironment.Key });
+            var settings = ReadSettings() ?? new MenuTreeSettings();
+            settings.PageEnvironmentKey = SelectedEnvironment.Key;
+            _fileService.Save(folderPath, SettingsFileName, settings);
         }
         catch
         {
@@ -264,9 +270,4 @@ public partial class MenuTreeViewModel : LoadingViewModelBase
         }
     }
 
-    private sealed class MenuTreeSettings
-    {
-        public string PageEnvironmentKey { get; set; } =
-            SsamcEnvironment.DevelopmentEnvironment;
-    }
 }

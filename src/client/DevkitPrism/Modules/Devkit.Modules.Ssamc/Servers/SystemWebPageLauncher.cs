@@ -40,10 +40,7 @@ public sealed class SystemWebPageLauncher : IWebPageLauncher
         var pageUrl = $"/Page/?moduleid={request.ModuleId}";
         var builder = new UriBuilder(baseAddress)
         {
-            Path = "/",
-            Query = $"devkit_tab_title={Uri.EscapeDataString(title)}" +
-                    $"&devkit_tab_url={Uri.EscapeDataString(pageUrl)}",
-            Fragment = string.Empty
+            Path = $"{pageUrl}",
         };
 
         return builder.Uri;

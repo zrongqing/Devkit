@@ -5,5 +5,9 @@
     <RootNamespace>Ssamc</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Mapster" />
+  </ItemGroup>
+
   <Import Project="..\Module.Build.props" />
 </Project>

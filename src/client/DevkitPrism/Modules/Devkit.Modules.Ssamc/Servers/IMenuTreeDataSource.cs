@@ -8,5 +8,7 @@ namespace Ssamc.Servers;
 /// </summary>
 public interface IMenuTreeDataSource
 {
-    Task<IReadOnlyList<MenuTreeItem>> GetMenuTreeAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<MenuTreeItem>> GetMenuTreeAsync(
+        string environmentKey,
+        CancellationToken cancellationToken);
 }

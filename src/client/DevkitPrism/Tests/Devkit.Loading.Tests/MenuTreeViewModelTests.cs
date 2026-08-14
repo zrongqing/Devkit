@@ -3,6 +3,7 @@ using Ssamc.Configuration;
 using Ssamc.Models;
 using Ssamc.Servers;
 using Devkit.Services.Interfaces;
+using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Ssamc.ViewModels;
 using Moq;
@@ -106,7 +107,9 @@ public sealed class MenuTreeViewModelTests
     public async Task Data_source_failure_is_reported_and_loading_is_reset()
     {
         var source = new Mock<IMenuTreeDataSource>();
-        source.Setup(service => service.GetMenuTreeAsync(It.IsAny<CancellationToken>()))
+        source.Setup(service => service.GetMenuTreeAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("menu server unavailable"));
         var viewModel = CreateViewModel(source.Object);
 
@@ -179,7 +182,7 @@ public sealed class MenuTreeViewModelTests
     }
 
     [Fact]
-    public void Page_environments_have_the_required_defaults_and_menu_connection_is_independent()
+    public void Page_environments_have_the_required_defaults_and_legacy_menu_connection_is_supported()
     {
         const string menuConnectionName = "DEVKIT_SSAMC_MENU_DB_CONNECTION";
         var names = new[]
@@ -204,7 +207,9 @@ public sealed class MenuTreeViewModelTests
             Assert.Equal("http://192.168.10.41", environments[0].BaseAddress);
             Assert.Equal("http://192.168.20.54", environments[1].BaseAddress);
             Assert.Equal("http://192.168.215.57", environments[2].BaseAddress);
-            Assert.Equal("menu-connection", SsamcEnvironment.GetMenuDatabaseConnection());
+            Assert.Equal(
+                "menu-connection",
+                SsamcEnvironment.GetMenuDatabaseConnection(SsamcEnvironment.DevelopmentEnvironment));
         }
         finally
         {
@@ -218,9 +223,109 @@ public sealed class MenuTreeViewModelTests
     }
 
     [Fact]
+    public void Menu_database_connection_uses_the_selected_environment_defaults()
+    {
+        var names = new[]
+        {
+            "DEVKIT_SSAMC_MENU_DB_CONNECTION",
+            "DEVKIT_SSAMC_MENU_DB_PRODUCTION_CONNECTION",
+            "DEVKIT_SSAMC_MENU_DB_TEST_CONNECTION",
+            "DEVKIT_SSAMC_MENU_DB_DEVELOPMENT_CONNECTION"
+        };
+        var originals = names.ToDictionary(name => name, Environment.GetEnvironmentVariable);
+
+        try
+        {
+            foreach (var name in names)
+            {
+                Environment.SetEnvironmentVariable(name, null);
+            }
+
+            Assert.Contains(
+                "192.168.10.68/ssamcerp",
+                SsamcEnvironment.GetMenuDatabaseConnection(SsamcEnvironment.ProductionEnvironment));
+            Assert.Contains(
+                "192.168.20.54/ssamcerp",
+                SsamcEnvironment.GetMenuDatabaseConnection(SsamcEnvironment.TestEnvironment));
+            Assert.Contains(
+                "192.168.215.57/ssamcerp",
+                SsamcEnvironment.GetMenuDatabaseConnection(SsamcEnvironment.DevelopmentEnvironment));
+        }
+        finally
+        {
+            foreach (var pair in originals)
+            {
+                Environment.SetEnvironmentVariable(pair.Key, pair.Value);
+            }
+        }
+    }
+
+    [Fact]
+    public void Menu_database_connection_prefers_the_configuration_file()
+    {
+        var files = new MemoryFileService();
+        files.Save(
+            "settings",
+            "menu-tree.json",
+            new MenuTreeSettings
+            {
+                DatabaseConnections = new Dictionary<string, string>
+                {
+                    [SsamcEnvironment.TestEnvironment] = "configured-test-connection"
+                }
+            });
+        var storage = new Mock<IModuleStorage>();
+        storage.Setup(service => service.GetModulePath("ssamc")).Returns("settings");
+        var source = new OracleMenuTreeDataSource(files, storage.Object);
+
+        var connection = source.ResolveConnectionString(SsamcEnvironment.TestEnvironment);
+
+        Assert.Equal("configured-test-connection", connection);
+    }
+
+    [Fact]
+    public async Task Reload_passes_the_selected_environment_to_the_data_source()
+    {
+        var source = new Mock<IMenuTreeDataSource>();
+        source.Setup(service => service.GetMenuTreeAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateMenuTree());
+        var viewModel = CreateViewModel(source.Object);
+        await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
+        viewModel.SelectedEnvironment = viewModel.EnvironmentOptions.Single(environment =>
+            environment.Key == SsamcEnvironment.ProductionEnvironment);
+
+        await viewModel.ReloadCommand.ExecuteAsync(null);
+
+        source.Verify(service => service.GetMenuTreeAsync(
+            SsamcEnvironment.ProductionEnvironment,
+            It.IsAny<CancellationToken>()));
+    }
+
+    [Fact]
     public void Oracle_delete_flag_is_numeric()
     {
         Assert.Equal(typeof(short?), typeof(SYS_MENU).GetProperty(nameof(SYS_MENU.IS_DELETE))?.PropertyType);
+    }
+
+    [Fact]
+    public void Oracle_query_row_uses_the_menu_record_mapster_configuration()
+    {
+        var row = new MenuTreeQueryRow
+        {
+            MenuId = 12,
+            Name = "Mapped menu",
+            ModuleId = 34,
+            ModuleName = "Mapped module"
+        };
+
+        var record = row.Adapt<MenuTreeRecord>(MenuTreeRecordMapping.Configuration);
+
+        Assert.Equal(row.MenuId, record.MenuId);
+        Assert.Equal(row.Name, record.Name);
+        Assert.Equal(row.ModuleId, record.ModuleId);
+        Assert.Equal(row.ModuleName, record.ModuleName);
     }
 
     [Fact]
@@ -243,7 +348,9 @@ public sealed class MenuTreeViewModelTests
         IFileService? files = null)
     {
         var source = new Mock<IMenuTreeDataSource>();
-        source.Setup(service => service.GetMenuTreeAsync(It.IsAny<CancellationToken>()))
+        source.Setup(service => service.GetMenuTreeAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(items);
         return CreateViewModel(source.Object, launcher, files);
     }

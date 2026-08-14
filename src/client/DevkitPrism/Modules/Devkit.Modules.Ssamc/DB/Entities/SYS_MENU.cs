@@ -144,7 +144,7 @@ public partial class SYS_MENU
     /// 删除标记
     /// </summary>
     [Column(TypeName = "NUMBER(1)")]
-    public int? IS_DELETE { get; set; }
+    public short? IS_DELETE { get; set; }
 
     /// <summary>
     /// 处理标志

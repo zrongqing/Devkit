@@ -8,9 +8,26 @@
 - `DEVKIT_SSAMC_DB_215_58_CONNECTION`
 - `DEVKIT_SSAMC_DB_20_54_CONNECTION`
 
-运行菜单树功能前，配置独立的 Oracle 菜单数据库连接：
+菜单树根据页面中选择的正式、测试或开发环境连接对应的 Oracle 数据库。可在应用目录的
+`Modules/ssamc/menu-tree.json` 中覆盖连接串：
 
-- `DEVKIT_SSAMC_MENU_DB_CONNECTION`
+```json
+{
+  "PageEnvironmentKey": "development",
+  "DatabaseConnections": {
+    "production": "data source=<host>/<service>;user id=<user>;password=<password>",
+    "test": "data source=<host>/<service>;user id=<user>;password=<password>",
+    "development": "data source=<host>/<service>;user id=<user>;password=<password>"
+  }
+}
+```
+
+配置文件优先；也可使用环境变量覆盖内置默认值：
+
+- `DEVKIT_SSAMC_MENU_DB_PRODUCTION_CONNECTION`
+- `DEVKIT_SSAMC_MENU_DB_TEST_CONNECTION`
+- `DEVKIT_SSAMC_MENU_DB_DEVELOPMENT_CONNECTION`
+- `DEVKIT_SSAMC_MENU_DB_CONNECTION`（兼容旧版，作为三个环境的统一覆盖）
 
 菜单页面地址可按环境覆盖；未配置时使用内置的正式、测试、开发地址：
 
@@ -25,7 +42,8 @@
 - `DEVKIT_SSAMC_WEBAPP_20_53_ROOTS`、`DEVKIT_SSAMC_WEBAPP_20_53_USERNAME`、`DEVKIT_SSAMC_WEBAPP_20_53_PASSWORD`
 - `DEVKIT_SSAMC_WEBAPP_PRODUCTION_ROOTS`、`DEVKIT_SSAMC_WEBAPP_PRODUCTION_USERNAME`、`DEVKIT_SSAMC_WEBAPP_PRODUCTION_PASSWORD`
 
-所有连接串和凭据只从进程环境读取，不应写入仓库。
+API 更新和 Webapp 更新所需凭据只从进程环境读取。菜单数据库连接也可以写入上述应用本地
+配置文件，但包含真实凭据的 `menu-tree.json` 不应写入仓库。
 
 ## Menu tree extension points
 

@@ -18,7 +18,43 @@ public static class SsamcEnvironment
         return GetRequired($"DB_{Normalize(target)}_CONNECTION");
     }
 
-    public static string GetMenuDatabaseConnection() => GetRequired("MENU_DB_CONNECTION");
+    public static string GetMenuDatabaseConnection(
+        string environmentKey,
+        string? configuredConnection = null)
+    {
+        if (!string.IsNullOrWhiteSpace(configuredConnection))
+        {
+            return configuredConnection.Trim();
+        }
+
+        var normalizedEnvironment = Normalize(environmentKey);
+        var environmentConnection = GetOptional($"MENU_DB_{normalizedEnvironment}_CONNECTION");
+        if (!string.IsNullOrWhiteSpace(environmentConnection))
+        {
+            return environmentConnection;
+        }
+
+        // Keep the original single connection variable as a backwards-compatible override.
+        var legacyConnection = GetOptional("MENU_DB_CONNECTION");
+        if (!string.IsNullOrWhiteSpace(legacyConnection))
+        {
+            return legacyConnection;
+        }
+
+        return environmentKey.ToLowerInvariant() switch
+        {
+            ProductionEnvironment =>
+                "data source=192.168.10.68/ssamcerp;user id=barcode2_read;password=barcode2",
+            TestEnvironment =>
+                "data source=192.168.20.54/ssamcerp;user id=barcode2;password=barcode2",
+            DevelopmentEnvironment =>
+                "data source=192.168.215.57/ssamcerp;user id=barcode2;password=barcode2",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(environmentKey),
+                environmentKey,
+                "未知的 SSAMC 菜单数据库环境。")
+        };
+    }
 
     public static IReadOnlyList<SsamcPageEnvironment> GetPageEnvironments()
     {
@@ -76,6 +112,12 @@ public static class SsamcEnvironment
     {
         var value = Environment.GetEnvironmentVariable(Prefix + suffix);
         return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+    }
+
+    private static string? GetOptional(string suffix)
+    {
+        var value = Environment.GetEnvironmentVariable(Prefix + suffix);
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private static string Normalize(string target)
