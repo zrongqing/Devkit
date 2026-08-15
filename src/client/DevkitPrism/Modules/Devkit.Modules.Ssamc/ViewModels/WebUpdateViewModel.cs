@@ -8,7 +8,7 @@ using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Mvvm;
 using Ssamc.Configuration;
 using Devkit.Services.Interfaces;
-using HandyControl.Controls;
+using Devkit.Services.Interfaces.Notifications;
 
 namespace Ssamc.ViewModels;
 
@@ -16,6 +16,7 @@ public partial class WebappUpdateViewModel : ViewModelBase
 {
     private readonly IFileService _fileService;
     private readonly IModuleStorage _moduleStorage;
+    private readonly IClientNotificationService _notifications;
 
     [ObservableProperty]
     private string _webappPath = SsamcEnvironment.WebappSourcePath;
@@ -23,10 +24,14 @@ public partial class WebappUpdateViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<FileNodeModel> _treeNodes = [];
 
-    public WebappUpdateViewModel(IFileService fileService, IModuleStorage moduleStorage)
+    public WebappUpdateViewModel(
+        IFileService fileService,
+        IModuleStorage moduleStorage,
+        IClientNotificationService notifications)
     {
         _fileService = fileService;
         _moduleStorage = moduleStorage;
+        _notifications = notifications;
     }
 
     protected override async Task OnInitializeAsync(CancellationToken cancellationToken)
@@ -48,7 +53,7 @@ public partial class WebappUpdateViewModel : ViewModelBase
             var rootPath = searchRootPath as string;
             if (string.IsNullOrWhiteSpace(rootPath))
             {
-                Growl.Info("请先配置 webapp 源目录。");
+                ShowWarning("请先配置 webapp 源目录。");
                 return;
             }
 
@@ -56,9 +61,13 @@ public partial class WebappUpdateViewModel : ViewModelBase
                 FileSystemHelper.GetChildNodesRecursive(rootPath));
             SaveFile();
         }
+        catch (SsamcConfigurationException exception)
+        {
+            ShowWarning(exception.Message);
+        }
         catch (Exception exception)
         {
-            Growl.Error(exception.Message);
+            ShowError(exception.Message);
         }
     }
 
@@ -69,10 +78,16 @@ public partial class WebappUpdateViewModel : ViewModelBase
         {
             var targetName = parameter as string;
             if (string.IsNullOrWhiteSpace(targetName))
-                throw new InvalidOperationException("未指定发布目标环境。");
+            {
+                ShowWarning("未指定发布目标环境。");
+                return;
+            }
 
             if (string.IsNullOrWhiteSpace(WebappPath))
-                throw new InvalidOperationException("未配置 webapp 源目录。");
+            {
+                ShowWarning("未配置 webapp 源目录。");
+                return;
+            }
 
             var files = TreeNodes
                 .SelectMany(node => node.GetCheckedNodes())
@@ -82,7 +97,7 @@ public partial class WebappUpdateViewModel : ViewModelBase
 
             if (files.Count == 0)
             {
-                Growl.Info("请选择要更新的文件。");
+                ShowWarning("请选择要更新的文件。");
                 return;
             }
 
@@ -101,11 +116,15 @@ public partial class WebappUpdateViewModel : ViewModelBase
                 }
             }
 
-            Growl.Success($"{targetName}，更新成功");
+            ShowInformation($"{targetName}，更新成功");
+        }
+        catch (SsamcConfigurationException exception)
+        {
+            ShowWarning(exception.Message);
         }
         catch (Exception exception)
         {
-            Growl.Error(exception.Message);
+            ShowError(exception.Message);
         }
     }
 
@@ -152,6 +171,33 @@ public partial class WebappUpdateViewModel : ViewModelBase
             // 无历史配置时使用环境变量或空值。
             return null;
         }
+    }
+
+    private void ShowInformation(string message)
+    {
+        _notifications.Show(new NotificationRequest
+        {
+            Message = message,
+            Level = NotificationLevel.Info
+        });
+    }
+
+    private void ShowWarning(string message)
+    {
+        _notifications.Show(new NotificationRequest
+        {
+            Message = message,
+            Level = NotificationLevel.Warning
+        });
+    }
+
+    private void ShowError(string message)
+    {
+        _notifications.Show(new NotificationRequest
+        {
+            Message = message,
+            Level = NotificationLevel.Error
+        });
     }
 
     private sealed class WebappUpdateSettings

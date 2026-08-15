@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Devkit.Core.UI.Contracts;
@@ -8,7 +7,7 @@ using Ssamc.Configuration;
 using Ssamc.Models;
 using Ssamc.Servers;
 using Devkit.Services.Interfaces;
-using HandyControl.Controls;
+using Devkit.Services.Interfaces.Notifications;
 
 namespace Ssamc.ViewModels;
 
@@ -20,18 +19,21 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
     private readonly IWebPageLauncher _webPageLauncher;
     private readonly IFileService _fileService;
     private readonly IModuleStorage _moduleStorage;
+    private readonly IClientNotificationService _notifications;
     private IReadOnlyList<MenuTreeItem> _allItems = [];
 
     public MenuTreeViewModel(
         IMenuTreeDataSource menuTreeDataSource,
         IWebPageLauncher webPageLauncher,
         IFileService fileService,
-        IModuleStorage moduleStorage)
+        IModuleStorage moduleStorage,
+        IClientNotificationService notifications)
     {
         _menuTreeDataSource = menuTreeDataSource;
         _webPageLauncher = webPageLauncher;
         _fileService = fileService;
         _moduleStorage = moduleStorage;
+        _notifications = notifications;
         EnvironmentOptions = SsamcEnvironment.GetPageEnvironments();
         _selectedEnvironment = EnvironmentOptions.First(environment =>
             environment.Key == SsamcEnvironment.DevelopmentEnvironment);
@@ -53,9 +55,6 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
 
     [ObservableProperty]
     private SsamcPageEnvironment? _selectedEnvironment;
-
-    [ObservableProperty]
-    private string? _lastNotificationMessage;
 
     public bool HasTreeNodes => TreeNodes.Count > 0;
 
@@ -88,13 +87,13 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
         node ??= SelectedMenu;
         if (node?.MainPageId is not > 0)
         {
-            ShowInformation("该菜单模块未配置主页面 ID，无法打开页面。");
+            ShowWarning("该菜单模块未配置主页面 ID，无法打开页面。");
             return;
         }
 
         if (SelectedEnvironment is null)
         {
-            ShowInformation("请选择页面环境。");
+            ShowWarning("请选择页面环境。");
             return;
         }
 
@@ -105,7 +104,7 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
                 SelectedEnvironment.BaseAddress,
                 node.MainPageId.Value);
             await _webPageLauncher.OpenTabAsync(request, cancellationToken);
-            LastNotificationMessage = $"已在{SelectedEnvironment.DisplayName}打开：{node.Name}";
+            ShowInformation($"已在{SelectedEnvironment.DisplayName}打开：{node.Name}");
         }, HandleOperationError);
     }
 
@@ -144,7 +143,7 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
 
             if (_allItems.Count == 0)
             {
-                ShowInformation("未找到 IS_DELETE = 0 的菜单数据。");
+                ShowWarning("未找到 IS_DELETE = 0 的菜单数据。");
             }
         }, HandleOperationError);
     }
@@ -259,20 +258,29 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
 
     private void ShowInformation(string message)
     {
-        LastNotificationMessage = message;
-        if (Application.Current != null)
+        _notifications.Show(new NotificationRequest
         {
-            Growl.Info(message);
-        }
+            Message = message,
+            Level = NotificationLevel.Info
+        });
+    }
+
+    private void ShowWarning(string message)
+    {
+        _notifications.Show(new NotificationRequest
+        {
+            Message = message,
+            Level = NotificationLevel.Warning
+        });
     }
 
     private void ShowError(string message)
     {
-        LastNotificationMessage = message;
-        if (Application.Current != null)
+        _notifications.Show(new NotificationRequest
         {
-            Growl.Error(message);
-        }
+            Message = message,
+            Level = NotificationLevel.Error
+        });
     }
 
 }

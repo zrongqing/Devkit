@@ -9,9 +9,13 @@ using Devkit.Prism;
 using Devkit.Prism.Extensions;
 using Devkit.Services;
 using Devkit.Services.Diagnostics;
+using Devkit.Services.Dialogs;
+using Devkit.Services.Interfaces.Dialogs;
 using Devkit.Services.Interfaces.Logging;
+using Devkit.Services.Interfaces.Notifications;
 using Devkit.Services.Logging;
 using Devkit.Services.Interfaces;
+using Devkit.Services.Notifications;
 using Devkit.ViewModels;
 using Devkit.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -57,6 +61,7 @@ public partial class App : DevkitPrismApplication
 
     protected override void OnExit(ExitEventArgs e)
     {
+        GetService<IClientNotificationService>()?.CloseAll();
         DispatcherUnhandledException -= _crashHandler.HandleDispatcherException;
         AppDomain.CurrentDomain.UnhandledException -= _crashHandler.HandleAppDomainException;
         TaskScheduler.UnobservedTaskException -= _crashHandler.HandleUnobservedTaskException;
@@ -73,6 +78,12 @@ public partial class App : DevkitPrismApplication
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IModuleStorage, ModuleStorage>();
         services.AddSingleton<IMessageService, MessageService>();
+        services.AddSingleton<IClientUiContext, WpfClientUiContext>();
+        services.AddSingleton<IToastNotificationPresenter, SyncfusionToastNotificationPresenter>();
+        services.AddSingleton<IWindowsToastRegistration, WindowsToastRegistration>();
+        services.AddSingleton<IClientNotificationService, ClientNotificationService>();
+        services.AddSingleton<IConfirmationDialogPresenter, ConfirmationDialogPresenter>();
+        services.AddSingleton<IConfirmationDialogService, ConfirmationDialogService>();
         services.AddSingleton<DelayedLoadingState>();
         services.AddSingleton<IShellService, ShellService>();
         services.AddSingleton<IMenuRegistry, MenuRegistry>();
@@ -86,6 +97,8 @@ public partial class App : DevkitPrismApplication
         regionManager.RegisterViewWithRegion(RegionNames.MenuTabRegion, typeof(MenuTabView));
 
         LoadMenus();
+
+        Container.Resolve<IWindowsToastRegistration>().EnsureRegistered();
 
         return Container.Resolve<ShellWindow>();
     }

@@ -2,6 +2,7 @@ using System.IO;
 using Ssamc.Core.ApiCodeCollector;
 using Ssamc.Servers;
 using Devkit.Services.Interfaces;
+using Devkit.Services.Interfaces.Notifications;
 using Ssamc.ViewModels;
 using Moq;
 using Xunit;
@@ -29,7 +30,8 @@ public sealed class ApiUpdateViewModelTests : IDisposable
         Environment.SetEnvironmentVariable(FirstConnectionVariable, "first-connection");
         Environment.SetEnvironmentVariable(SecondConnectionVariable, "second-connection");
         var server = CreateSuccessfulServer();
-        var viewModel = CreateViewModel(server.Object);
+        var notifications = CreateNotificationMock();
+        var viewModel = CreateViewModel(server.Object, notifications);
         var busyStarts = 0;
         viewModel.PageLoading.PropertyChanged += (_, args) =>
         {
@@ -54,6 +56,8 @@ public sealed class ApiUpdateViewModelTests : IDisposable
         server.Verify(
             service => service.UpdateExtendCode("API001", "extension", It.IsAny<string>()),
             Times.Exactly(2));
+        notifications.Verify(service => service.Show(It.Is<NotificationRequest>(request =>
+            request.Level == NotificationLevel.Info)), Times.Exactly(2));
     }
 
     [Fact]
@@ -61,12 +65,15 @@ public sealed class ApiUpdateViewModelTests : IDisposable
     {
         Environment.SetEnvironmentVariable(FirstConnectionVariable, null);
         var server = CreateSuccessfulServer();
-        var viewModel = CreateViewModel(server.Object);
+        var notifications = CreateNotificationMock();
+        var viewModel = CreateViewModel(server.Object, notifications);
         viewModel.StrUpdateApis = "API001";
 
         await viewModel.UpdateCommand.ExecuteAsync("215.58");
 
-        Assert.Contains(FirstConnectionVariable, viewModel.LastNotificationMessage);
+        notifications.Verify(service => service.Show(It.Is<NotificationRequest>(request =>
+            request.Level == NotificationLevel.Warning &&
+            request.Message.Contains(FirstConnectionVariable))), Times.Once);
         Assert.False(viewModel.PageLoading.IsBusy);
         Assert.False(viewModel.PageLoading.IsVisible);
         server.Verify(
@@ -87,12 +94,15 @@ public sealed class ApiUpdateViewModelTests : IDisposable
                 It.IsAny<string>(),
                 It.IsAny<string>()))
             .Throws(new InvalidOperationException("database unavailable"));
-        var viewModel = CreateViewModel(server.Object);
+        var notifications = CreateNotificationMock();
+        var viewModel = CreateViewModel(server.Object, notifications);
         viewModel.StrUpdateApis = "API001";
 
         await viewModel.UpdateCommand.ExecuteAsync("215.58");
 
-        Assert.Contains("database unavailable", viewModel.LastNotificationMessage);
+        notifications.Verify(service => service.Show(It.Is<NotificationRequest>(request =>
+            request.Level == NotificationLevel.Error &&
+            request.Message.Contains("database unavailable"))), Times.Once);
         Assert.False(viewModel.PageLoading.IsBusy);
         Assert.False(viewModel.PageLoading.IsVisible);
     }
@@ -134,16 +144,30 @@ public sealed class ApiUpdateViewModelTests : IDisposable
         Directory.Delete(_sourceDirectory, recursive: true);
     }
 
-    private ApiUpdateViewModel CreateViewModel(IApiUpdateServer server)
+    private ApiUpdateViewModel CreateViewModel(
+        IApiUpdateServer server,
+        Mock<IClientNotificationService>? notifications = null)
     {
         var files = new Mock<IFileService>();
         var storage = new Mock<IModuleStorage>();
         storage.Setup(service => service.GetModulePath("ssamc")).Returns(_sourceDirectory);
 
-        return new ApiUpdateViewModel(server, files.Object, storage.Object)
+        return new ApiUpdateViewModel(
+            server,
+            files.Object,
+            storage.Object,
+            (notifications ?? CreateNotificationMock()).Object)
         {
             SourceCodePath = _sourceDirectory
         };
+    }
+
+    private static Mock<IClientNotificationService> CreateNotificationMock()
+    {
+        var notifications = new Mock<IClientNotificationService>();
+        notifications.Setup(service => service.Show(It.IsAny<NotificationRequest>()))
+            .Returns(() => Guid.NewGuid().ToString("N"));
+        return notifications;
     }
 
     private Mock<IApiUpdateServer> CreateSuccessfulServer()

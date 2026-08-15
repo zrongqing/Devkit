@@ -102,7 +102,7 @@ public static class SsamcEnvironment
         var value = Environment.GetEnvironmentVariable(variableName);
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new InvalidOperationException($"缺少环境变量 {variableName}。");
+            throw new SsamcConfigurationException($"缺少环境变量 {variableName}。");
         }
 
         return value;

@@ -1,13 +1,12 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Devkit.Core.UI.Mvvm;
 using Ssamc.Configuration;
 using Ssamc.Servers;
 using Devkit.Services.Interfaces;
-using HandyControl.Controls;
+using Devkit.Services.Interfaces.Notifications;
 
 namespace Ssamc.ViewModels;
 
@@ -16,16 +15,19 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
     private readonly IApiUpdateServer _apiUpdateServer;
     private readonly IFileService _fileService;
     private readonly IModuleStorage _moduleStorage;
+    private readonly IClientNotificationService _notifications;
     private IList<string> _selectedApiCodes = new List<string>();
 
     public ApiUpdateViewModel(
         IApiUpdateServer apiUpdateServer,
         IFileService fileService,
-        IModuleStorage moduleStorage)
+        IModuleStorage moduleStorage,
+        IClientNotificationService notifications)
     {
         _apiUpdateServer = apiUpdateServer;
         _fileService = fileService;
         _moduleStorage = moduleStorage;
+        _notifications = notifications;
     }
 
     [ObservableProperty]
@@ -51,9 +53,6 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
 
     [ObservableProperty]
     private string _strUpdateApis = string.Empty;
-
-    [ObservableProperty]
-    private string? _lastNotificationMessage;
 
     protected override async Task OnInitializeAsync(CancellationToken cancellationToken)
     {
@@ -134,14 +133,15 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
                 .ToList();
             if (updateApiCodes.Count == 0)
             {
-                ShowInformation("请输入要更新的接口");
+                ShowWarning("请输入要更新的接口");
                 return;
             }
 
             var target = buttonParameter?.ToString();
             if (string.IsNullOrWhiteSpace(target))
             {
-                throw new InvalidOperationException("未指定数据库目标环境。");
+                ShowWarning("未指定数据库目标环境。");
+                return;
             }
 
             var connectionString = SsamcEnvironment.GetDatabaseConnection(target);
@@ -179,13 +179,22 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
         return results;
     }
 
-    private void HandleOperationError(Exception exception) => ShowError(exception.Message);
+    private void HandleOperationError(Exception exception)
+    {
+        if (exception is SsamcConfigurationException or DirectoryNotFoundException)
+        {
+            ShowWarning(exception.Message);
+            return;
+        }
+
+        ShowError(exception.Message);
+    }
 
     private void ValidateSourcePath()
     {
         if (string.IsNullOrWhiteSpace(SourceCodePath))
         {
-            throw new InvalidOperationException("请先配置源代码目录。");
+            throw new SsamcConfigurationException("请先配置源代码目录。");
         }
 
         if (!Directory.Exists(SourceCodePath))
@@ -224,20 +233,29 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
 
     private void ShowInformation(string message)
     {
-        LastNotificationMessage = message;
-        if (Application.Current != null)
+        _notifications.Show(new NotificationRequest
         {
-            Growl.Info(message);
-        }
+            Message = message,
+            Level = NotificationLevel.Info
+        });
+    }
+
+    private void ShowWarning(string message)
+    {
+        _notifications.Show(new NotificationRequest
+        {
+            Message = message,
+            Level = NotificationLevel.Warning
+        });
     }
 
     private void ShowError(string message)
     {
-        LastNotificationMessage = message;
-        if (Application.Current != null)
+        _notifications.Show(new NotificationRequest
         {
-            Growl.Error(message);
-        }
+            Message = message,
+            Level = NotificationLevel.Error
+        });
     }
 
     private sealed class ApiUpdateSettings

@@ -26,6 +26,7 @@
     <PackageVersion Include="Syncfusion.SfGridCommon.WPF" Version="33.1.44" />
     <PackageVersion Include="Syncfusion.SfTreeView.WPF" Version="33.1.44" />
     <PackageVersion Include="Syncfusion.SfInput.WPF" Version="33.1.44"/>
+    <PackageVersion Include="Syncfusion.SfToastNotification.WPF" Version="33.1.44"/>
     
     <PackageVersion Include="Syncfusion.PropertyGrid.WPF" Version="33.1.44"/>
     <PackageVersion Include="Syncfusion.SfSkinManager.WPF" Version="33.1.44.0"/>

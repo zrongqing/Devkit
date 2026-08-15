@@ -13,7 +13,5 @@ public partial class WebappUpdateView : UserControl
     public WebappUpdateView()
     {
         InitializeComponent();
-
-        //HandyControl.Controls.Dialog.Register("WebappUpdateView", this);
     }
 }

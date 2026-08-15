@@ -6,6 +6,7 @@ using Ssamc.Configuration;
 using Ssamc.Models;
 using Ssamc.Servers;
 using Devkit.Services.Interfaces;
+using Devkit.Services.Interfaces.Notifications;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Ssamc.ViewModels;
@@ -111,7 +112,8 @@ public sealed class MenuTreeViewModelTests
     public async Task Open_delegates_the_selected_environment_and_main_page_to_the_launcher()
     {
         var launcher = new Mock<IWebPageLauncher>();
-        var viewModel = CreateViewModel(CreateMenuTree(), launcher.Object);
+        var notifications = CreateNotificationMock();
+        var viewModel = CreateViewModel(CreateMenuTree(), launcher.Object, notifications: notifications);
         await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
         var swagger = viewModel.TreeNodes[0].Children[0];
         viewModel.SelectedEnvironment = viewModel.EnvironmentOptions.Single(environment =>
@@ -126,6 +128,9 @@ public sealed class MenuTreeViewModelTests
                     request.MainPageId == 20001),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+        notifications.Verify(service => service.Show(It.Is<NotificationRequest>(request =>
+            request.Level == NotificationLevel.Info &&
+            request.Message.Contains("Swagger"))), Times.Once);
     }
 
     [Fact]
@@ -177,11 +182,14 @@ public sealed class MenuTreeViewModelTests
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("menu server unavailable"));
-        var viewModel = CreateViewModel(source.Object);
+        var notifications = CreateNotificationMock();
+        var viewModel = CreateViewModel(source.Object, notifications: notifications);
 
         await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal("menu server unavailable", viewModel.LastNotificationMessage);
+        notifications.Verify(service => service.Show(It.Is<NotificationRequest>(request =>
+            request.Level == NotificationLevel.Error &&
+            request.Message == "menu server unavailable")), Times.Once);
         Assert.Empty(viewModel.TreeNodes);
         Assert.False(viewModel.PageLoading.IsBusy);
         Assert.False(viewModel.PageLoading.IsVisible);
@@ -195,12 +203,15 @@ public sealed class MenuTreeViewModelTests
                 It.IsAny<WebTabOpenRequest>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("browser unavailable"));
-        var viewModel = CreateViewModel(CreateMenuTree(), launcher.Object);
+        var notifications = CreateNotificationMock();
+        var viewModel = CreateViewModel(CreateMenuTree(), launcher.Object, notifications: notifications);
         await viewModel.InitializeAsync(TestContext.Current.CancellationToken);
 
         await viewModel.OpenCommand.ExecuteAsync(viewModel.TreeNodes[0].Children[0]);
 
-        Assert.Equal("browser unavailable", viewModel.LastNotificationMessage);
+        notifications.Verify(service => service.Show(It.Is<NotificationRequest>(request =>
+            request.Level == NotificationLevel.Error &&
+            request.Message == "browser unavailable")), Times.Once);
         Assert.False(viewModel.PageLoading.IsBusy);
         Assert.False(viewModel.PageLoading.IsVisible);
     }
@@ -414,20 +425,22 @@ public sealed class MenuTreeViewModelTests
     private static MenuTreeViewModel CreateViewModel(
         IReadOnlyList<MenuTreeItem> items,
         IWebPageLauncher? launcher = null,
-        IFileService? files = null)
+        IFileService? files = null,
+        Mock<IClientNotificationService>? notifications = null)
     {
         var source = new Mock<IMenuTreeDataSource>();
         source.Setup(service => service.GetMenuTreeAsync(
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(items);
-        return CreateViewModel(source.Object, launcher, files);
+        return CreateViewModel(source.Object, launcher, files, notifications);
     }
 
     private static MenuTreeViewModel CreateViewModel(
         IMenuTreeDataSource source,
         IWebPageLauncher? launcher = null,
-        IFileService? files = null)
+        IFileService? files = null,
+        Mock<IClientNotificationService>? notifications = null)
     {
         var storage = new Mock<IModuleStorage>();
         storage.Setup(service => service.GetModulePath("ssamc")).Returns("settings");
@@ -435,7 +448,16 @@ public sealed class MenuTreeViewModelTests
             source,
             launcher ?? Mock.Of<IWebPageLauncher>(),
             files ?? Mock.Of<IFileService>(),
-            storage.Object);
+            storage.Object,
+            (notifications ?? CreateNotificationMock()).Object);
+    }
+
+    private static Mock<IClientNotificationService> CreateNotificationMock()
+    {
+        var notifications = new Mock<IClientNotificationService>();
+        notifications.Setup(service => service.Show(It.IsAny<NotificationRequest>()))
+            .Returns(() => Guid.NewGuid().ToString("N"));
+        return notifications;
     }
 
     private static IReadOnlyList<MenuTreeItem> CreateMenuTree()
