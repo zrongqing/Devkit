@@ -2,6 +2,7 @@ using Devkit.Core.UI.Contracts;
 using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Mvvm;
 using Devkit.Core.UI.Services;
+using Devkit.Modules;
 using Devkit.Prism.Events;
 using Devkit.Services.Interfaces.Logging;
 using Devkit.ViewModels;
@@ -83,6 +84,28 @@ public class MenuTabViewModelTests
     }
 
     [Fact]
+    public async Task Closing_module_content_cancels_waits_and_destroys_content()
+    {
+        var loadable = new BlockingDestructibleLoadable();
+        var context = CreateContext(_ => loadable);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+        await WaitUntilAsync(() => loadable.InitializeCount == 1);
+        Assert.Equal(1, context.Coordinator.GetOpenContentCount(context.Menu.ModuleId!));
+
+        var closeTask = context.Coordinator.CloseModuleContentAsync(context.Menu.ModuleId!);
+        await loadable.Canceled.Task.WaitAsync(
+            TimeSpan.FromSeconds(2),
+            Xunit.TestContext.Current.CancellationToken);
+        await closeTask;
+
+        Assert.Empty(context.ViewModel.Tabs);
+        Assert.Equal(0, context.Coordinator.GetOpenContentCount(context.Menu.ModuleId!));
+        Assert.Equal(1, loadable.DestroyCount);
+        context.ViewModel.UnloadedCommand.Execute();
+    }
+
+    [Fact]
     public async Task Page_loading_view_model_does_not_activate_global_loading()
     {
         var loadable = new PageLoadingLoadable();
@@ -139,6 +162,7 @@ public class MenuTabViewModelTests
     {
         var menu = new MenuItemModel
         {
+            ModuleId = "Test.Module",
             Id = "test-module",
             Title = "Test module",
             ViewName = "TestView",
@@ -150,15 +174,17 @@ public class MenuTabViewModelTests
         shellService.Setup(service => service.ResolveContent(menu)).Returns(() => contentFactory(menu));
 
         var events = new EventAggregator();
+        var coordinator = new ModuleContentCoordinator();
         var globalLoading = new DelayedLoadingState(TimeSpan.FromMilliseconds(20));
         var viewModel = new MenuTabViewModel(
             events,
             shellService.Object,
             globalLoading,
-            Mock.Of<IClientLogger>());
+            Mock.Of<IClientLogger>(),
+            coordinator);
         viewModel.LoadedCommand.Execute();
 
-        return new TestContext(viewModel, events, globalLoading, menu);
+        return new TestContext(viewModel, events, globalLoading, menu, coordinator);
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)
@@ -174,7 +200,8 @@ public class MenuTabViewModelTests
         MenuTabViewModel ViewModel,
         EventAggregator Events,
         DelayedLoadingState GlobalLoading,
-        MenuItemModel Menu);
+        MenuItemModel Menu,
+        ModuleContentCoordinator Coordinator);
 
     private sealed class FailingLoadable : IAsyncLoadable
     {
@@ -223,6 +250,39 @@ public class MenuTabViewModelTests
         public void Destroy()
         {
             DestroyCount++;
+        }
+    }
+
+    private sealed class BlockingDestructibleLoadable : IAsyncLoadable, IDestructible
+    {
+        private readonly TaskCompletionSource _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Canceled { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public int InitializeCount { get; private set; }
+
+        public int DestroyCount { get; private set; }
+
+        public async Task InitializeAsync(CancellationToken cancellationToken)
+        {
+            InitializeCount++;
+            try
+            {
+                await _completion.Task.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                Canceled.TrySetResult();
+                throw;
+            }
+        }
+
+        public void Destroy()
+        {
+            DestroyCount++;
+            _completion.TrySetResult();
         }
     }
 

@@ -6,7 +6,6 @@
   xmlns:hc="https://handyorg.github.io/handycontrol"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-  xmlns:prism="http://prismlibrary.com/"
   xmlns:behaviors="clr-namespace:Devkit.Core.UI.Behaviors;assembly=Devkit.Core.UI"
   xmlns:coreViews="clr-namespace:Devkit.Core.UI.Views;assembly=Devkit.Core.UI"
   xmlns:viewModels="clr-namespace:Ssamc.ViewModels"
@@ -14,7 +13,6 @@
   d:DataContext="{d:DesignInstance viewModels:ApiUpdateViewModel}"
   d:DesignHeight="800"
   d:DesignWidth="1200"
-  prism:ViewModelLocator.AutoWireViewModel="True"
   mc:Ignorable="d">
   <coreViews:LoadingView.Resources>
     <ResourceDictionary>

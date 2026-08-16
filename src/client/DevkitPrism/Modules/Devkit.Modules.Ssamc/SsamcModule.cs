@@ -1,27 +1,35 @@
 using Devkit.Core.UI.Services;
+using Devkit.Prism.Modules;
 using Ssamc.Core.ApiCodeCollector;
 using Ssamc.Servers;
+using Ssamc.ViewModels;
 using Ssamc.Views;
 
 namespace Ssamc;
 
-public class SsamcModule : IModule
+public class SsamcModule : IModule, IUnloadableModule
 {
+    private const string ModuleId = "Devkit.Modules.Ssamc";
+
     public void OnInitialized(IContainerProvider containerProvider)
     {
         var menuRegistry = containerProvider.Resolve<IMenuRegistry>();
         menuRegistry.Register(new()
         {
             Id = "ssamc",
+            ModuleId = ModuleId,
             ParentId = null,
             Title = "ssamc",
             Order = 100,
         });
-        menuRegistry.ScanFromAssembly(GetType().Assembly);
+        menuRegistry.ScanFromAssembly(GetType().Assembly, ModuleId);
     }
 
     public void RegisterTypes(IContainerRegistry containerRegistry)
     {
+        containerRegistry.Register<ApiUpdateViewModel>();
+        containerRegistry.Register<MenuTreeViewModel>();
+        containerRegistry.Register<WebappUpdateViewModel>();
         containerRegistry.RegisterForNavigation<ApiUpdateView>();
         containerRegistry.RegisterForNavigation<MenuTreeView>();
         containerRegistry.RegisterForNavigation<WebappUpdateView>();
@@ -30,5 +38,10 @@ public class SsamcModule : IModule
         containerRegistry.RegisterSingleton<IMenuTreeDataSource, OracleMenuTreeDataSource>();
         containerRegistry.RegisterSingleton<IWebPageLauncher, SystemWebPageLauncher>();
         containerRegistry.Register<WebappUpdateServer>();
+    }
+
+    public void OnUnloading(IContainerProvider containerProvider)
+    {
+        containerProvider.Resolve<IMenuRegistry>().UnregisterByModule(ModuleId);
     }
 }

@@ -4,7 +4,6 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:prism="http://prismlibrary.com/"
   xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
   xmlns:treeViewEngine="clr-namespace:Syncfusion.UI.Xaml.TreeView.Engine;assembly=Syncfusion.SfTreeView.WPF"
   xmlns:coreViews="clr-namespace:Devkit.Core.UI.Views;assembly=Devkit.Core.UI"
@@ -14,7 +13,6 @@
   d:DataContext="{d:DesignInstance viewModels:MenuTreeViewModel}"
   d:DesignHeight="800"
   d:DesignWidth="1200"
-  prism:ViewModelLocator.AutoWireViewModel="True"
   mc:Ignorable="d">
   <Grid Margin="8">
     <Grid.RowDefinitions>

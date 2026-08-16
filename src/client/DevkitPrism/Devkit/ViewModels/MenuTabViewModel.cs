@@ -4,6 +4,7 @@ using Devkit.Core.UI.Contracts;
 using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Mvvm;
 using Devkit.Core.UI.Services;
+using Devkit.Modules;
 using Devkit.Prism.Events;
 using Devkit.Services.Interfaces.Logging;
 
@@ -15,7 +16,8 @@ public class MenuTabViewModel : BindableBase
     private readonly IShellService _shellService;
     private readonly DelayedLoadingState _globalLoading;
     private readonly IClientLogger _logger;
-    private readonly Dictionary<TabItemModel, CancellationTokenSource> _loadCancellations = new();
+    private readonly IModuleContentCoordinator _contentCoordinator;
+    private readonly Dictionary<TabItemModel, TabLoadOperation> _loadOperations = new();
     private SubscriptionToken? _menuClickSubscription;
     private TabItemModel? _selectedTab;
 
@@ -23,12 +25,14 @@ public class MenuTabViewModel : BindableBase
         IEventAggregator eventAggregator,
         IShellService shellService,
         DelayedLoadingState globalLoading,
-        IClientLogger logger)
+        IClientLogger logger,
+        IModuleContentCoordinator? contentCoordinator = null)
     {
         _eventAggregator = eventAggregator;
         _shellService = shellService;
         _globalLoading = globalLoading;
         _logger = logger;
+        _contentCoordinator = contentCoordinator ?? new ModuleContentCoordinator();
         LoadedCommand = new DelegateCommand(OnLoaded);
         UnloadedCommand = new DelegateCommand(OnUnloaded);
         CloseTabCommand = new DelegateCommand<TabItemModel?>(CloseTab);
@@ -54,9 +58,24 @@ public class MenuTabViewModel : BindableBase
     public DelegateCommand<TabItemModel?> CloseTabCommand { get; }
     public DelegateCommand<TabItemModel?> RetryTabCommand { get; }
 
+    public int GetOpenModuleContentCount(string moduleId) =>
+        Tabs.Count(tab => string.Equals(tab.ModuleId, moduleId, StringComparison.OrdinalIgnoreCase));
+
+    public async Task CloseModuleContentAsync(string moduleId)
+    {
+        var tabs = Tabs
+            .Where(tab => string.Equals(tab.ModuleId, moduleId, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        foreach (var tab in tabs)
+        {
+            await CloseTabCoreAsync(tab, force: true);
+        }
+    }
+
     private void OnLoaded()
     {
         _menuClickSubscription ??= _eventAggregator.GetEvent<MenuClickEvent>().Subscribe(OpenMenu);
+        _contentCoordinator.Attach(this);
 
         if (Tabs.Count == 0)
         {
@@ -66,15 +85,16 @@ public class MenuTabViewModel : BindableBase
 
     private void OnUnloaded()
     {
+        _contentCoordinator.Detach(this);
         if (_menuClickSubscription != null)
         {
             _eventAggregator.GetEvent<MenuClickEvent>().Unsubscribe(_menuClickSubscription);
             _menuClickSubscription = null;
         }
 
-        foreach (var cancellation in _loadCancellations.Values.ToArray())
+        foreach (var operation in _loadOperations.Values.ToArray())
         {
-            cancellation.Cancel();
+            operation.Cancellation.Cancel();
         }
     }
 
@@ -88,7 +108,7 @@ public class MenuTabViewModel : BindableBase
 
         if (!menu.AllowMultipleTabs)
         {
-            var existing = Tabs.FirstOrDefault(x => x.MenuId == menu.Id);
+            var existing = Tabs.FirstOrDefault(tab => tab.MenuId == menu.Id);
             if (existing != null)
             {
                 SelectedTab = existing;
@@ -100,6 +120,7 @@ public class MenuTabViewModel : BindableBase
         var tab = new TabItemModel(tabCode, menu.Title)
         {
             MenuId = menu.Id,
+            ModuleId = menu.ModuleId,
             CanClose = menu.IsClosable,
             CloseButtonState = menu.IsClosable ? Visibility.Visible : Visibility.Collapsed,
             IsSelected = true
@@ -107,18 +128,28 @@ public class MenuTabViewModel : BindableBase
 
         Tabs.Add(tab);
         SelectedTab = tab;
-        _ = LoadTabAsync(tab, menu, replaceContent: false);
+        BeginLoad(tab, menu, replaceContent: false);
     }
 
-    private async Task LoadTabAsync(TabItemModel tab, MenuItemModel menu, bool replaceContent)
+    private void BeginLoad(TabItemModel tab, MenuItemModel menu, bool replaceContent)
     {
-        if (_loadCancellations.ContainsKey(tab))
+        if (_loadOperations.ContainsKey(tab))
         {
             return;
         }
 
-        var cancellation = new CancellationTokenSource();
-        _loadCancellations[tab] = cancellation;
+        var operation = new TabLoadOperation();
+        _loadOperations[tab] = operation;
+        operation.Completion = LoadTabAsync(tab, menu, replaceContent, operation);
+    }
+
+    private async Task LoadTabAsync(
+        TabItemModel tab,
+        MenuItemModel menu,
+        bool replaceContent,
+        TabLoadOperation operation)
+    {
+        var cancellation = operation.Cancellation;
         tab.LoadErrorMessage = null;
 
         if (replaceContent)
@@ -130,7 +161,6 @@ public class MenuTabViewModel : BindableBase
         try
         {
             cancellation.Token.ThrowIfCancellationRequested();
-
             var content = _shellService.ResolveContent(menu)
                 ?? throw new InvalidOperationException($"无法创建模块“{menu.Title}”。");
 
@@ -149,14 +179,12 @@ public class MenuTabViewModel : BindableBase
             }
             else if (asyncLoadable != null)
             {
-                await _globalLoading.RunAsync(
-                    asyncLoadable.InitializeAsync,
-                    cancellation.Token);
+                await _globalLoading.RunAsync(asyncLoadable.InitializeAsync, cancellation.Token);
             }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
-            // Closing a tab or the shell cancels initialization without showing an error.
+            // Closing a tab or unloading its module cancels initialization silently.
         }
         catch (Exception exception)
         {
@@ -165,16 +193,13 @@ public class MenuTabViewModel : BindableBase
                 tab.LoadErrorMessage = $"模块加载失败：{exception.Message}";
             }
 
-            _logger.Error(
-                exception,
-                "Failed to initialize menu module {MenuId}.",
-                menu.Id);
+            _logger.Error(exception, "Failed to initialize menu module {MenuId}.", menu.Id);
         }
         finally
         {
-            if (_loadCancellations.TryGetValue(tab, out var current) && ReferenceEquals(current, cancellation))
+            if (_loadOperations.TryGetValue(tab, out var current) && ReferenceEquals(current, operation))
             {
-                _loadCancellations.Remove(tab);
+                _loadOperations.Remove(tab);
             }
 
             cancellation.Dispose();
@@ -183,7 +208,7 @@ public class MenuTabViewModel : BindableBase
 
     private void RetryTab(TabItemModel? tab)
     {
-        if (tab == null || _loadCancellations.ContainsKey(tab))
+        if (tab == null || _loadOperations.ContainsKey(tab))
         {
             return;
         }
@@ -195,42 +220,64 @@ public class MenuTabViewModel : BindableBase
             return;
         }
 
-        _ = LoadTabAsync(tab, menu, replaceContent: true);
+        BeginLoad(tab, menu, replaceContent: true);
     }
 
-    private void CloseTab(TabItemModel? tab)
+    private async void CloseTab(TabItemModel? tab)
     {
-        if (tab == null || !tab.CanClose)
+        if (tab != null)
+        {
+            await CloseTabCoreAsync(tab, force: false);
+        }
+    }
+
+    private async Task CloseTabCoreAsync(TabItemModel tab, bool force)
+    {
+        if (!force && !tab.CanClose)
         {
             return;
         }
 
-        if (_loadCancellations.Remove(tab, out var cancellation))
-        {
-            cancellation.Cancel();
-        }
+        _loadOperations.TryGetValue(tab, out var operation);
+        operation?.Cancellation.Cancel();
 
         var index = Tabs.IndexOf(tab);
         Tabs.Remove(tab);
-        DestroyContent(tab.Content);
-
         if (SelectedTab == tab)
         {
             SelectedTab = Tabs.Count == 0 ? null : Tabs[Math.Max(0, Math.Min(index, Tabs.Count - 1))];
         }
+
+        if (operation != null)
+        {
+            await operation.Completion;
+        }
+
+        DestroyContent(tab.Content);
+        tab.Content = null;
     }
 
     private static void DestroyContent(object? content)
     {
-        if (content is FrameworkElement { DataContext: IDestructible destructibleViewModel })
+        if (content is FrameworkElement element)
         {
-            destructibleViewModel.Destroy();
-            return;
-        }
+            if (element.DataContext is IDestructible destructibleViewModel)
+            {
+                destructibleViewModel.Destroy();
+            }
 
-        if (content is IDestructible destructible)
+            element.DataContext = null;
+        }
+        else if (content is IDestructible destructible)
         {
             destructible.Destroy();
         }
+    }
+
+    private sealed class TabLoadOperation
+    {
+        public CancellationTokenSource Cancellation { get; } = new();
+
+        public Task Completion { get; set; } = Task.CompletedTask;
     }
 }

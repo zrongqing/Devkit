@@ -7,12 +7,13 @@ using System.Windows.Threading;
 
 namespace Ssamc.Views;
 
-[MenuItem(Id = "modules.ssamc.menusearch", ParentId = "ssamc", Title = "菜单检索", Order = 22, ViewName = nameof(MenuTreeView))]
+[MenuItem(Id = "ssamc.menusearch", ParentId = "ssamc", Title = "菜单检索", Order = 22, ViewName = nameof(MenuTreeView))]
 public partial class MenuTreeView : LoadingView
 {
-    public MenuTreeView()
+    public MenuTreeView(MenuTreeViewModel viewModel)
     {
         InitializeComponent();
+        DataContext = viewModel;
     }
 
     private void MenuTree_OnSelectionChanged(

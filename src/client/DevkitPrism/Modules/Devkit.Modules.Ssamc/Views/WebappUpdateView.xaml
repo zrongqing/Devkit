@@ -5,7 +5,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Ssamc.Views"
              mc:Ignorable="d"
-             xmlns:prism="http://prismlibrary.com/"
              xmlns:behaviors="clr-namespace:Devkit.Core.UI.Behaviors;assembly=Devkit.Core.UI"
              xmlns:viewModels="clr-namespace:Ssamc.ViewModels"
              xmlns:coreVM ="clr-namespace:Devkit.Core.UI.Models;assembly=Devkit.Core.UI"
@@ -15,7 +14,6 @@
              d:DataContext="{d:DesignInstance viewModels:WebappUpdateViewModel}"
              d:DesignHeight="800"
              d:DesignWidth="1200"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              >
   <UserControl.Resources>
     <ResourceDictionary>

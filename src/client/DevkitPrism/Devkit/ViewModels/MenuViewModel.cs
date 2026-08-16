@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,12 +15,15 @@ public partial class MenuViewModel : ViewModelBase
 {
     private readonly IEventAggregator _eventAggregator;
     private readonly IShellService _shellService;
+    private readonly IMenuRegistry _menuRegistry;
     private bool _isSynchronizingActiveMenu;
+    private bool _isListeningForMenuChanges;
 
     public MenuViewModel(IContainerProvider container)
     {
         _shellService = container.Resolve<IShellService>();
         _eventAggregator = container.Resolve<IEventAggregator>();
+        _menuRegistry = container.Resolve<IMenuRegistry>();
         _eventAggregator.GetEvent<MenuActiveEvent>().Subscribe(SynchronizeActiveMenu);
     }
 
@@ -54,9 +58,25 @@ public partial class MenuViewModel : ViewModelBase
     [RelayCommand]
     private void Loaded()
     {
-        var menus = _shellService.LoadMenus().ToList();
-        CollectionView = new ListCollectionView(menus);
+        if (!_isListeningForMenuChanges)
+        {
+            _menuRegistry.Changed += OnMenuRegistryChanged;
+            _isListeningForMenuChanges = true;
+        }
+
+        RefreshMenus();
     }
+
+    [RelayCommand]
+    private void Unloaded()
+    {
+        if (_isListeningForMenuChanges)
+        {
+            _menuRegistry.Changed -= OnMenuRegistryChanged;
+            _isListeningForMenuChanges = false;
+        }
+    }
+
     [RelayCommand]
     private void MenuClicked(MenuItemModel? menu)
     {
@@ -67,6 +87,27 @@ public partial class MenuViewModel : ViewModelBase
         
         _eventAggregator.GetEvent<MenuClickEvent>().Publish(menu.Id);
     }
+
+    protected override void OnDestroy()
+    {
+        Unloaded();
+        base.OnDestroy();
+    }
+
+    private void OnMenuRegistryChanged(object? sender, EventArgs eventArgs)
+    {
+        if (Application.Current.Dispatcher.CheckAccess())
+        {
+            RefreshMenus();
+        }
+        else
+        {
+            _ = Application.Current.Dispatcher.BeginInvoke(RefreshMenus);
+        }
+    }
+
+    private void RefreshMenus() =>
+        CollectionView = new ListCollectionView(_shellService.LoadMenus().ToList());
 
     #region Filtering
     internal delegate void FilterChanged();

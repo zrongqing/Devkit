@@ -1,5 +1,6 @@
 using Devkit.Core.UI.Attributes;
 using Devkit.Core.UI.Views;
+using Devkit.Modules.Demo.ViewModels;
 
 namespace Devkit.Modules.Demo.Views;
 
@@ -11,8 +12,9 @@ namespace Devkit.Modules.Demo.Views;
     ViewName = nameof(LoadingDemoView))]
 public partial class LoadingDemoView : LoadingView
 {
-    public LoadingDemoView()
+    public LoadingDemoView(LoadingDemoViewModel viewModel)
     {
         InitializeComponent();
+        DataContext = viewModel;
     }
 }

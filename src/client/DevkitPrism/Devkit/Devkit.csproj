@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Devkit.Prism\Devkit.Prism.csproj"/>
     <ProjectReference Include="..\Devkit.Core\Devkit.Core.csproj"/>
+    <ProjectReference Include="..\Modules\Devkit.Modules.Demo\Devkit.Modules.Demo.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\Modules\Devkit.Modules.ModuleName\Devkit.Modules.ModuleName.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\Modules\Devkit.Modules.Ssamc\Devkit.Modules.Ssamc.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\Services\Devkit.Services.Interfaces\Devkit.Services.Interfaces.csproj"/>

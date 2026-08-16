@@ -42,6 +42,8 @@ public partial class TabItemModel : ObservableObject
     [ObservableProperty]
     private string _menuId;
 
+    public string? ModuleId { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasLoadError))]
     private string? _loadErrorMessage;

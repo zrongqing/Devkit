@@ -9,13 +9,15 @@ namespace Devkit.Core.UI.Services;
 /// </summary>
 public interface IMenuRegistry
 {
+    event EventHandler? Changed;
     void Register(MenuItemModel item);
     void RegisterRemote(MenuItemModel item);
     void RegisterRange(IEnumerable<MenuItemModel> items);
     void RegisterRemoteRange(IEnumerable<MenuItemModel> items);
-    void ScanFromAssembly(Assembly assembly);
+    void ScanFromAssembly(Assembly assembly, string? moduleId = null);
     IReadOnlyList<MenuItemModel> GetFlatMenus();
     MenuItemModel? Find(string id);
+    void UnregisterByModule(string moduleId);
 }
 
 public class MenuRegistry : IMenuRegistry
@@ -25,6 +27,8 @@ public class MenuRegistry : IMenuRegistry
     private readonly IContainerProvider _container;
 
     public MenuRegistry(IContainerProvider container) => _container = container;
+
+    public event EventHandler? Changed;
 
     public void Register(MenuItemModel item) => RegisterCore(item, isRemote: false);
 
@@ -46,6 +50,8 @@ public class MenuRegistry : IMenuRegistry
         {
             _remoteMenuIds.Add(item.Id);
         }
+
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public void RegisterRange(IEnumerable<MenuItemModel> items)
@@ -59,7 +65,7 @@ public class MenuRegistry : IMenuRegistry
     }
 
     /// <summary>扫描程序集中带 [MenuItem] 特性的 View 类型</summary>
-    public void ScanFromAssembly(Assembly assembly)
+    public void ScanFromAssembly(Assembly assembly, string? moduleId = null)
     {
         foreach (var type in assembly.GetTypes())
         {
@@ -69,13 +75,32 @@ public class MenuRegistry : IMenuRegistry
                 Register(new MenuItemModel
                 {
                     Id          = a.Id,
+                    ModuleId    = moduleId,
                     Title       = a.Title,
                     IconPath        = a.IconPath,
                     ParentId    = a.ParentId,
                     Order       = a.Order,
-                    ViewName    = string.IsNullOrEmpty(a.ViewName) ? type.Name : a.ViewName,
+                    ViewName    = string.IsNullOrEmpty(a.ViewName) ? type.Name : a.ViewName
                 });
             }
+        }
+    }
+
+    public void UnregisterByModule(string moduleId)
+    {
+        var ids = _items
+            .Where(pair => string.Equals(pair.Value.ModuleId, moduleId, StringComparison.OrdinalIgnoreCase))
+            .Select(pair => pair.Key)
+            .ToArray();
+        foreach (var id in ids)
+        {
+            _items.Remove(id);
+            _remoteMenuIds.Remove(id);
+        }
+
+        if (ids.Length > 0)
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
         }
     }
 

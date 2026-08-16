@@ -14,6 +14,10 @@ public class MenuItemModel
     /// <remarks> 菜单唯一标识，可以用来区分不同的菜单项，或者作为打开Tab时的参数传递给ViewModel </remarks>
     public string Id { get; set; } = string.Empty;
     /// <summary>
+    /// 动态模块程序集标识；宿主菜单为空。
+    /// </summary>
+    public string? ModuleId { get; set; }
+    /// <summary>
     /// 父菜单标识
     /// </summary>
     public string? ParentId { get; set; }

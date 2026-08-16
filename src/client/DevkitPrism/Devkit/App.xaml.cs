@@ -1,12 +1,13 @@
 using System.Net.Http;
-using System.IO;
 using System.Windows;
 using Devkit.Core;
 using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Mvvm;
 using Devkit.Core.UI.Services;
+using Devkit.Modules;
+using Devkit.Modules.ModuleManagement;
 using Devkit.Prism;
-using Devkit.Prism.Extensions;
+using Devkit.Prism.Modules;
 using Devkit.Services;
 using Devkit.Services.Diagnostics;
 using Devkit.Services.Dialogs;
@@ -61,6 +62,7 @@ public partial class App : DevkitPrismApplication
 
     protected override void OnExit(ExitEventArgs e)
     {
+        GetService<DynamicModuleManager>()?.Shutdown();
         GetService<IClientNotificationService>()?.CloseAll();
         DispatcherUnhandledException -= _crashHandler.HandleDispatcherException;
         AppDomain.CurrentDomain.UnhandledException -= _crashHandler.HandleAppDomainException;
@@ -85,7 +87,6 @@ public partial class App : DevkitPrismApplication
         services.AddSingleton<IConfirmationDialogPresenter, ConfirmationDialogPresenter>();
         services.AddSingleton<IConfirmationDialogService, ConfirmationDialogService>();
         services.AddSingleton<DelayedLoadingState>();
-        services.AddSingleton<IShellService, ShellService>();
         services.AddSingleton<IMenuRegistry, MenuRegistry>();
         services.AddSingleton<IRemoteMenuConfigurationClient, RemoteMenuConfigurationClient>();
     }
@@ -105,6 +106,9 @@ public partial class App : DevkitPrismApplication
 
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
     {
+        containerRegistry.RegisterSingleton<IPrismModuleLoader, PrismModuleLoader>();
+        containerRegistry.RegisterSingleton<DynamicModuleManager, DynamicModuleManager>();
+        containerRegistry.RegisterSingleton<IModuleContentCoordinator, ModuleContentCoordinator>();
         containerRegistry.RegisterSingleton<IShellService, ShellService>();
         containerRegistry.RegisterForNavigation<MenuView, MenuViewModel>(SysViewKeys.Menu);
         containerRegistry.RegisterForNavigation<MenuTabView, MenuTabViewModel>(SysViewKeys.MenuTab);
@@ -114,7 +118,7 @@ public partial class App : DevkitPrismApplication
 
     protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
     {
-        moduleCatalog.AddModulesFromDirectory(Path.Combine(AppContext.BaseDirectory, "modules"));
+        moduleCatalog.AddModule<ModuleManagementModule>();
     }
 
     private void LoadMenus()

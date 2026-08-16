@@ -214,6 +214,7 @@ internal sealed class SqliteApiSourceCache
             DataSource = _databasePath,
             Mode = SqliteOpenMode.ReadWriteCreate,
             Cache = SqliteCacheMode.Shared,
+            Pooling = false,
             DefaultTimeout = 5
         }.ToString();
         var connection = new SqliteConnection(connectionString);
