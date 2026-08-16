@@ -1,8 +1,8 @@
-using Ssamc.Core.ApiCodeCollector;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.EntityFrameworkCore;
-using Ssamc.DB;
+using Ssamc.Core.ApiCodeCollector;
+using Ssamc.DB.Context;
 
 namespace Ssamc.Servers;
 
@@ -19,6 +19,7 @@ public class ApiUpdateServer : IApiUpdateServer
 
     public List<ApiSourceInfo> CopyApiSourceInfos { get; set; } = [];
 
+    #region IApiUpdateServer Members
     public List<ApiSourceInfo> GetAllApiSourceInfos(string sourcePath)
     {
         var apiInfos = _apiScanner.ScanSourceFiles(sourcePath);
@@ -50,26 +51,6 @@ public class ApiUpdateServer : IApiUpdateServer
     {
         var sourceCode = _apiCollector.GetApiExtendCode(apiSourceInfos, apiCode);
         return FormatSourceCode(sourceCode);
-    }
-
-    private static string FormatSourceCode(string sourceCode)
-    {
-        if (string.IsNullOrWhiteSpace(sourceCode))
-        {
-            return string.Empty;
-        }
-
-        try
-        {
-            var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
-            return syntaxTree.GetRoot()
-                .NormalizeWhitespace(indentation: "    ", eol: Environment.NewLine)
-                .ToFullString();
-        }
-        catch (Exception)
-        {
-            return sourceCode;
-        }
     }
 
     public string GetExecutionSourceCodeByApiCode(string sourcePath, string apiCode)
@@ -113,5 +94,26 @@ public class ApiUpdateServer : IApiUpdateServer
         eventCode.STR_SOURCE = sourceCode;
         db.SaveChanges();
         return true;
+    }
+    #endregion
+
+    private static string FormatSourceCode(string sourceCode)
+    {
+        if (string.IsNullOrWhiteSpace(sourceCode))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
+            return syntaxTree.GetRoot()
+                .NormalizeWhitespace("    ", Environment.NewLine)
+                .ToFullString();
+        }
+        catch (Exception)
+        {
+            return sourceCode;
+        }
     }
 }

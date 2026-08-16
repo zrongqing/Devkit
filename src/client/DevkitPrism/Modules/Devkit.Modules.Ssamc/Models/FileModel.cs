@@ -1,18 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Ssamc.Models;
 
 public partial class FileModel : ObservableObject
 {
     [ObservableProperty]
-    private string _fileName;
+    private string _fileExtension = string.Empty;
     [ObservableProperty]
-    private string _fileExtension;
+    private string _fileName = string.Empty;
     [ObservableProperty]
-    private string _filePath;
+    private string _filePath = string.Empty;
 }

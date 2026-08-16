@@ -50,9 +50,9 @@ public static class SsamcEnvironment
             DevelopmentEnvironment =>
                 "data source=192.168.215.57/ssamcerp;user id=barcode2;password=barcode2",
             _ => throw new ArgumentOutOfRangeException(
-                nameof(environmentKey),
-                environmentKey,
-                "未知的 SSAMC 菜单数据库环境。")
+                     nameof(environmentKey),
+                     environmentKey,
+                     "未知的 SSAMC 菜单数据库环境。")
         };
     }
 
@@ -60,15 +60,15 @@ public static class SsamcEnvironment
     {
         return
         [
-            new(
+            new SsamcPageEnvironment(
                 ProductionEnvironment,
                 "正式环境",
                 GetOptional("PAGE_PRODUCTION_BASE_URL", "http://192.168.10.41")),
-            new(
+            new SsamcPageEnvironment(
                 TestEnvironment,
                 "测试环境",
                 GetOptional("PAGE_TEST_BASE_URL", "http://192.168.20.54")),
-            new(
+            new SsamcPageEnvironment(
                 DevelopmentEnvironment,
                 "开发环境",
                 GetOptional("PAGE_DEVELOPMENT_BASE_URL", "http://192.168.215.57"))
@@ -92,8 +92,8 @@ public static class SsamcEnvironment
             Prefix + $"WEBAPP_{Normalize(target)}_ROOTS");
 
         return string.IsNullOrWhiteSpace(value)
-            ? Array.Empty<string>()
-            : value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                   ? Array.Empty<string>()
+                   : value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private static string GetRequired(string suffix)
@@ -132,5 +132,4 @@ public static class SsamcEnvironment
 }
 
 public sealed record SsamcShareTarget(string Root, string Username, string Password);
-
 public sealed record SsamcPageEnvironment(string Key, string DisplayName, string BaseAddress);

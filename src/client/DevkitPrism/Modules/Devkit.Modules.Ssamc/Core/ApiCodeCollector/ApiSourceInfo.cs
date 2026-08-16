@@ -8,8 +8,8 @@ namespace Ssamc.Core.ApiCodeCollector;
 public class ApiSourceInfo
 {
     public string FilePath { get; set; } = string.Empty;
-    public List<string> ApiCodes { get; set; } = new List<string>(); 
-    public List<string> Descriptions { get; set; } = new List<string>(); 
+    public List<string> ApiCodes { get; set; } = new();
+    public List<string> Descriptions { get; set; } = new();
     public string ClassName { get; set; } = string.Empty;
     public string FullSourceCode { get; set; } = string.Empty;
     public string SourceCodeWithoutApiAttributes { get; set; } = string.Empty;

@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Ssamc.ViewModels;
 using Moq;
 using Ssamc.DB;
+using Ssamc.DB.Context;
 using Ssamc.DB.Entities;
 using Xunit;
 

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 using Microsoft.Data.Sqlite;
 
 namespace Ssamc.Core.ApiCodeCollector;
@@ -21,8 +22,8 @@ internal sealed class SqliteApiSourceCache
     {
         var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var cacheRoot = string.IsNullOrWhiteSpace(localApplicationData)
-            ? Path.Combine(Path.GetTempPath(), "Devkit")
-            : Path.Combine(localApplicationData, "Devkit");
+                            ? Path.Combine(Path.GetTempPath(), "Devkit")
+                            : Path.Combine(localApplicationData, "Devkit");
         return Path.Combine(cacheRoot, "Cache", "ssamc-api-source-cache.db");
     }
 
@@ -123,13 +124,13 @@ internal sealed class SqliteApiSourceCache
         {
             using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT PayloadJson
-                FROM SourceFileAnalysisCache
-                WHERE SourceRoot = $sourceRoot AND SearchPattern = $searchPattern
-                ORDER BY FilePath COLLATE NOCASE;
-                """;
+                                  SELECT PayloadJson
+                                  FROM SourceFileAnalysisCache
+                                  WHERE SourceRoot = $sourceRoot AND SearchPattern = $searchPattern
+                                  ORDER BY FilePath COLLATE NOCASE;
+                                  """;
             AddScopeParameters(command, sourcePath, searchPattern);
-            return ReadApiSources(command, apiCode: null);
+            return ReadApiSources(command, null);
         }, out apiSources);
     }
 
@@ -143,17 +144,17 @@ internal sealed class SqliteApiSourceCache
         {
             using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT source.PayloadJson
-                FROM SourceFileAnalysisCache AS source
-                INNER JOIN ApiSourceCodeIndex AS api
-                    ON api.SourceRoot = source.SourceRoot
-                    AND api.SearchPattern = source.SearchPattern
-                    AND api.FilePath = source.FilePath
-                WHERE source.SourceRoot = $sourceRoot
-                    AND source.SearchPattern = $searchPattern
-                    AND api.ApiCode = $apiCode
-                ORDER BY source.FilePath COLLATE NOCASE;
-                """;
+                                  SELECT source.PayloadJson
+                                  FROM SourceFileAnalysisCache AS source
+                                  INNER JOIN ApiSourceCodeIndex AS api
+                                      ON api.SourceRoot = source.SourceRoot
+                                      AND api.SearchPattern = source.SearchPattern
+                                      AND api.FilePath = source.FilePath
+                                  WHERE source.SourceRoot = $sourceRoot
+                                      AND source.SearchPattern = $searchPattern
+                                      AND api.ApiCode = $apiCode
+                                  ORDER BY source.FilePath COLLATE NOCASE;
+                                  """;
             AddScopeParameters(command, sourcePath, searchPattern);
             command.Parameters.AddWithValue("$apiCode", apiCode);
             return ReadApiSources(command, apiCode);
@@ -170,13 +171,13 @@ internal sealed class SqliteApiSourceCache
         {
             using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT SourceCode
-                FROM ApiExecutionSourceCache
-                WHERE SourceRoot = $sourceRoot
-                    AND SearchPattern = $searchPattern
-                    AND ApiCode = $apiCode
-                ORDER BY FilePath COLLATE NOCASE, SourceOrder;
-                """;
+                                  SELECT SourceCode
+                                  FROM ApiExecutionSourceCache
+                                  WHERE SourceRoot = $sourceRoot
+                                      AND SearchPattern = $searchPattern
+                                      AND ApiCode = $apiCode
+                                  ORDER BY FilePath COLLATE NOCASE, SourceOrder;
+                                  """;
             AddScopeParameters(command, sourcePath, searchPattern);
             command.Parameters.AddWithValue("$apiCode", apiCode);
 
@@ -230,45 +231,45 @@ internal sealed class SqliteApiSourceCache
     {
         using var command = connection.CreateCommand();
         command.CommandText = """
-            PRAGMA journal_mode = WAL;
-            PRAGMA synchronous = NORMAL;
+                              PRAGMA journal_mode = WAL;
+                              PRAGMA synchronous = NORMAL;
 
-            CREATE TABLE IF NOT EXISTS SourceFileAnalysisCache (
-                SourceRoot TEXT NOT NULL COLLATE NOCASE,
-                SearchPattern TEXT NOT NULL,
-                FilePath TEXT NOT NULL COLLATE NOCASE,
-                FileLength INTEGER NOT NULL,
-                LastWriteUtcTicks INTEGER NOT NULL,
-                ContentHash TEXT NOT NULL,
-                ParserKey TEXT NOT NULL,
-                PayloadJson TEXT NOT NULL,
-                PRIMARY KEY (SourceRoot, SearchPattern, FilePath)
-            );
+                              CREATE TABLE IF NOT EXISTS SourceFileAnalysisCache (
+                                  SourceRoot TEXT NOT NULL COLLATE NOCASE,
+                                  SearchPattern TEXT NOT NULL,
+                                  FilePath TEXT NOT NULL COLLATE NOCASE,
+                                  FileLength INTEGER NOT NULL,
+                                  LastWriteUtcTicks INTEGER NOT NULL,
+                                  ContentHash TEXT NOT NULL,
+                                  ParserKey TEXT NOT NULL,
+                                  PayloadJson TEXT NOT NULL,
+                                  PRIMARY KEY (SourceRoot, SearchPattern, FilePath)
+                              );
 
-            CREATE TABLE IF NOT EXISTS ApiSourceCodeIndex (
-                SourceRoot TEXT NOT NULL COLLATE NOCASE,
-                SearchPattern TEXT NOT NULL,
-                FilePath TEXT NOT NULL COLLATE NOCASE,
-                ApiCode TEXT NOT NULL,
-                PRIMARY KEY (SourceRoot, SearchPattern, FilePath, ApiCode)
-            );
+                              CREATE TABLE IF NOT EXISTS ApiSourceCodeIndex (
+                                  SourceRoot TEXT NOT NULL COLLATE NOCASE,
+                                  SearchPattern TEXT NOT NULL,
+                                  FilePath TEXT NOT NULL COLLATE NOCASE,
+                                  ApiCode TEXT NOT NULL,
+                                  PRIMARY KEY (SourceRoot, SearchPattern, FilePath, ApiCode)
+                              );
 
-            CREATE INDEX IF NOT EXISTS IX_ApiSourceCodeIndex_Lookup
-                ON ApiSourceCodeIndex (SourceRoot, SearchPattern, ApiCode);
+                              CREATE INDEX IF NOT EXISTS IX_ApiSourceCodeIndex_Lookup
+                                  ON ApiSourceCodeIndex (SourceRoot, SearchPattern, ApiCode);
 
-            CREATE TABLE IF NOT EXISTS ApiExecutionSourceCache (
-                SourceRoot TEXT NOT NULL COLLATE NOCASE,
-                SearchPattern TEXT NOT NULL,
-                FilePath TEXT NOT NULL COLLATE NOCASE,
-                ApiCode TEXT NOT NULL,
-                SourceOrder INTEGER NOT NULL,
-                SourceCode TEXT NOT NULL,
-                PRIMARY KEY (SourceRoot, SearchPattern, FilePath, ApiCode, SourceOrder)
-            );
+                              CREATE TABLE IF NOT EXISTS ApiExecutionSourceCache (
+                                  SourceRoot TEXT NOT NULL COLLATE NOCASE,
+                                  SearchPattern TEXT NOT NULL,
+                                  FilePath TEXT NOT NULL COLLATE NOCASE,
+                                  ApiCode TEXT NOT NULL,
+                                  SourceOrder INTEGER NOT NULL,
+                                  SourceCode TEXT NOT NULL,
+                                  PRIMARY KEY (SourceRoot, SearchPattern, FilePath, ApiCode, SourceOrder)
+                              );
 
-            CREATE INDEX IF NOT EXISTS IX_ApiExecutionSourceCache_Lookup
-                ON ApiExecutionSourceCache (SourceRoot, SearchPattern, ApiCode);
-            """;
+                              CREATE INDEX IF NOT EXISTS IX_ApiExecutionSourceCache_Lookup
+                                  ON ApiExecutionSourceCache (SourceRoot, SearchPattern, ApiCode);
+                              """;
         command.ExecuteNonQuery();
     }
 
@@ -281,10 +282,10 @@ internal sealed class SqliteApiSourceCache
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            SELECT FilePath, FileLength, LastWriteUtcTicks, ContentHash, ParserKey
-            FROM SourceFileAnalysisCache
-            WHERE SourceRoot = $sourceRoot AND SearchPattern = $searchPattern;
-            """;
+                              SELECT FilePath, FileLength, LastWriteUtcTicks, ContentHash, ParserKey
+                              FROM SourceFileAnalysisCache
+                              WHERE SourceRoot = $sourceRoot AND SearchPattern = $searchPattern;
+                              """;
         command.Parameters.AddWithValue("$sourceRoot", sourceRoot);
         command.Parameters.AddWithValue("$searchPattern", searchPattern);
 
@@ -327,19 +328,19 @@ internal sealed class SqliteApiSourceCache
         {
             command.Transaction = transaction;
             command.CommandText = """
-                INSERT INTO SourceFileAnalysisCache (
-                    SourceRoot, SearchPattern, FilePath, FileLength, LastWriteUtcTicks,
-                    ContentHash, ParserKey, PayloadJson)
-                VALUES (
-                    $sourceRoot, $searchPattern, $filePath, $fileLength, $lastWriteUtcTicks,
-                    $contentHash, $parserKey, $payloadJson)
-                ON CONFLICT (SourceRoot, SearchPattern, FilePath) DO UPDATE SET
-                    FileLength = excluded.FileLength,
-                    LastWriteUtcTicks = excluded.LastWriteUtcTicks,
-                    ContentHash = excluded.ContentHash,
-                    ParserKey = excluded.ParserKey,
-                    PayloadJson = excluded.PayloadJson;
-                """;
+                                  INSERT INTO SourceFileAnalysisCache (
+                                      SourceRoot, SearchPattern, FilePath, FileLength, LastWriteUtcTicks,
+                                      ContentHash, ParserKey, PayloadJson)
+                                  VALUES (
+                                      $sourceRoot, $searchPattern, $filePath, $fileLength, $lastWriteUtcTicks,
+                                      $contentHash, $parserKey, $payloadJson)
+                                  ON CONFLICT (SourceRoot, SearchPattern, FilePath) DO UPDATE SET
+                                      FileLength = excluded.FileLength,
+                                      LastWriteUtcTicks = excluded.LastWriteUtcTicks,
+                                      ContentHash = excluded.ContentHash,
+                                      ParserKey = excluded.ParserKey,
+                                      PayloadJson = excluded.PayloadJson;
+                                  """;
             AddFileParameters(command, sourceRoot, searchPattern, filePath);
             command.Parameters.AddWithValue("$fileLength", fileLength);
             command.Parameters.AddWithValue("$lastWriteUtcTicks", lastWriteUtcTicks);
@@ -357,9 +358,9 @@ internal sealed class SqliteApiSourceCache
             using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """
-                INSERT INTO ApiSourceCodeIndex (SourceRoot, SearchPattern, FilePath, ApiCode)
-                VALUES ($sourceRoot, $searchPattern, $filePath, $apiCode);
-                """;
+                                  INSERT INTO ApiSourceCodeIndex (SourceRoot, SearchPattern, FilePath, ApiCode)
+                                  VALUES ($sourceRoot, $searchPattern, $filePath, $apiCode);
+                                  """;
             AddFileParameters(command, sourceRoot, searchPattern, filePath);
             command.Parameters.AddWithValue("$apiCode", apiCode);
             command.ExecuteNonQuery();
@@ -372,11 +373,11 @@ internal sealed class SqliteApiSourceCache
                 using var command = connection.CreateCommand();
                 command.Transaction = transaction;
                 command.CommandText = """
-                    INSERT INTO ApiExecutionSourceCache (
-                        SourceRoot, SearchPattern, FilePath, ApiCode, SourceOrder, SourceCode)
-                    VALUES (
-                        $sourceRoot, $searchPattern, $filePath, $apiCode, $sourceOrder, $sourceCode);
-                    """;
+                                      INSERT INTO ApiExecutionSourceCache (
+                                          SourceRoot, SearchPattern, FilePath, ApiCode, SourceOrder, SourceCode)
+                                      VALUES (
+                                          $sourceRoot, $searchPattern, $filePath, $apiCode, $sourceOrder, $sourceCode);
+                                      """;
                 AddFileParameters(command, sourceRoot, searchPattern, filePath);
                 command.Parameters.AddWithValue("$apiCode", apiCode);
                 command.Parameters.AddWithValue("$sourceOrder", index);
@@ -398,12 +399,12 @@ internal sealed class SqliteApiSourceCache
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            UPDATE SourceFileAnalysisCache
-            SET FileLength = $fileLength, LastWriteUtcTicks = $lastWriteUtcTicks
-            WHERE SourceRoot = $sourceRoot
-                AND SearchPattern = $searchPattern
-                AND FilePath = $filePath;
-            """;
+                              UPDATE SourceFileAnalysisCache
+                              SET FileLength = $fileLength, LastWriteUtcTicks = $lastWriteUtcTicks
+                              WHERE SourceRoot = $sourceRoot
+                                  AND SearchPattern = $searchPattern
+                                  AND FilePath = $filePath;
+                              """;
         AddFileParameters(command, sourceRoot, searchPattern, filePath);
         command.Parameters.AddWithValue("$fileLength", fileLength);
         command.Parameters.AddWithValue("$lastWriteUtcTicks", lastWriteUtcTicks);
@@ -421,11 +422,11 @@ internal sealed class SqliteApiSourceCache
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            DELETE FROM SourceFileAnalysisCache
-            WHERE SourceRoot = $sourceRoot
-                AND SearchPattern = $searchPattern
-                AND FilePath = $filePath;
-            """;
+                              DELETE FROM SourceFileAnalysisCache
+                              WHERE SourceRoot = $sourceRoot
+                                  AND SearchPattern = $searchPattern
+                                  AND FilePath = $filePath;
+                              """;
         AddFileParameters(command, sourceRoot, searchPattern, filePath);
         command.ExecuteNonQuery();
     }
@@ -440,16 +441,16 @@ internal sealed class SqliteApiSourceCache
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            DELETE FROM ApiSourceCodeIndex
-            WHERE SourceRoot = $sourceRoot
-                AND SearchPattern = $searchPattern
-                AND FilePath = $filePath;
+                              DELETE FROM ApiSourceCodeIndex
+                              WHERE SourceRoot = $sourceRoot
+                                  AND SearchPattern = $searchPattern
+                                  AND FilePath = $filePath;
 
-            DELETE FROM ApiExecutionSourceCache
-            WHERE SourceRoot = $sourceRoot
-                AND SearchPattern = $searchPattern
-                AND FilePath = $filePath;
-            """;
+                              DELETE FROM ApiExecutionSourceCache
+                              WHERE SourceRoot = $sourceRoot
+                                  AND SearchPattern = $searchPattern
+                                  AND FilePath = $filePath;
+                              """;
         AddFileParameters(command, sourceRoot, searchPattern, filePath);
         command.ExecuteNonQuery();
     }
@@ -461,7 +462,7 @@ internal sealed class SqliteApiSourceCache
         while (reader.Read())
         {
             var payload = JsonSerializer.Deserialize<CachedSourceFilePayload>(reader.GetString(0), JsonOptions)
-                ?? throw new InvalidDataException("SQLite 源代码缓存内容无效。");
+                       ?? throw new InvalidDataException("SQLite 源代码缓存内容无效。");
             apiSources.AddRange(payload.ApiSources
                 .Select(source => source.ToApiSourceInfo())
                 .Where(source => apiCode is null || source.ApiCodes.Contains(apiCode, StringComparer.Ordinal)));
@@ -500,19 +501,7 @@ internal sealed class SqliteApiSourceCache
         command.Parameters.AddWithValue("$filePath", filePath);
     }
 
-    private sealed class CachedFileRecord
-    {
-        public long FileLength { get; init; }
-        public long LastWriteUtcTicks { get; init; }
-        public string ContentHash { get; init; } = string.Empty;
-        public string ParserKey { get; init; } = string.Empty;
-    }
-
-    private sealed class CachedSourceFilePayload
-    {
-        public List<CachedApiSourceInfo> ApiSources { get; set; } = [];
-    }
-
+    #region Nested type: CachedApiSourceInfo
     private sealed class CachedApiSourceInfo
     {
         public string FilePath { get; set; } = string.Empty;
@@ -560,10 +549,28 @@ internal sealed class SqliteApiSourceCache
                 Namespace = Namespace,
                 LineSpan = new FileLinePositionSpan(
                     LinePath,
-                    new Microsoft.CodeAnalysis.Text.LinePositionSpan(
-                        new Microsoft.CodeAnalysis.Text.LinePosition(StartLine, StartCharacter),
-                        new Microsoft.CodeAnalysis.Text.LinePosition(EndLine, EndCharacter)))
+                    new LinePositionSpan(
+                        new LinePosition(StartLine, StartCharacter),
+                        new LinePosition(EndLine, EndCharacter)))
             };
         }
     }
+    #endregion
+
+    #region Nested type: CachedFileRecord
+    private sealed class CachedFileRecord
+    {
+        public long FileLength { get; init; }
+        public long LastWriteUtcTicks { get; init; }
+        public string ContentHash { get; init; } = string.Empty;
+        public string ParserKey { get; init; } = string.Empty;
+    }
+    #endregion
+
+    #region Nested type: CachedSourceFilePayload
+    private sealed class CachedSourceFilePayload
+    {
+        public List<CachedApiSourceInfo> ApiSources { get; set; } = [];
+    }
+    #endregion
 }

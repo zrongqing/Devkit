@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +8,7 @@ namespace Ssamc.DB.Entities;
 /// 模块
 /// </summary>
 [Table("SYS_MODULE")]
-public partial class SYS_MODULE
+public class SYS_MODULE
 {
     /// <summary>
     /// ID
@@ -277,5 +275,5 @@ public partial class SYS_MODULE
     [Unicode(false)]
     public string? STR_HOST { get; set; }
 
-    public List<SYS_PAGE> SYS_PAGE_LIST { get; set; }
+    public required List<SYS_PAGE> SYS_PAGE_LIST { get; set; }
 }

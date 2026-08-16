@@ -1,12 +1,11 @@
-using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Devkit.Core.UI.Mvvm;
-using Ssamc.Configuration;
-using Ssamc.Servers;
 using Devkit.Services.Interfaces;
 using Devkit.Services.Interfaces.Notifications;
+using Ssamc.Configuration;
+using Ssamc.Servers;
 
 namespace Ssamc.ViewModels;
 
@@ -16,7 +15,25 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
     private readonly IFileService _fileService;
     private readonly IModuleStorage _moduleStorage;
     private readonly IClientNotificationService _notifications;
+
+    [ObservableProperty]
+    private string _codePreview = string.Empty;
+
+    [ObservableProperty]
+    private string _message = "API 更新";
     private IList<string> _selectedApiCodes = new List<string>();
+
+    [ObservableProperty]
+    private string _sourceCodePath = SsamcEnvironment.SourceCodePath;
+
+    [ObservableProperty]
+    private string _sourceCodePreview = string.Empty;
+
+    [ObservableProperty]
+    private string _strSelectApiCodes = string.Empty;
+
+    [ObservableProperty]
+    private string _strUpdateApis = string.Empty;
 
     public ApiUpdateViewModel(
         IApiUpdateServer apiUpdateServer,
@@ -30,29 +47,11 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
         _notifications = notifications;
     }
 
-    [ObservableProperty]
-    private string _message = "API 更新";
-
-    [ObservableProperty]
-    private string _sourceCodePath = SsamcEnvironment.SourceCodePath;
-
     public IList<string> SelectApiCodes
     {
         get => _selectedApiCodes;
         set => SetProperty(ref _selectedApiCodes, value);
     }
-
-    [ObservableProperty]
-    private string _strSelectApiCodes = string.Empty;
-
-    [ObservableProperty]
-    private string _codePreview = string.Empty;
-
-    [ObservableProperty]
-    private string _sourceCodePreview = string.Empty;
-
-    [ObservableProperty]
-    private string _strUpdateApis = string.Empty;
 
     protected override async Task OnInitializeAsync(CancellationToken cancellationToken)
     {
@@ -80,8 +79,8 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
             ValidateSourcePath();
 
             var allApiSourceInfos = await Task.Run(
-                () => _apiUpdateServer.GetAllApiSourceInfos(SourceCodePath),
-                cancellationToken);
+                                        () => _apiUpdateServer.GetAllApiSourceInfos(SourceCodePath),
+                                        cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -146,9 +145,9 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
 
             var connectionString = SsamcEnvironment.GetDatabaseConnection(target);
             var results = await Task.Run(() => UpdateApis(
-                updateApiCodes,
-                connectionString,
-                cancellationToken), cancellationToken);
+                              updateApiCodes,
+                              connectionString,
+                              cancellationToken), cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
             foreach (var result in results)
@@ -258,10 +257,12 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
         });
     }
 
+    #region Nested type: ApiUpdateSettings
     private sealed class ApiUpdateSettings
     {
         public string? SourceCodePath { get; set; }
 
         public string? StrSelectApiCodes { get; set; }
     }
+    #endregion
 }

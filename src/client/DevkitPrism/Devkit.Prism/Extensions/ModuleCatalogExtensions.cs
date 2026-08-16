@@ -16,7 +16,7 @@ public static class ModuleCatalogExtensions
         Directory.CreateDirectory(modulesPath);
 
         var moduleAssemblyPaths = Directory
-            .EnumerateFiles(modulesPath, "Devkit.Modules.*.dll", SearchOption.AllDirectories)
+            .EnumerateFiles(modulesPath, "*.Modules.*.dll", SearchOption.AllDirectories)
             .Select(Path.GetFullPath)
             .ToArray();
 

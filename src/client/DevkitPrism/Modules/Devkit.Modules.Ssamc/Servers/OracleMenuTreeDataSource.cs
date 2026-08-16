@@ -1,9 +1,9 @@
 using Devkit.Services.Interfaces;
 using Mapster;
-using Ssamc.Configuration;
-using Ssamc.Models;
 using Microsoft.EntityFrameworkCore;
-using Ssamc.DB;
+using Ssamc.Configuration;
+using Ssamc.DB.Context;
+using Ssamc.Models;
 
 namespace Ssamc.Servers;
 
@@ -20,6 +20,7 @@ public sealed class OracleMenuTreeDataSource : IMenuTreeDataSource
         _moduleStorage = moduleStorage;
     }
 
+    #region IMenuTreeDataSource Members
     public async Task<IReadOnlyList<MenuTreeItem>> GetMenuTreeAsync(
         string environmentKey,
         CancellationToken cancellationToken)
@@ -32,6 +33,7 @@ public sealed class OracleMenuTreeDataSource : IMenuTreeDataSource
 
         return MenuTreeBuilder.Build(records);
     }
+    #endregion
 
     internal string ResolveConnectionString(string environmentKey)
     {
@@ -61,7 +63,7 @@ public sealed class OracleMenuTreeDataSource : IMenuTreeDataSource
             from menu in context.SYS_MENU.AsNoTracking()
             where menu.IS_DELETE == 0
             join module in context.SYS_MODULE.AsNoTracking()
-                on menu.ID_MODULE equals (long?)module.ID into matchingModules
+                on menu.ID_MODULE equals module.ID into matchingModules
             from module in matchingModules.DefaultIfEmpty()
             select new MenuTreeQueryRow
             {
@@ -73,21 +75,21 @@ public sealed class OracleMenuTreeDataSource : IMenuTreeDataSource
                 ModuleId = menu.ID_MODULE,
                 ModuleName = module == null ? null : module.STR_NAME,
                 MainPageId = module == null
-                    ? null
-                    : context.SYS_PAGE
-                        .Where(page => page.ID_MODULE == module.ID && page.IS_MAIN == true)
-                        .OrderBy(page => page.INT_SORT)
-                        .ThenBy(page => page.ID)
-                        .Select(page => (long?)page.ID)
-                        .FirstOrDefault(),
+                                 ? null
+                                 : context.SYS_PAGE
+                                     .Where(page => page.ID_MODULE == module.ID && page.IS_MAIN == true)
+                                     .OrderBy(page => page.INT_SORT)
+                                     .ThenBy(page => page.ID)
+                                     .Select(page => (long?)page.ID)
+                                     .FirstOrDefault(),
                 MainPageName = module == null
-                    ? null
-                    : context.SYS_PAGE
-                        .Where(page => page.ID_MODULE == module.ID && page.IS_MAIN == true)
-                        .OrderBy(page => page.INT_SORT)
-                        .ThenBy(page => page.ID)
-                        .Select(page => page.STR_NAME)
-                        .FirstOrDefault(),
+                                   ? null
+                                   : context.SYS_PAGE
+                                       .Where(page => page.ID_MODULE == module.ID && page.IS_MAIN == true)
+                                       .OrderBy(page => page.INT_SORT)
+                                       .ThenBy(page => page.ID)
+                                       .Select(page => page.STR_NAME)
+                                       .FirstOrDefault(),
                 SortOrder = menu.INT_SORT
             };
     }

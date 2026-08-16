@@ -1,16 +1,11 @@
-﻿using Ssamc.Core.Attributes;
+﻿using System.IO;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Ssamc.Core.Attributes;
 
 namespace Ssamc.Core.ApiCodeCollector;
-
 
 /// Roslyn实现的API扫描器
 /// </summary>
@@ -40,17 +35,9 @@ public class RoslynApiScanner : IApiScanner
         ];
     }
 
-    /// <summary>
-    /// 创建使用指定 SQLite 数据库的扫描器。主要用于隔离测试或宿主自定义缓存位置。
-    /// </summary>
-    public static RoslynApiScanner CreateWithCacheDatabase(string cacheDatabasePath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(cacheDatabasePath);
-        return new RoslynApiScanner(new SqliteApiSourceCache(cacheDatabasePath));
-    }
-
     public List<string> Attributes { get; set; }
 
+    #region IApiScanner Members
     /// <inheritdoc />
     public string GetExecutionSourceCode(string sourcePath, string apiCode)
     {
@@ -73,36 +60,11 @@ public class RoslynApiScanner : IApiScanner
             var analyses = AnalyzeFilesWithoutCache(files);
             var sources = analyses
                 .SelectMany(analysis => analysis.ExecutionSources.TryGetValue(apiCode, out var matches)
-                    ? matches
-                    : [])
+                                            ? matches
+                                            : [])
                 .ToList();
             return JoinExecutionSources(sources);
         }
-    }
-
-    private static string JoinExecutionSources(IEnumerable<string> sources)
-    {
-        return string.Join(
-            Environment.NewLine + Environment.NewLine,
-            sources.Where(source => !string.IsNullOrWhiteSpace(source)));
-    }
-
-    private static string GetMethodBodySource(MethodDeclarationSyntax method)
-    {
-        if (method.Body is not null)
-        {
-            return string.Concat(method.Body.Statements.Select(statement => statement.ToFullString())).Trim();
-        }
-
-        if (method.ExpressionBody is not null)
-        {
-            var isVoid = method.ReturnType is PredefinedTypeSyntax predefinedType &&
-                         predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword);
-            var returnPrefix = isVoid ? string.Empty : "return ";
-            return $"{returnPrefix}{method.ExpressionBody.Expression};";
-        }
-
-        return string.Empty;
     }
 
     /// <summary>
@@ -155,6 +117,89 @@ public class RoslynApiScanner : IApiScanner
                 .Where(info => info.ApiCodes.Contains(apiCode, StringComparer.Ordinal))
                 .ToList();
         }
+    }
+
+    /// <summary>
+    /// 根据ApiCode将源代码写入到对应文件中
+    /// 注意：一个类可能有多个ApiCode，需要复制到多个文件中
+    /// </summary>
+    public void WriteSourceCodeByApiCode(List<ApiSourceInfo> apiInfos, string outputDirectory)
+    {
+        if (!Directory.Exists(outputDirectory))
+        {
+            Directory.CreateDirectory(outputDirectory);
+        }
+
+        // 创建一个字典来按ApiCode组织
+        var apiCodeDictionary = new Dictionary<string, List<ApiSourceInfo>>();
+
+        foreach (var info in apiInfos)
+        {
+            foreach (var apiCode in info.ApiCodes)
+            {
+                if (!apiCodeDictionary.ContainsKey(apiCode))
+                {
+                    apiCodeDictionary[apiCode] = new List<ApiSourceInfo>();
+                }
+
+                // 添加到对应的ApiCode列表中
+                apiCodeDictionary[apiCode].Add(info);
+            }
+        }
+
+        Console.WriteLine($"找到 {apiCodeDictionary.Count} 个不同的ApiCode");
+
+        // 为每个ApiCode创建文件
+        foreach (var kvp in apiCodeDictionary)
+        {
+            var apiCode = kvp.Key;
+            var fileName = Path.Combine(outputDirectory, $"{apiCode}.cs");
+
+            using (var writer = new StreamWriter(fileName, false, Encoding.UTF8))
+            {
+                WriteSourceCodeToFile(writer, apiCode, kvp.Value);
+            }
+
+            Console.WriteLine($"已写入: {fileName} ({kvp.Value.Count} 个类)");
+        }
+
+        // 创建索引文件
+        CreateIndexFile(outputDirectory, apiCodeDictionary);
+    }
+    #endregion
+
+    /// <summary>
+    /// 创建使用指定 SQLite 数据库的扫描器。主要用于隔离测试或宿主自定义缓存位置。
+    /// </summary>
+    public static RoslynApiScanner CreateWithCacheDatabase(string cacheDatabasePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cacheDatabasePath);
+        return new RoslynApiScanner(new SqliteApiSourceCache(cacheDatabasePath));
+    }
+
+    private static string JoinExecutionSources(IEnumerable<string> sources)
+    {
+        return string.Join(
+            Environment.NewLine + Environment.NewLine,
+            sources.Where(source => !string.IsNullOrWhiteSpace(source)));
+    }
+
+    private static string GetMethodBodySource(MethodDeclarationSyntax method)
+    {
+        if (method.Body is not null)
+        {
+            return string.Concat(method.Body.Statements.Select(statement => statement.ToFullString())).Trim();
+        }
+
+        if (method.ExpressionBody is not null)
+        {
+            var isVoid = method.ReturnType is PredefinedTypeSyntax predefinedType &&
+                         predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword);
+            var returnPrefix = isVoid ? string.Empty : "return ";
+            return $"{returnPrefix}{method.ExpressionBody.Expression};";
+        }
+
+        return string.Empty;
     }
 
     /// <summary>
@@ -321,7 +366,7 @@ public class RoslynApiScanner : IApiScanner
             foreach (var attr in attrList.Attributes)
             {
                 var attrName = attr.Name.ToString();
-                if(this.Attributes.Contains(attrName))
+                if (Attributes.Contains(attrName))
                 {
                     apiAttributes.Add(attr);
                 }
@@ -353,7 +398,7 @@ public class RoslynApiScanner : IApiScanner
                 .Where(attr =>
                 {
                     var attrName = attr.Name.ToString();
-                    return !this.Attributes.Contains(attrName);
+                    return !Attributes.Contains(attrName);
                 })
                 .ToList();
 
@@ -393,7 +438,7 @@ public class RoslynApiScanner : IApiScanner
         var lines = source.Split('\n');
         var result = new StringBuilder();
 
-        bool lastLineWasEmpty = false;
+        var lastLineWasEmpty = false;
 
         foreach (var line in lines)
         {
@@ -415,54 +460,6 @@ public class RoslynApiScanner : IApiScanner
         }
 
         return result.ToString().TrimEnd();
-    }
-
-    /// <summary>
-    /// 根据ApiCode将源代码写入到对应文件中
-    /// 注意：一个类可能有多个ApiCode，需要复制到多个文件中
-    /// </summary>
-    public void WriteSourceCodeByApiCode(List<ApiSourceInfo> apiInfos, string outputDirectory)
-    {
-        if (!Directory.Exists(outputDirectory))
-        {
-            Directory.CreateDirectory(outputDirectory);
-        }
-
-        // 创建一个字典来按ApiCode组织
-        var apiCodeDictionary = new Dictionary<string, List<ApiSourceInfo>>();
-
-        foreach (var info in apiInfos)
-        {
-            foreach (var apiCode in info.ApiCodes)
-            {
-                if (!apiCodeDictionary.ContainsKey(apiCode))
-                {
-                    apiCodeDictionary[apiCode] = new List<ApiSourceInfo>();
-                }
-
-                // 添加到对应的ApiCode列表中
-                apiCodeDictionary[apiCode].Add(info);
-            }
-        }
-
-        Console.WriteLine($"找到 {apiCodeDictionary.Count} 个不同的ApiCode");
-
-        // 为每个ApiCode创建文件
-        foreach (var kvp in apiCodeDictionary)
-        {
-            var apiCode = kvp.Key;
-            var fileName = Path.Combine(outputDirectory, $"{apiCode}.cs");
-
-            using (var writer = new StreamWriter(fileName, false, Encoding.UTF8))
-            {
-                WriteSourceCodeToFile(writer, apiCode, kvp.Value);
-            }
-
-            Console.WriteLine($"已写入: {fileName} ({kvp.Value.Count} 个类)");
-        }
-
-        // 创建索引文件
-        CreateIndexFile(outputDirectory, apiCodeDictionary);
     }
 
     /// <summary>
@@ -532,8 +529,8 @@ public class RoslynApiScanner : IApiScanner
                 var firstInfo = infos.First();
                 var apiCodeIndex = firstInfo.ApiCodes.IndexOf(apiCode);
                 var description = apiCodeIndex >= 0 && apiCodeIndex < firstInfo.Descriptions.Count
-                    ? firstInfo.Descriptions[apiCodeIndex]
-                    : "";
+                                      ? firstInfo.Descriptions[apiCodeIndex]
+                                      : "";
 
                 writer.WriteLine($"| {apiCode} | {infos.Count} | {classNames} | {description} |");
             }
@@ -572,7 +569,7 @@ public class RoslynApiScanner : IApiScanner
 
         Console.WriteLine($"索引文件已创建: {indexPath}");
     }
-  
+
     /// <summary>
     /// 智能移除Api特性的方法（处理复杂情况）
     /// </summary>
@@ -651,7 +648,7 @@ public class RoslynApiScanner : IApiScanner
         var lines = source.Split('\n');
         var result = new StringBuilder();
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
 
@@ -749,7 +746,7 @@ public class RoslynApiScanner : IApiScanner
     /// <summary>
     /// 查找Api特性
     /// </summary>
-    private AttributeSyntax FindApiAttribute(SyntaxList<AttributeListSyntax> attributeLists)
+    private AttributeSyntax? FindApiAttribute(SyntaxList<AttributeListSyntax> attributeLists)
     {
         foreach (var attrList in attributeLists)
         {
@@ -796,7 +793,7 @@ public class RoslynApiScanner : IApiScanner
         }
         return string.Empty;
     }
-    
+
     /// <summary>
     /// 清理源代码格式
     /// </summary>
@@ -817,7 +814,7 @@ public class RoslynApiScanner : IApiScanner
 
         return result.ToString();
     }
- 
+
     /// <summary>
     /// 第四种方法：最精确的方法 - 使用语法树重构
     /// </summary>
@@ -864,7 +861,7 @@ public class RoslynApiScanner : IApiScanner
             if (nonApiAttributes.Count > 0)
             {
                 var newAttributeList = SyntaxFactory.AttributeList(
-                    SyntaxFactory.SeparatedList(nonApiAttributes))
+                        SyntaxFactory.SeparatedList(nonApiAttributes))
                     .WithTriviaFrom(attributeList);
 
                 newClassDecl = newClassDecl.AddAttributeLists(newAttributeList);

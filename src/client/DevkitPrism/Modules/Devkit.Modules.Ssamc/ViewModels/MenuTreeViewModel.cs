@@ -3,11 +3,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Devkit.Core.UI.Contracts;
 using Devkit.Core.UI.Mvvm;
+using Devkit.Services.Interfaces;
+using Devkit.Services.Interfaces.Notifications;
 using Ssamc.Configuration;
 using Ssamc.Models;
 using Ssamc.Servers;
-using Devkit.Services.Interfaces;
-using Devkit.Services.Interfaces.Notifications;
 
 namespace Ssamc.ViewModels;
 
@@ -15,12 +15,27 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
 {
     private const string ModuleName = "ssamc";
     private const string SettingsFileName = "menu-tree.json";
-    private readonly IMenuTreeDataSource _menuTreeDataSource;
-    private readonly IWebPageLauncher _webPageLauncher;
     private readonly IFileService _fileService;
+    private readonly IMenuTreeDataSource _menuTreeDataSource;
     private readonly IModuleStorage _moduleStorage;
     private readonly IClientNotificationService _notifications;
+    private readonly IWebPageLauncher _webPageLauncher;
     private IReadOnlyList<MenuTreeItem> _allItems = [];
+
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    [ObservableProperty]
+    private MenuDetails? _selectedDetails;
+
+    [ObservableProperty]
+    private SsamcPageEnvironment? _selectedEnvironment;
+
+    [ObservableProperty]
+    private MenuTreeNode? _selectedMenu;
+
+    [ObservableProperty]
+    private ObservableCollection<MenuTreeNode> _treeNodes = [];
 
     public MenuTreeViewModel(
         IMenuTreeDataSource menuTreeDataSource,
@@ -41,21 +56,6 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
 
     public IReadOnlyList<SsamcPageEnvironment> EnvironmentOptions { get; }
 
-    [ObservableProperty]
-    private string _searchText = string.Empty;
-
-    [ObservableProperty]
-    private ObservableCollection<MenuTreeNode> _treeNodes = [];
-
-    [ObservableProperty]
-    private MenuTreeNode? _selectedMenu;
-
-    [ObservableProperty]
-    private MenuDetails? _selectedDetails;
-
-    [ObservableProperty]
-    private SsamcPageEnvironment? _selectedEnvironment;
-
     public bool HasTreeNodes => TreeNodes.Count > 0;
 
     protected override async Task OnInitializeAsync(CancellationToken cancellationToken)
@@ -69,17 +69,23 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
                                       environment.Key.Equals(
                                           settings.PageEnvironmentKey,
                                           StringComparison.OrdinalIgnoreCase))
-                                  ?? SelectedEnvironment;
+                               ?? SelectedEnvironment;
         }
 
         await LoadMenuTreeAsync();
     }
 
     [RelayCommand]
-    private void Search() => ApplyFilter();
+    private void Search()
+    {
+        ApplyFilter();
+    }
 
     [RelayCommand]
-    private Task Reload() => LoadMenuTreeAsync();
+    private Task Reload()
+    {
+        return LoadMenuTreeAsync();
+    }
 
     [RelayCommand(CanExecute = nameof(CanOpen))]
     private async Task Open(MenuTreeNode? node)
@@ -108,11 +114,15 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
         }, HandleOperationError);
     }
 
-    private bool CanOpen(MenuTreeNode? node) =>
-        (node ?? SelectedMenu)?.CanOpen == true && SelectedEnvironment is not null;
+    private bool CanOpen(MenuTreeNode? node)
+    {
+        return (node ?? SelectedMenu)?.CanOpen == true && SelectedEnvironment is not null;
+    }
 
-    partial void OnTreeNodesChanged(ObservableCollection<MenuTreeNode> value) =>
+    partial void OnTreeNodesChanged(ObservableCollection<MenuTreeNode> value)
+    {
         OnPropertyChanged(nameof(HasTreeNodes));
+    }
 
     partial void OnSelectedMenuChanged(MenuTreeNode? value)
     {
@@ -136,8 +146,8 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
             }
 
             _allItems = await _menuTreeDataSource.GetMenuTreeAsync(
-                SelectedEnvironment.Key,
-                cancellationToken) ?? [];
+                            SelectedEnvironment.Key,
+                            cancellationToken) ?? [];
             cancellationToken.ThrowIfCancellationRequested();
             ApplyFilter();
 
@@ -152,11 +162,11 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
     {
         var keyword = SearchText.Trim();
         var nodes = string.IsNullOrEmpty(keyword)
-            ? _allItems.Select(item => CreateNode(item, expand: false))
-            : _allItems
-                .Select(item => CreateFilteredNode(item, keyword, ancestorMatched: false))
-                .Where(node => node is not null)
-                .Select(node => node!);
+                        ? _allItems.Select(item => CreateNode(item, false))
+                        : _allItems
+                            .Select(item => CreateFilteredNode(item, keyword, false))
+                            .Where(node => node is not null)
+                            .Select(node => node!);
 
         SelectedMenu = null;
         TreeNodes = new ObservableCollection<MenuTreeNode>(nodes);
@@ -170,18 +180,18 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
         var matches = Matches(item, keyword);
         if (ancestorMatched || matches)
         {
-            return CreateNode(item, expand: true);
+            return CreateNode(item, true);
         }
 
         var children = item.Children
-            .Select(child => CreateFilteredNode(child, keyword, ancestorMatched: false))
+            .Select(child => CreateFilteredNode(child, keyword, false))
             .Where(node => node is not null)
             .Select(node => node!)
             .ToList();
 
         return children.Count == 0
-            ? null
-            : CreateNode(item, expand: true, children);
+                   ? null
+                   : CreateNode(item, true, children);
     }
 
     private static bool Matches(MenuTreeItem item, string keyword)
@@ -196,8 +206,10 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
                Contains(item.MainPageId?.ToString(), keyword);
     }
 
-    private static bool Contains(string? value, string keyword) =>
-        value?.Contains(keyword, StringComparison.OrdinalIgnoreCase) == true;
+    private static bool Contains(string? value, string keyword)
+    {
+        return value?.Contains(keyword, StringComparison.OrdinalIgnoreCase) == true;
+    }
 
     private static MenuTreeNode CreateNode(
         MenuTreeItem item,
@@ -254,7 +266,10 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
         }
     }
 
-    private void HandleOperationError(Exception exception) => ShowError(exception.Message);
+    private void HandleOperationError(Exception exception)
+    {
+        ShowError(exception.Message);
+    }
 
     private void ShowInformation(string message)
     {
@@ -282,5 +297,4 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
             Level = NotificationLevel.Error
         });
     }
-
 }

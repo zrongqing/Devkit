@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 
-namespace Ssamc.Data.Repositories;
+namespace Ssamc.DB.Repositories;
 
 public interface IRepository<T> where T : class
 {

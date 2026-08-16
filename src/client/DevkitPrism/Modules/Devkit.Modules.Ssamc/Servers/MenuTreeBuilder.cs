@@ -65,8 +65,8 @@ public static class MenuTreeBuilder
         var name = FirstNotEmpty(record.Name, record.EnglishName) ?? record.MenuId.ToString();
         var parentName = record.ParentMenuId is { } parentId &&
                          records.TryGetValue(parentId, out var parent)
-            ? FirstNotEmpty(parent.Name, parent.EnglishName)
-            : null;
+                             ? FirstNotEmpty(parent.Name, parent.EnglishName)
+                             : null;
 
         return new MenuTreeItem
         {
@@ -86,17 +86,23 @@ public static class MenuTreeBuilder
         };
     }
 
-    private static IOrderedEnumerable<Draft> Sort(IEnumerable<Draft> drafts) =>
-        drafts.OrderBy(draft => draft.Record.SortOrder ?? short.MaxValue)
+    private static IOrderedEnumerable<Draft> Sort(IEnumerable<Draft> drafts)
+    {
+        return drafts.OrderBy(draft => draft.Record.SortOrder ?? short.MaxValue)
             .ThenBy(draft => draft.Record.MenuId);
+    }
 
-    private static string? FirstNotEmpty(params string?[] values) =>
-        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim();
+    private static string? FirstNotEmpty(params string?[] values)
+    {
+        return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim();
+    }
 
+    #region Nested type: Draft
     private sealed class Draft(MenuTreeRecord record)
     {
         public MenuTreeRecord Record { get; } = record;
 
         public List<Draft> Children { get; } = [];
     }
+    #endregion
 }

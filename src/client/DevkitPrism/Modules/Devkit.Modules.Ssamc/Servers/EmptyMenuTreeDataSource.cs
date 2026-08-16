@@ -7,6 +7,7 @@ namespace Ssamc.Servers;
 /// </summary>
 public sealed class EmptyMenuTreeDataSource : IMenuTreeDataSource
 {
+    #region IMenuTreeDataSource Members
     public Task<IReadOnlyList<MenuTreeItem>> GetMenuTreeAsync(
         string environmentKey,
         CancellationToken cancellationToken)
@@ -15,4 +16,5 @@ public sealed class EmptyMenuTreeDataSource : IMenuTreeDataSource
         cancellationToken.ThrowIfCancellationRequested();
         return Task.FromResult<IReadOnlyList<MenuTreeItem>>([]);
     }
+    #endregion
 }

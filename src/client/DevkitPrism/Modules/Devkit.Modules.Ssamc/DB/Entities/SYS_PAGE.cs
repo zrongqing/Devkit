@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +8,7 @@ namespace Ssamc.DB.Entities;
 /// 模块页面
 /// </summary>
 [Table("SYS_PAGE")]
-public partial class SYS_PAGE
+public class SYS_PAGE
 {
     /// <summary>
     /// ID
@@ -256,5 +254,5 @@ public partial class SYS_PAGE
     public bool? IS_MENU { get; set; }
 
     [ForeignKey(nameof(ID_MODULE))]
-    public SYS_MODULE SYS_MODULE { get; set; }
+    public required SYS_MODULE SYS_MODULE { get; set; }
 }

@@ -52,10 +52,12 @@ public sealed class MenuTreeRecordMapping : IRegister
 {
     internal static TypeAdapterConfig Configuration { get; } = CreateConfiguration();
 
+    #region IRegister Members
     public void Register(TypeAdapterConfig config)
     {
         config.NewConfig<MenuTreeQueryRow, MenuTreeRecord>();
     }
+    #endregion
 
     private static TypeAdapterConfig CreateConfiguration()
     {

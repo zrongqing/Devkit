@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +8,7 @@ namespace Ssamc.DB.Entities;
 /// 事件附加代码
 /// </summary>
 [Table("SYS_PAGE_EVENT_CODE_BACK")]
-public partial class SYS_PAGE_EVENT_CODE_BACK
+public class SYS_PAGE_EVENT_CODE_BACK
 {
     /// <summary>
     /// 页面名称

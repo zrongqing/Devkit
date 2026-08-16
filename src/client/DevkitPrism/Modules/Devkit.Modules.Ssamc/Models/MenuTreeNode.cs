@@ -5,6 +5,8 @@ namespace Ssamc.Models;
 
 public partial class MenuTreeNode : ObservableObject
 {
+    [ObservableProperty]
+    private bool _isExpanded;
     public long MenuId { get; init; }
 
     public long? ParentMenuId { get; init; }
@@ -38,7 +40,4 @@ public partial class MenuTreeNode : ObservableObject
     };
 
     public ObservableCollection<MenuTreeNode> Children { get; init; } = [];
-
-    [ObservableProperty]
-    private bool _isExpanded;
 }

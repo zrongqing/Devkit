@@ -7,13 +7,15 @@ namespace Devkit.Prism.Modules;
 internal sealed class PrismModuleLoadContext : AssemblyLoadContext
 {
     private readonly AssemblyDependencyResolver _resolver;
+    private readonly ModuleShadowCopy _shadowCopy;
     private readonly string _hostDirectory;
     private readonly HashSet<string> _hostAssemblies;
 
     public PrismModuleLoadContext(string assemblyPath, string hostDirectory)
         : base($"DevkitModule:{Path.GetFileNameWithoutExtension(assemblyPath)}", isCollectible: true)
     {
-        _resolver = new AssemblyDependencyResolver(assemblyPath);
+        _shadowCopy = ModuleShadowCopy.Create(assemblyPath);
+        _resolver = new AssemblyDependencyResolver(_shadowCopy.SourceAssemblyPath);
         _hostDirectory = hostDirectory;
         _hostAssemblies = Directory
             .EnumerateFiles(hostDirectory, "*.dll", SearchOption.TopDirectoryOnly)
@@ -21,6 +23,8 @@ internal sealed class PrismModuleLoadContext : AssemblyLoadContext
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .ToHashSet(StringComparer.OrdinalIgnoreCase)!;
     }
+
+    public Assembly LoadModuleAssembly() => LoadFromAssemblyPath(_shadowCopy.AssemblyPath);
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
@@ -49,12 +53,16 @@ internal sealed class PrismModuleLoadContext : AssemblyLoadContext
         }
 
         var dependencyPath = _resolver.ResolveAssemblyToPath(assemblyName);
-        return dependencyPath == null ? null : LoadFromAssemblyPath(dependencyPath);
+        return dependencyPath == null
+            ? null
+            : LoadFromAssemblyPath(_shadowCopy.CopyFile(dependencyPath));
     }
 
     protected override nint LoadUnmanagedDll(string unmanagedDllName)
     {
         var dependencyPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
-        return dependencyPath == null ? nint.Zero : LoadUnmanagedDllFromPath(dependencyPath);
+        return dependencyPath == null
+            ? nint.Zero
+            : LoadUnmanagedDllFromPath(_shadowCopy.CopyFile(dependencyPath));
     }
 }

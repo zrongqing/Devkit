@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 using Ssamc.Configuration;
 
 namespace Ssamc.Servers;
@@ -20,19 +16,19 @@ public class WebappUpdateServer
     private static extern int WNetUseConnection(
         IntPtr hwndOwner,
         NETRESOURCE lpNetResource,
-        string lpPassword,
-        string lpUserID,
+        string? lpPassword,
+        string? lpUserID,
         int dwFlags,
-        string lpAccessName,
-        string lpBufferSize,
-        string lpBuffer
+        string? lpAccessName,
+        string? lpBufferSize,
+        string? lpBuffer
     );
 
     [StructLayout(LayoutKind.Sequential)]
     private class NETRESOURCE
     {
         public int dwScope = 0;
-        public int dwType = 0;
+        public int dwType;
         public int dwDisplayType = 0;
         public int dwUsage = 0;
         public string lpLocalName = "";
@@ -51,124 +47,75 @@ public class WebappUpdateServer
     #endregion
 
     #region 私有字段
-    private string _sourceFolder;
-    private List<string> _destinationFolders;
-    private string _username;
-    private string _password;
-    private List<string> _excludedFolders;
-    private List<string> _excludedFiles;
-    private string _logFile;
-    private StringBuilder _logBuffer;
-    private bool _enableLogging;
-    private bool _enableConsoleOutput;
-    private bool _simulateMode;
+    private StringBuilder? _logBuffer;
 
-    private Dictionary<string, List<string>> _destinationFolderDic = new();
+    private readonly Dictionary<string, List<string>> _destinationFolderDic = new();
     #endregion
 
     #region 公共属性
     /// <summary>
     /// 源文件夹路径
     /// </summary>
-    public string SourceFolder
-    {
-        get => _sourceFolder;
-        set => _sourceFolder = value;
-    }
+    public string SourceFolder { get; set; }
 
     /// <summary>
     /// 目标文件夹列表
     /// </summary>
-    public List<string> DestinationFolders
-    {
-        get => _destinationFolders;
-        set => _destinationFolders = value;
-    }
+    public List<string> DestinationFolders { get; set; } = [];
 
     /// <summary>
     /// 网络共享用户名
     /// </summary>
-    public string NetworkUsername
-    {
-        get => _username;
-        set => _username = value;
-    }
+    public string? NetworkUsername { get; set; }
 
     /// <summary>
     /// 网络共享密码
     /// </summary>
-    public string NetworkPassword
-    {
-        get => _password;
-        set => _password = value;
-    }
+    public string? NetworkPassword { get; set; }
 
     /// <summary>
     /// 排除的文件夹列表
     /// </summary>
-    public List<string> ExcludedFolders
-    {
-        get => _excludedFolders;
-        set => _excludedFolders = value;
-    }
+    public List<string> ExcludedFolders { get; set; } = [];
 
     /// <summary>
     /// 排除的文件列表（支持通配符）
     /// </summary>
-    public List<string> ExcludedFiles
-    {
-        get => _excludedFiles;
-        set => _excludedFiles = value;
-    }
+    public List<string> ExcludedFiles { get; set; } = [];
 
     /// <summary>
     /// 日志文件路径
     /// </summary>
-    public string LogFilePath
-    {
-        get => _logFile;
-        set => _logFile = value;
-    }
+    public string? LogFilePath { get; set; }
 
     /// <summary>
     /// 是否启用日志记录
     /// </summary>
-    public bool EnableLogging
-    {
-        get => _enableLogging;
-        set => _enableLogging = value;
-    }
+    public bool EnableLogging { get; set; }
 
     /// <summary>
     /// 是否启用控制台输出
     /// </summary>
-    public bool EnableConsoleOutput
-    {
-        get => _enableConsoleOutput;
-        set => _enableConsoleOutput = value;
-    }
+    public bool EnableConsoleOutput { get; set; }
 
     /// <summary>
     /// 模拟模式（只显示要执行的操作，不实际复制）
     /// </summary>
-    public bool SimulateMode
-    {
-        get => _simulateMode;
-        set => _simulateMode = value;
-    }
+    public bool SimulateMode { get; set; }
 
     /// <summary>
     /// 最后一次操作的统计信息
     /// </summary>
-    public UpdateStatistics LastStatistics { get; private set; }
+    public UpdateStatistics? LastStatistics { get; private set; }
     #endregion
 
     #region 构造函数
     /// <summary>
     /// 默认构造函数
     /// </summary>
-    public WebappUpdateServer()
+    public WebappUpdateServer(string sourceFolder)
     {
+        SourceFolder = sourceFolder;
         InitializeDefaultValues();
         InitializeDestination();
     }
@@ -176,12 +123,12 @@ public class WebappUpdateServer
     /// <summary>
     /// 带参数的构造函数
     /// </summary>
-    public WebappUpdateServer(string sourceFolder, List<string> destinationFolders, string username, string password):this()
+    public WebappUpdateServer(string sourceFolder, List<string> destinationFolders, string username, string password) : this(sourceFolder)
     {
-        _sourceFolder = sourceFolder;
-        _destinationFolders = destinationFolders ?? new List<string>();
-        _username = username;
-        _password = password;
+        SourceFolder = sourceFolder;
+        DestinationFolders = destinationFolders ?? new List<string>();
+        NetworkUsername = username;
+        NetworkPassword = password;
     }
 
     private void InitializeDestination()
@@ -197,21 +144,21 @@ public class WebappUpdateServer
             }
         }
 
-        _sourceFolder = SsamcEnvironment.WebappSourcePath;
-        _destinationFolders = _destinationFolderDic.TryGetValue("production", out var production)
-            ? production
-            : [];
+        SourceFolder = SsamcEnvironment.WebappSourcePath;
+        DestinationFolders = _destinationFolderDic.TryGetValue("production", out var production)
+                                 ? production
+                                 : [];
     }
 
 
     private void InitializeDefaultValues()
     {
-        _destinationFolders = [];
+        DestinationFolders = [];
 
-        _username = "";
-        _password = "";
+        NetworkUsername = "";
+        NetworkPassword = "";
 
-        _excludedFolders = new List<string>
+        ExcludedFolders = new List<string>
         {
             "node_modules",
             ".git",
@@ -225,7 +172,7 @@ public class WebappUpdateServer
             "backup"
         };
 
-        _excludedFiles = new List<string>
+        ExcludedFiles = new List<string>
         {
             "*.log",
             "*.tmp",
@@ -239,11 +186,11 @@ public class WebappUpdateServer
             "*.suo"
         };
 
-        _logFile = "webapp_update_log.txt";
+        LogFilePath = "webapp_update_log.txt";
         _logBuffer = new StringBuilder();
-        _enableLogging = true;
-        _enableConsoleOutput = true;
-        _simulateMode = false;
+        EnableLogging = true;
+        EnableConsoleOutput = true;
+        SimulateMode = false;
 
         LastStatistics = new UpdateStatistics();
     }
@@ -253,10 +200,10 @@ public class WebappUpdateServer
     /// <summary>
     /// 执行更新操作
     /// </summary>
-    /// <returns>是否全部成功</returns>
+    /// <returns> 是否全部成功 </returns>
     public async Task<bool> UpdateAsync()
     {
-        return await Task.Run(() => Update());
+        return await Task.Run(Update);
     }
 
     /// <summary>
@@ -276,9 +223,9 @@ public class WebappUpdateServer
             }
 
             WriteLog("=== Webapp更新服务器开始运行 ===");
-            WriteLog($"源文件夹: {_sourceFolder}");
-            WriteLog($"目标服务器数量: {_destinationFolders.Count}");
-            WriteLog($"模拟模式: {(_simulateMode ? "是" : "否")}");
+            WriteLog($"源文件夹: {SourceFolder}");
+            WriteLog($"目标服务器数量: {DestinationFolders.Count}");
+            WriteLog($"模拟模式: {(SimulateMode ? "是" : "否")}");
             WriteLog("=========================================");
 
             // 获取源文件列表
@@ -288,7 +235,7 @@ public class WebappUpdateServer
             WriteLog($"找到 {sourceFiles.Count} 个需要处理的文件");
 
             // 遍历每个目标服务器
-            foreach (string destination in _destinationFolders)
+            foreach (var destination in DestinationFolders)
             {
                 var serverResult = ProcessDestination(destination, sourceFiles);
                 LastStatistics.ServerResults[destination] = serverResult;
@@ -317,7 +264,7 @@ public class WebappUpdateServer
             WriteLog($"总耗时: {LastStatistics.Duration.TotalSeconds:F2} 秒");
 
             // 保存日志
-            if (_enableLogging)
+            if (EnableLogging)
             {
                 SaveLogToFile();
             }
@@ -337,10 +284,10 @@ public class WebappUpdateServer
     /// </summary>
     public bool UpdateSpecificServers(List<string> servers)
     {
-        var originalDestinations = new List<string>(_destinationFolders);
-        _destinationFolders = servers;
+        var originalDestinations = new List<string>(DestinationFolders);
+        DestinationFolders = servers;
         var result = Update();
-        _destinationFolders = originalDestinations;
+        DestinationFolders = originalDestinations;
         return result;
     }
 
@@ -353,10 +300,11 @@ public class WebappUpdateServer
 
         WriteLog("=== 测试服务器连接 ===");
 
-        foreach (string destination in _destinationFolders)
+        if (DestinationFolders == null) return results;
+        foreach (var destination in DestinationFolders)
         {
             WriteLog($"正在测试: {destination}");
-            bool connected = ConnectToNetworkShare(destination, _username, _password);
+            var connected = ConnectToNetworkShare(destination, NetworkUsername, NetworkPassword);
             results[destination] = connected;
             WriteLog($"  结果: {(connected ? "成功" : "失败")}");
         }
@@ -369,9 +317,9 @@ public class WebappUpdateServer
     /// </summary>
     public void AddExcludedFolder(string folderName)
     {
-        if (!_excludedFolders.Contains(folderName))
+        if (ExcludedFolders != null && !ExcludedFolders.Contains(folderName))
         {
-            _excludedFolders.Add(folderName);
+            ExcludedFolders.Add(folderName);
         }
     }
 
@@ -380,9 +328,9 @@ public class WebappUpdateServer
     /// </summary>
     public void AddExcludedFile(string filePattern)
     {
-        if (!_excludedFiles.Contains(filePattern))
+        if (!ExcludedFiles.Contains(filePattern))
         {
-            _excludedFiles.Add(filePattern);
+            ExcludedFiles.Add(filePattern);
         }
     }
 
@@ -391,8 +339,8 @@ public class WebappUpdateServer
     /// </summary>
     public void ClearExcludedRules()
     {
-        _excludedFolders.Clear();
-        _excludedFiles.Clear();
+        ExcludedFolders.Clear();
+        ExcludedFiles.Clear();
     }
 
     /// <summary>
@@ -418,25 +366,25 @@ public class WebappUpdateServer
     #region 私有方法
     private bool ValidateConfiguration()
     {
-        if (string.IsNullOrEmpty(_sourceFolder))
+        if (string.IsNullOrEmpty(SourceFolder))
         {
             WriteLog("错误：源文件夹路径未设置");
             return false;
         }
 
-        if (!Directory.Exists(_sourceFolder))
+        if (!Directory.Exists(SourceFolder))
         {
-            WriteLog($"错误：源文件夹不存在！路径: {_sourceFolder}");
+            WriteLog($"错误：源文件夹不存在！路径: {SourceFolder}");
             return false;
         }
 
-        if (_destinationFolders == null || _destinationFolders.Count == 0)
+        if (DestinationFolders == null || DestinationFolders.Count == 0)
         {
             WriteLog("错误：目标文件夹列表为空");
             return false;
         }
 
-        if (!_simulateMode && (string.IsNullOrEmpty(_username) || string.IsNullOrEmpty(_password)))
+        if (!SimulateMode && (string.IsNullOrEmpty(NetworkUsername) || string.IsNullOrEmpty(NetworkPassword)))
         {
             WriteLog("警告：用户名或密码为空，可能无法访问网络共享");
         }
@@ -450,15 +398,12 @@ public class WebappUpdateServer
 
         try
         {
-            var directory = new DirectoryInfo(_sourceFolder);
-            var allFiles = directory.GetFiles("*", SearchOption.AllDirectories);
-
-            foreach (var file in allFiles)
+            if (SourceFolder != null)
             {
-                if (!IsExcluded(file.FullName))
-                {
-                    files.Add(file);
-                }
+                var directory = new DirectoryInfo(SourceFolder);
+                var allFiles = directory.GetFiles("*", SearchOption.AllDirectories);
+
+                files.AddRange(allFiles.Where(file => !IsExcluded(file.FullName)));
             }
         }
         catch (Exception ex)
@@ -482,9 +427,9 @@ public class WebappUpdateServer
         try
         {
             // 连接网络共享
-            if (!_simulateMode)
+            if (!SimulateMode)
             {
-                if (!ConnectToNetworkShare(destination, _username, _password))
+                if (!ConnectToNetworkShare(destination, NetworkUsername, NetworkPassword))
                 {
                     WriteLog($"  错误：无法连接到网络共享 {destination}");
                     result.Success = false;
@@ -494,24 +439,24 @@ public class WebappUpdateServer
             }
             else
             {
-                WriteLog($"  [模拟模式] 跳过连接步骤");
+                WriteLog("  [模拟模式] 跳过连接步骤");
             }
 
             // 创建目标根目录
-            if (!_simulateMode)
+            if (!SimulateMode)
             {
                 EnsureDirectoryExists(destination);
             }
 
             // 复制文件
-            int copiedCount = 0;
-            int skippedCount = 0;
-            int errorCount = 0;
+            var copiedCount = 0;
+            var skippedCount = 0;
+            var errorCount = 0;
 
             foreach (var sourceFile in sourceFiles)
             {
-                string relativePath = GetRelativePath(_sourceFolder, sourceFile.FullName);
-                string destFile = Path.Combine(destination, relativePath);
+                var relativePath = GetRelativePath(SourceFolder, sourceFile.FullName);
+                var destFile = Path.Combine(destination, relativePath);
 
                 if (IsExcluded(sourceFile.FullName))
                 {
@@ -519,7 +464,7 @@ public class WebappUpdateServer
                     continue;
                 }
 
-                if (_simulateMode)
+                if (SimulateMode)
                 {
                     WriteLog($"  [模拟模式] 将会复制: {relativePath}");
                     copiedCount++;
@@ -529,7 +474,8 @@ public class WebappUpdateServer
                 try
                 {
                     // 确保目标目录存在
-                    string destDir = Path.GetDirectoryName(destFile);
+                    var destDir = Path.GetDirectoryName(destFile);
+                    if(string.IsNullOrEmpty(destDir)) throw new FileNotFoundException();
                     EnsureDirectoryExists(destDir);
 
                     // 检查是否需要更新
@@ -553,13 +499,13 @@ public class WebappUpdateServer
                         WriteLog($"  进度: {copiedCount}/{sourceFiles.Count} 文件已复制");
                     }
 
-                    result.CopiedFiles.Add(relativePath);
+                    result.CopiedFiles?.Add(relativePath);
                 }
                 catch (Exception ex)
                 {
                     errorCount++;
                     WriteLog($"  错误：复制文件 {relativePath} 失败 - {ex.Message}");
-                    result.FailedFiles.Add(new FailedFileInfo
+                    result.FailedFiles?.Add(new FailedFileInfo
                     {
                         FilePath = relativePath,
                         ErrorMessage = ex.Message
@@ -576,9 +522,9 @@ public class WebappUpdateServer
             WriteLog($"  目标服务器处理完成: 成功 {copiedCount} 文件, 跳过 {skippedCount} 文件, 失败 {errorCount} 文件");
 
             // 更新总统计
-            LastStatistics.TotalCopiedFiles += copiedCount;
-            LastStatistics.TotalSkippedFiles += skippedCount;
-            LastStatistics.TotalErrors += errorCount;
+            LastStatistics?.TotalCopiedFiles += copiedCount;
+            LastStatistics?.TotalSkippedFiles += skippedCount;
+            LastStatistics?.TotalErrors += errorCount;
         }
         catch (Exception ex)
         {
@@ -586,31 +532,31 @@ public class WebappUpdateServer
             result.Success = false;
             result.ErrorMessage = ex.Message;
             result.EndTime = DateTime.Now;
-            LastStatistics.TotalErrors++;
+            if (LastStatistics != null) LastStatistics.TotalErrors++;
         }
 
         return result;
     }
 
-    private bool ConnectToNetworkShare(string networkPath, string username, string password)
+    private bool ConnectToNetworkShare(string networkPath, string? username, string? password)
     {
         try
         {
-            if (_simulateMode)
+            if (SimulateMode)
             {
                 return true;
             }
 
-            Uri uri = new Uri(networkPath);
-            string shareRoot = uri.GetLeftPart(UriPartial.Authority);
+            var uri = new Uri(networkPath);
+            var shareRoot = uri.GetLeftPart(UriPartial.Authority);
 
-            NETRESOURCE netResource = new NETRESOURCE
+            var netResource = new NETRESOURCE
             {
                 dwType = RESOURCETYPE_DISK,
                 lpRemoteName = shareRoot
             };
 
-            int result = WNetUseConnection(
+            var result = WNetUseConnection(
                 IntPtr.Zero,
                 netResource,
                 password,
@@ -626,7 +572,7 @@ public class WebappUpdateServer
         }
     }
 
-    private void EnsureDirectoryExists(string path)
+    private static void EnsureDirectoryExists(string path)
     {
         if (!Directory.Exists(path))
         {
@@ -637,7 +583,7 @@ public class WebappUpdateServer
     private bool IsExcluded(string path)
     {
         // 检查排除文件夹
-        foreach (string folder in _excludedFolders)
+        foreach (var folder in ExcludedFolders)
         {
             if (path.Contains($"\\{folder}\\") ||
                 path.EndsWith($"\\{folder}") ||
@@ -649,13 +595,13 @@ public class WebappUpdateServer
         }
 
         // 检查排除文件
-        string fileName = Path.GetFileName(path);
-        foreach (string pattern in _excludedFiles)
+        var fileName = Path.GetFileName(path);
+        foreach (var pattern in ExcludedFiles)
         {
             if (pattern.Contains("*"))
             {
-                string extension = Path.GetExtension(fileName);
-                string patternExt = pattern.Replace("*", "");
+                var extension = Path.GetExtension(fileName);
+                var patternExt = pattern.Replace("*", "");
                 if (!string.IsNullOrEmpty(patternExt) &&
                     extension.Equals(patternExt, StringComparison.OrdinalIgnoreCase))
                 {
@@ -679,21 +625,21 @@ public class WebappUpdateServer
         if (!relativeTo.EndsWith(Path.DirectorySeparatorChar.ToString()))
             relativeTo += Path.DirectorySeparatorChar;
 
-        Uri baseUri = new Uri(relativeTo);
-        Uri fullUri = new Uri(path);
+        var baseUri = new Uri(relativeTo);
+        var fullUri = new Uri(path);
 
         return Uri.UnescapeDataString(baseUri.MakeRelativeUri(fullUri).ToString())
-                  .Replace('/', Path.DirectorySeparatorChar);
+            .Replace('/', Path.DirectorySeparatorChar);
     }
 
     private void WriteLog(string message)
     {
-        string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        string logEntry = $"{timestamp} - {message}";
+        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        var logEntry = $"{timestamp} - {message}";
 
-        _logBuffer.AppendLine(logEntry);
+        _logBuffer?.AppendLine(logEntry);
 
-        if (_enableConsoleOutput)
+        if (EnableConsoleOutput)
         {
             Console.WriteLine(message);
         }
@@ -703,8 +649,11 @@ public class WebappUpdateServer
     {
         try
         {
-            File.AppendAllText(_logFile, _logBuffer.ToString(), Encoding.UTF8);
-            _logBuffer.Clear();
+            if(string.IsNullOrEmpty(LogFilePath))
+                return;
+            
+            File.AppendAllText(LogFilePath, _logBuffer?.ToString(), Encoding.UTF8);
+            _logBuffer?.Clear();
         }
         catch (Exception ex)
         {
@@ -727,16 +676,9 @@ public class UpdateStatistics
     public int TotalCopiedFiles { get; set; }
     public int TotalSkippedFiles { get; set; }
     public int TotalErrors { get; set; }
-    public List<string> SuccessfulServers { get; set; }
-    public List<string> FailedServers { get; set; }
-    public Dictionary<string, ServerProcessResult> ServerResults { get; set; }
-
-    public UpdateStatistics()
-    {
-        SuccessfulServers = new List<string>();
-        FailedServers = new List<string>();
-        ServerResults = new Dictionary<string, ServerProcessResult>();
-    }
+    public List<string> SuccessfulServers { get; set; } = new();
+    public List<string> FailedServers { get; set; } = new();
+    public Dictionary<string, ServerProcessResult> ServerResults { get; set; } = new();
 }
 
 /// <summary>
@@ -744,23 +686,16 @@ public class UpdateStatistics
 /// </summary>
 public class ServerProcessResult
 {
-    public string Destination { get; set; }
-    public bool Success { get; set; }
+    public string? Destination { get; set; }
+    public bool Success { get; set; } = true;
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public int CopiedCount { get; set; }
     public int SkippedCount { get; set; }
     public int ErrorCount { get; set; }
-    public string ErrorMessage { get; set; }
-    public List<string> CopiedFiles { get; set; }
-    public List<FailedFileInfo> FailedFiles { get; set; }
-
-    public ServerProcessResult()
-    {
-        CopiedFiles = new List<string>();
-        FailedFiles = new List<FailedFileInfo>();
-        Success = true;
-    }
+    public string? ErrorMessage { get; set; }
+    public List<string>? CopiedFiles { get; set; } = [];
+    public List<FailedFileInfo>? FailedFiles { get; set; } = [];
 }
 
 /// <summary>
@@ -768,8 +703,8 @@ public class ServerProcessResult
 /// </summary>
 public class FailedFileInfo
 {
-    public string FilePath { get; set; }
-    public string ErrorMessage { get; set; }
+    public string? FilePath { get; set; }
+    public string? ErrorMessage { get; set; }
     public DateTime FailedTime { get; set; } = DateTime.Now;
 }
 #endregion

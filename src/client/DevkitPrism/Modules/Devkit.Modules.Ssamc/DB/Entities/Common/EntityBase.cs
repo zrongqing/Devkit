@@ -1,4 +1,4 @@
-namespace Ssamc.Data.Entities.Common;
+namespace Ssamc.DB.Entities.Common;
 
 public abstract class EntityBase
 {

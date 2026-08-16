@@ -22,15 +22,16 @@ public sealed class PrismModuleLoader(IContainerProvider rootContainerProvider) 
         var childContainer = rootExtension.Instance.CreateChild(
             ifAlreadyRegistered: IfAlreadyRegistered.Replace);
         var childExtension = new DryIocContainerExtension(childContainer);
-        var loadContext = new PrismModuleLoadContext(fullPath, AppContext.BaseDirectory);
+        PrismModuleLoadContext? loadContext = null;
         var modules = new List<IModule>();
 
         try
         {
+            loadContext = new PrismModuleLoadContext(fullPath, AppContext.BaseDirectory);
             childExtension.RegisterInstance<IContainerProvider>(childExtension);
             childExtension.RegisterInstance<IContainerRegistry>(childExtension);
 
-            var assembly = loadContext.LoadFromAssemblyPath(fullPath);
+            var assembly = loadContext.LoadModuleAssembly();
             var moduleTypes = GetModuleTypes(assembly).ToArray();
             if (moduleTypes.Length == 0)
             {
@@ -94,7 +95,7 @@ public sealed class PrismModuleLoader(IContainerProvider rootContainerProvider) 
 
             try
             {
-                loadContext.Unload();
+                loadContext?.Unload();
             }
             catch
             {

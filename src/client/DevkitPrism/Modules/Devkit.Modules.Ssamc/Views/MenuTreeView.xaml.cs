@@ -1,9 +1,9 @@
+using System.Windows.Threading;
 using Devkit.Core.UI.Attributes;
 using Devkit.Core.UI.Views;
 using Ssamc.Models;
 using Ssamc.ViewModels;
 using Syncfusion.UI.Xaml.TreeView;
-using System.Windows.Threading;
 
 namespace Ssamc.Views;
 

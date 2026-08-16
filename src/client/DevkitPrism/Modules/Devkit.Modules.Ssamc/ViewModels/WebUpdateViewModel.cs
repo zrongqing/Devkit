@@ -6,9 +6,9 @@ using Devkit.Core.UI;
 using Devkit.Core.UI.Helpers;
 using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Mvvm;
-using Ssamc.Configuration;
 using Devkit.Services.Interfaces;
 using Devkit.Services.Interfaces.Notifications;
+using Ssamc.Configuration;
 
 namespace Ssamc.ViewModels;
 
@@ -19,10 +19,10 @@ public partial class WebappUpdateViewModel : ViewModelBase
     private readonly IClientNotificationService _notifications;
 
     [ObservableProperty]
-    private string _webappPath = SsamcEnvironment.WebappSourcePath;
+    private ObservableCollection<FileNodeModel> _treeNodes = [];
 
     [ObservableProperty]
-    private ObservableCollection<FileNodeModel> _treeNodes = [];
+    private string _webappPath = SsamcEnvironment.WebappSourcePath;
 
     public WebappUpdateViewModel(
         IFileService fileService,
@@ -137,8 +137,8 @@ public partial class WebappUpdateViewModel : ViewModelBase
         var index = fullPath.LastIndexOf(searchKey, StringComparison.OrdinalIgnoreCase);
 
         return index >= 0
-            ? fullPath[(index + searchKey.Length)..]
-            : fullPath;
+                   ? fullPath[(index + searchKey.Length)..]
+                   : fullPath;
     }
 
     private void SaveFile()
@@ -200,8 +200,10 @@ public partial class WebappUpdateViewModel : ViewModelBase
         });
     }
 
+    #region Nested type: WebappUpdateSettings
     private sealed class WebappUpdateSettings
     {
         public string WebappPath { get; set; } = string.Empty;
     }
+    #endregion
 }

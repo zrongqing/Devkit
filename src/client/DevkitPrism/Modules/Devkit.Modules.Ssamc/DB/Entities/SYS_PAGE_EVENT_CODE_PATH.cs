@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +8,7 @@ namespace Ssamc.DB.Entities;
 /// 事件附加代码历史
 /// </summary>
 [Table("SYS_PAGE_EVENT_CODE_PATH")]
-public partial class SYS_PAGE_EVENT_CODE_PATH
+public class SYS_PAGE_EVENT_CODE_PATH
 {
     /// <summary>
     /// ID

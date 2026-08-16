@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +8,7 @@ namespace Ssamc.DB.Entities;
 /// 菜单分组
 /// </summary>
 [Table("SYS_MENU_GROUP")]
-public partial class SYS_MENU_GROUP
+public class SYS_MENU_GROUP
 {
     /// <summary>
     /// ID

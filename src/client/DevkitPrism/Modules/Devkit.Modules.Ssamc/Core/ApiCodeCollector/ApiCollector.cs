@@ -1,5 +1,4 @@
-﻿using System.Reflection.Emit;
-using System.Text;
+﻿using System.Text;
 
 namespace Ssamc.Core.ApiCodeCollector;
 
@@ -23,7 +22,7 @@ public class ApiCollector
         return GetApiExtendCode(apiInfos, apiCode);
     }
 
-    public string GetApiExtendCode(List<ApiSourceInfo> apiInfos,string apiCode)
+    public string GetApiExtendCode(List<ApiSourceInfo> apiInfos, string apiCode)
     {
         var targetInfos = apiInfos.Where(info => info.ApiCodes.Contains(apiCode)).ToList();
 
@@ -42,4 +41,3 @@ public class ApiCollector
         return sb.ToString();
     }
 }
-

@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
-namespace Ssamc.Data.Repositories;
+namespace Ssamc.DB.Repositories;
 
 public class Repository<T> : IRepository<T> where T : class
 {
@@ -14,6 +14,7 @@ public class Repository<T> : IRepository<T> where T : class
         _dbSet = context.Set<T>();
     }
 
+    #region IRepository<T> Members
     public virtual async Task<T?> GetByIdAsync(int id)
     {
         return await _dbSet.FindAsync(id);
@@ -54,4 +55,5 @@ public class Repository<T> : IRepository<T> where T : class
     {
         return await _dbSet.AnyAsync(predicate);
     }
+    #endregion
 }

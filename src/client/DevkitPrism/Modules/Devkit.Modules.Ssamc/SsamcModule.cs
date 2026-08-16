@@ -1,3 +1,4 @@
+using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Services;
 using Devkit.Prism.Modules;
 using Ssamc.Core.ApiCodeCollector;
@@ -11,16 +12,17 @@ public class SsamcModule : IModule, IUnloadableModule
 {
     private const string ModuleId = "Devkit.Modules.Ssamc";
 
+    #region IModule Members
     public void OnInitialized(IContainerProvider containerProvider)
     {
         var menuRegistry = containerProvider.Resolve<IMenuRegistry>();
-        menuRegistry.Register(new()
+        menuRegistry.Register(new MenuItemModel
         {
             Id = "ssamc",
             ModuleId = ModuleId,
             ParentId = null,
             Title = "ssamc",
-            Order = 100,
+            Order = 100
         });
         menuRegistry.ScanFromAssembly(GetType().Assembly, ModuleId);
     }
@@ -39,9 +41,12 @@ public class SsamcModule : IModule, IUnloadableModule
         containerRegistry.RegisterSingleton<IWebPageLauncher, SystemWebPageLauncher>();
         containerRegistry.Register<WebappUpdateServer>();
     }
+    #endregion
 
+    #region IUnloadableModule Members
     public void OnUnloading(IContainerProvider containerProvider)
     {
         containerProvider.Resolve<IMenuRegistry>().UnregisterByModule(ModuleId);
     }
+    #endregion
 }

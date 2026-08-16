@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +8,7 @@ namespace Ssamc.DB.Entities;
 /// 模块权限点
 /// </summary>
 [Table("SYS_MODULE_RIGHT")]
-public partial class SYS_MODULE_RIGHT
+public class SYS_MODULE_RIGHT
 {
     /// <summary>
     /// ID

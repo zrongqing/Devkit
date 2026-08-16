@@ -1,13 +1,13 @@
-using System.Text;
 using System.Net.Http;
+using System.Text;
 using Newtonsoft.Json;
-using Ssamc.Data.Api;
+using Ssamc.DB.Api;
 
-namespace Ssamc.Data.Extensions;
+namespace Ssamc.DB.Extensions;
 
 public static class HttpClientExtensions
 {
-    public async static Task<HttpResponseMessage> PostAsJsonAsync(this HttpClient client, string url, object data)
+    public static async Task<HttpResponseMessage> PostAsJsonAsync(this HttpClient client, string url, object data)
     {
         var json = JsonConvert.SerializeObject(data);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -15,15 +15,15 @@ public static class HttpClientExtensions
         return response;
     }
 
-    public static Response GetJson(this HttpResponseMessage response)
+    public static Response? GetJson(this HttpResponseMessage response)
     {
         var jsonContent = response.Content.ReadAsStringAsync().Result;
         return JsonConvert.DeserializeObject<Response>(jsonContent);
     }
 
-    public async static Task<Response> PostAsBarcodeAsync(this HttpClient client, string url, object data)
+    public static async Task<Response?> PostAsBarcodeAsync(this HttpClient client, string url, object data)
     {
-        var response = await PostAsJsonAsync(client, url, data);
+        var response = await client.PostAsJsonAsync(url, data);
         return response.GetJson();
     }
 }

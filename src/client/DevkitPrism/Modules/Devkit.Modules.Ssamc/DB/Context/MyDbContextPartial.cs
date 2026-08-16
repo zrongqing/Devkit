@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Ssamc.DB;
+namespace Ssamc.DB.Context;
 
 public partial class MyDbContext
 {

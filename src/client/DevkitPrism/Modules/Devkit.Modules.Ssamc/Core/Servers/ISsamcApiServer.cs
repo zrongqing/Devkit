@@ -2,15 +2,14 @@
 
 namespace Ssamc.Core.Servers;
 
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Method)]
 public sealed class ActionCodeAttribute : Attribute
 {
-    public string Code { get; }
-
     public ActionCodeAttribute(string code)
     {
         Code = code;
     }
+    public string Code { get; }
 }
 
 public sealed class ActionRegistry

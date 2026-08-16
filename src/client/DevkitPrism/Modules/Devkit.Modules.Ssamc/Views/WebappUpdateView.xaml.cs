@@ -1,5 +1,4 @@
 ﻿using System.Windows.Controls;
-
 using Devkit.Core.UI.Attributes;
 using Ssamc.ViewModels;
 

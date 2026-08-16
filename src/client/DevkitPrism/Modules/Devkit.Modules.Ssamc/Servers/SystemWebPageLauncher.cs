@@ -1,8 +1,10 @@
 using System.Diagnostics;
+
 namespace Ssamc.Servers;
 
 public sealed class SystemWebPageLauncher : IWebPageLauncher
 {
+    #region IWebPageLauncher Members
     public Task OpenTabAsync(WebTabOpenRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -18,13 +20,14 @@ public sealed class SystemWebPageLauncher : IWebPageLauncher
 
         return Task.CompletedTask;
     }
+    #endregion
 
     public static Uri BuildDeepLink(WebTabOpenRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         if (!Uri.TryCreate(request.BaseAddress, UriKind.Absolute, out var baseAddress) ||
-            (baseAddress.Scheme != Uri.UriSchemeHttp && baseAddress.Scheme != Uri.UriSchemeHttps))
+            baseAddress.Scheme != Uri.UriSchemeHttp && baseAddress.Scheme != Uri.UriSchemeHttps)
         {
             throw new InvalidOperationException($"页面环境地址无效：{request.BaseAddress}");
         }

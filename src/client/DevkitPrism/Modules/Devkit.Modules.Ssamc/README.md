@@ -40,15 +40,16 @@
 - `DEVKIT_SSAMC_WEBAPP_SOURCE_PATH`
 - `DEVKIT_SSAMC_WEBAPP_215_22_ROOTS`、`DEVKIT_SSAMC_WEBAPP_215_22_USERNAME`、`DEVKIT_SSAMC_WEBAPP_215_22_PASSWORD`
 - `DEVKIT_SSAMC_WEBAPP_20_53_ROOTS`、`DEVKIT_SSAMC_WEBAPP_20_53_USERNAME`、`DEVKIT_SSAMC_WEBAPP_20_53_PASSWORD`
-- `DEVKIT_SSAMC_WEBAPP_PRODUCTION_ROOTS`、`DEVKIT_SSAMC_WEBAPP_PRODUCTION_USERNAME`、`DEVKIT_SSAMC_WEBAPP_PRODUCTION_PASSWORD`
+- `DEVKIT_SSAMC_WEBAPP_PRODUCTION_ROOTS`、`DEVKIT_SSAMC_WEBAPP_PRODUCTION_USERNAME`、
+  `DEVKIT_SSAMC_WEBAPP_PRODUCTION_PASSWORD`
 
-API 更新和 Webapp 更新所需凭据只从进程环境读取。菜单数据库连接也可以写入上述应用本地
-配置文件，但包含真实凭据的 `menu-tree.json` 不应写入仓库。
+API 更新和 Webapp 更新所需凭据只从进程环境读取。菜单数据库连接也可以写入上述应用本地 配置文件，但包含真实凭据的
+`menu-tree.json` 不应写入仓库。
 
 ## Menu tree extension points
 
 `MenuTreeView` 通过 `IMenuTreeDataSource` 从 Oracle 的 `SYS_MENU`、
 `SYS_MODULE` 和 `SYS_PAGE` 获取层级菜单及模块主页面，只加载菜单中
-`IS_DELETE = 0` 的记录，不过滤 `IS_STATE`。`IWebPageLauncher` 生成 Barcode
-主框架深链，使用模块主页面 ID 作为 `moduleid` 的值打开
+`IS_DELETE = 0` 的记录，不过滤 `IS_STATE`。`IWebPageLauncher` 生成 Barcode 主框架深链，使用模块主页面 ID 作为 `moduleid`
+的值打开
 `/Page/?moduleid=...` 选项卡。

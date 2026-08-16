@@ -12,12 +12,12 @@ public class TreeViewFilterTrigger : TargetedTriggerAction<SfTreeView>
     protected override void Invoke(object parameter)
     {
         var viewModel = this.Target.DataContext as MenuViewModel;
-        viewModel.filterChanged += OnFilterChanged;
+        viewModel?.filterChanged += OnFilterChanged;
     }
     private void OnFilterChanged()
     {
         var viewModel = this.Target.DataContext as MenuViewModel;
-        viewModel.CollectionView?.Filter = (e) =>
+        viewModel?.CollectionView?.Filter = (e) =>
         {
             if (e is MenuItemModel file)
             {

@@ -1,7 +1,7 @@
 namespace Ssamc.Models;
 
 /// <summary>
-/// A transport-neutral menu item supplied by <c>IMenuTreeDataSource</c>.
+/// A transport-neutral menu item supplied by <c> IMenuTreeDataSource </c>.
 /// </summary>
 public sealed class MenuTreeItem
 {

@@ -1,11 +1,17 @@
+using System.IO;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Services;
 using Devkit.Modules.Demo;
+using Devkit.Modules.ModuleName;
 using Devkit.Prism.Modules;
+using Devkit.Services.Interfaces;
 using DryIoc;
+using Moq;
 using Prism.Container.DryIoc;
 using Prism.Ioc;
+using Prism.Navigation.Regions;
 using Xunit;
 
 namespace Devkit.Loading.Tests;
@@ -27,6 +33,53 @@ public sealed class PrismModuleLoaderTests
         Assert.Null(menuRegistry.Find("demo"));
         Assert.Null(menuRegistry.Find("modules.demo.loading"));
         AssertCollectible(unloadReference);
+    }
+
+    [Fact]
+    public void Source_module_file_remains_exclusively_accessible_while_loaded()
+    {
+        using var root = new Container();
+        var rootExtension = new DryIocContainerExtension(root);
+        var menuRegistry = new MenuRegistry(rootExtension);
+        rootExtension.RegisterInstance<IContainerProvider>(rootExtension);
+        rootExtension.RegisterInstance<IMenuRegistry>(menuRegistry);
+        var loader = new PrismModuleLoader(rootExtension);
+        using var moduleCopy = TemporaryModuleCopy.Create(typeof(DemoModule).Assembly.Location);
+        using var handle = loader.Load(moduleCopy.AssemblyPath);
+
+        using var sourceStream = new FileStream(
+            moduleCopy.AssemblyPath,
+            FileMode.Open,
+            FileAccess.ReadWrite,
+            FileShare.None);
+
+        Assert.True(sourceStream.CanRead);
+        Assert.True(sourceStream.CanWrite);
+    }
+
+    [Fact]
+    public void Source_module_file_is_replaceable_after_unloading_a_wpf_view()
+    {
+        using var root = new Container();
+        var rootExtension = new DryIocContainerExtension(root);
+        var menuRegistry = new MenuRegistry(rootExtension);
+        rootExtension.RegisterInstance<IContainerProvider>(rootExtension);
+        rootExtension.RegisterInstance<IMenuRegistry>(menuRegistry);
+        rootExtension.RegisterInstance(Mock.Of<IRegionManager>());
+        rootExtension.RegisterInstance(Mock.Of<IMessageService>());
+        var loader = new PrismModuleLoader(rootExtension);
+        using var moduleCopy = TemporaryModuleCopy.Create(typeof(ModuleNameModule).Assembly.Location);
+        using var handle = loader.Load(moduleCopy.AssemblyPath);
+
+        ResolveViewOnSta(handle, "ViewA");
+        handle.Unload();
+
+        using var sourceStream = new FileStream(
+            moduleCopy.AssemblyPath,
+            FileMode.Open,
+            FileAccess.ReadWrite,
+            FileShare.None);
+        Assert.True(sourceStream.CanWrite);
     }
 
     [Fact]
@@ -74,6 +127,35 @@ public sealed class PrismModuleLoaderTests
         return handle.Unload();
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ResolveViewOnSta(IPrismModuleHandle handle, string viewName)
+    {
+        Exception? error = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var content = Assert.IsAssignableFrom<FrameworkElement>(handle.Resolve(viewName));
+                Assert.Equal(
+                    "Devkit.Modules.ModuleName.ViewModels.ViewAViewModel",
+                    content.DataContext?.GetType().FullName);
+                content.DataContext = null;
+            }
+            catch (Exception exception)
+            {
+                error = exception;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (error != null)
+        {
+            throw new InvalidOperationException("The WPF module view could not be resolved.", error);
+        }
+    }
+
     private static void AssertCollectible(WeakReference unloadReference)
     {
         for (var attempt = 0; unloadReference.IsAlive && attempt < 10; attempt++)
@@ -84,6 +166,53 @@ public sealed class PrismModuleLoaderTests
         }
 
         Assert.False(unloadReference.IsAlive);
+    }
+
+    private sealed class TemporaryModuleCopy : IDisposable
+    {
+        private TemporaryModuleCopy(string directoryPath, string assemblyPath)
+        {
+            DirectoryPath = directoryPath;
+            AssemblyPath = assemblyPath;
+        }
+
+        public string DirectoryPath { get; }
+
+        public string AssemblyPath { get; }
+
+        public static TemporaryModuleCopy Create(string sourceAssemblyPath)
+        {
+            var directoryPath = Path.Combine(
+                Path.GetTempPath(),
+                "Devkit.Loading.Tests",
+                Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directoryPath);
+            var assemblyPath = Path.Combine(directoryPath, Path.GetFileName(sourceAssemblyPath));
+            File.Copy(sourceAssemblyPath, assemblyPath);
+
+            foreach (var sidecarPath in new[]
+                     {
+                         Path.ChangeExtension(sourceAssemblyPath, ".deps.json"),
+                         Path.ChangeExtension(sourceAssemblyPath, ".runtimeconfig.json"),
+                         $"{sourceAssemblyPath}.config"
+                     })
+            {
+                if (File.Exists(sidecarPath))
+                {
+                    File.Copy(sidecarPath, Path.Combine(directoryPath, Path.GetFileName(sidecarPath)));
+                }
+            }
+
+            return new TemporaryModuleCopy(directoryPath, assemblyPath);
+        }
+
+        public void Dispose()
+        {
+            if (Directory.Exists(DirectoryPath))
+            {
+                Directory.Delete(DirectoryPath, recursive: true);
+            }
+        }
     }
 
     public sealed class ThrowingCleanupModule : IModule, IUnloadableModule

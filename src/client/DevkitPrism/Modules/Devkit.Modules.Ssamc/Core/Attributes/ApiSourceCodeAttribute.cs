@@ -3,13 +3,12 @@
 /// <summary>
 /// 标记方法
 /// </summary>
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Method)]
 public sealed class ApiSourceCodeAttribute : Attribute
 {
-    public string Code { get; }
-
     public ApiSourceCodeAttribute(string code)
     {
         Code = code;
     }
+    public string Code { get; }
 }

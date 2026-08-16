@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +8,7 @@ namespace Ssamc.DB.Entities;
 /// 模块所用视图
 /// </summary>
 [Table("SYS_MODULE_VIEW")]
-public partial class SYS_MODULE_VIEW
+public class SYS_MODULE_VIEW
 {
     /// <summary>
     /// ID

@@ -1,11 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Ssamc.Core.ApiCodeCollector;
 
@@ -33,7 +28,7 @@ public static class SyntaxNodeExtensions
             {
                 // 创建新的特性列表
                 var newAttributeList = SyntaxFactory.AttributeList(
-                    SyntaxFactory.SeparatedList(newAttributes))
+                        SyntaxFactory.SeparatedList(newAttributes))
                     .WithTriviaFrom(attributeList);
 
                 newAttributeLists.Add(newAttributeList);
