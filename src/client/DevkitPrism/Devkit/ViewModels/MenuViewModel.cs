@@ -30,7 +30,7 @@ public partial class MenuViewModel : ViewModelBase
     [ObservableProperty]
     private MenuItemModel? _activeMenuItemModel;
     [ObservableProperty]
-    private ListCollectionView _collectionView;
+    private ListCollectionView? _collectionView;
     [ObservableProperty]
     private ObservableCollection<MenuItemModel> _menus = new();
 
@@ -111,7 +111,7 @@ public partial class MenuViewModel : ViewModelBase
 
     #region Filtering
     internal delegate void FilterChanged();
-    internal FilterChanged filterChanged;
+    internal FilterChanged? filterChanged;
 
     private string filterText = string.Empty;
 

@@ -1,6 +1,6 @@
 ﻿using System.Collections.ObjectModel;
-using System.Windows.Controls;
-using Devkit.Core.UI.Services;
+using System.Windows;
+using Devkit.Core.UI.Contracts;
 using Devkit.Services.Interfaces;
 using Syncfusion.SfSkinManager;
 using Syncfusion.Windows.Shared;
@@ -12,8 +12,7 @@ namespace Devkit.Views;
 /// </summary>
 public partial class ShellWindow : ChromelessWindow, IShellWindow
 {
-    public static Border _border = null;
-    public string themeName = App.Current.Properties["Theme"]?.ToString() != null ? App.Current.Properties["Theme"]?.ToString() : "Windows11Light";
+    public string? ThemeName = Application.Current.Properties["Theme"]?.ToString() != null ? Application.Current.Properties["Theme"]?.ToString() : "Windows11Light";
 
     public ShellWindow(IFileService fileService)
     {
@@ -28,7 +27,7 @@ public partial class ShellWindow : ChromelessWindow, IShellWindow
         Show();
     }
 
-    public void CloseWindow()
+    void IShellWindow.CloseWindow()
     {
         Close();
     }

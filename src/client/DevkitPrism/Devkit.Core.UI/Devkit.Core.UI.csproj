@@ -19,6 +19,7 @@
     <PackageReference Include="Prism.Wpf" />
     
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" />
+    <PackageReference Include="HandyControl" />
     <PackageReference Include="Syncfusion.PropertyGrid.WPF" />
     <PackageReference Include="Syncfusion.SfBusyIndicator.WPF" />
     <PackageReference Include="Syncfusion.SfTreeView.WPF" />

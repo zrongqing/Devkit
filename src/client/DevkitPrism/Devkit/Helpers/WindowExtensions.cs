@@ -5,7 +5,7 @@ namespace Devkit.Helpers;
 
 public static class WindowExtensions
 {
-    public static object GetDataContext(this Window window)
+    public static object? GetDataContext(this Window window)
     {
         if (window.Content is Frame frame)
         {
