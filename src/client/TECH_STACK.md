@@ -7,4 +7,7 @@
 - 内容区：Shell 右侧使用标签页承载菜单页面；菜单可配置为单标签复用或多标签新开。
 - 网络：当前使用注入式 `HttpClient` 模板；API 地址由 `DEVKIT_API_BASE_URL` 读取。
 - 远端菜单配置：可通过 `DEVKIT_MENU_CONFIG_URL` 指定菜单 JSON 地址；未配置时只使用本地菜单。
-- 配置、日志、更新、安装包与发布渠道：待定。
+- 安装包：Inno Setup 6 生成当前用户安装的 Windows x64 EXE；应用采用依赖 .NET 10 Desktop Runtime x64 的框架依赖发布。
+- 发布渠道：本地 PowerShell 与 GitHub Actions 共用 `DevkitPrism/packaging/Package-Devkit.ps1`；`main` 自动打包并保存为 Actions Artifact，也支持 `workflow_dispatch` 手动触发。
+- 版本：`DevkitPrism/Directory.Build.props` 的 `VersionPrefix` 为基线；CI 追加 `ci.<run_number>` 预发布后缀。
+- 配置、日志、自动更新与正式 Release 渠道：待定。安装包首版不签名，也不自动下载运行时。

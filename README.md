@@ -1,5 +1,9 @@
 # Devkit
 
+## 客户端打包
+
+执行 `pwsh ./src/client/DevkitPrism/packaging/Package-Devkit.ps1` 可完成 Release 构建、完整测试，并在 `build/client/package` 生成 Windows x64 EXE 安装包和 SHA-256。详细参数、安装方式和 GitHub Actions 操作见 [客户端打包文档](docs/client/packaging.md)。
+
 面向 MES 演进的三端单仓库模板：Vue 3 Web、ASP.NET Core 服务端与 .NET 10 WPF 客户端。
 
 ## 目录
