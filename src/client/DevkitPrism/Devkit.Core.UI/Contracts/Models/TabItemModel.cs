@@ -37,13 +37,27 @@ public partial class TabItemModel : ObservableObject
     private bool _isSelected;
     [ObservableProperty]
     private bool _showPin = true;
+    [ObservableProperty]
+    private bool _isPinned;
+    [ObservableProperty]
+    private string _menuId;
 
-    public TabItemModel(string code, string header, object content)
+    public string? ModuleId { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLoadError))]
+    private string? _loadErrorMessage;
+
+    [ObservableProperty]
+    private object? _content;
+
+    public TabItemModel(string code, string header, object? content = null)
     {
         Header = header;
         Code = code;
+        MenuId = code;
         Content = content;
     }
 
-    public object Content { get; set; }
+    public bool HasLoadError => !string.IsNullOrWhiteSpace(LoadErrorMessage);
 }

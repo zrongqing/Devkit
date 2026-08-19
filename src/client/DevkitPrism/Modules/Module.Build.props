@@ -1,0 +1,33 @@
+<Project>
+  <PropertyGroup>
+    <OutputPath>$(DevkitClientOutputRoot)$(Configuration)\$(TargetFramework)\modules\$(AssemblyName)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\..\Devkit.Core\Devkit.Core.csproj" Private="false"/>
+    <ProjectReference Include="..\..\Devkit.Core.UI\Devkit.Core.UI.csproj" Private="false"/>
+    <ProjectReference Include="..\..\Devkit.Prism\Devkit.Prism.csproj" Private="false"/>
+    <ProjectReference Include="..\..\Services\Devkit.Services.Interfaces\Devkit.Services.Interfaces.csproj" Private="false"/>
+  </ItemGroup>
+  
+  <Target Name="CleanStaleModuleAssemblies" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <StaleModuleAssembly Include="$(OutputPath)\**\*.dll"/>
+      <StaleModuleAssembly Include="$(OutputPath)\**\*.pdb"/>
+    </ItemGroup>
+    <Delete Files="@(StaleModuleAssembly)"/>
+  </Target>
+  
+  <Target Name="RemoveStaleHostProvidedAssembliesFromModuleOutput" AfterTargets="CopyFilesToOutputDirectory">
+    <ItemGroup>
+      <HostProvidedAssemblyName Include="$(DevkitHostProvidedAssemblies)"/>
+      <NestedHostProvidedAssembly Include="$(OutputPath)\**\e_sqlite3.dll"/>
+    </ItemGroup>
+    <Delete Files="@(HostProvidedAssemblyName->'$(OutputPath)%(Identity).dll')"/>
+    <Delete Files="@(HostProvidedAssemblyName->'$(OutputPath)%(Identity).pdb')"/>
+    <Delete Files="@(NestedHostProvidedAssembly)"/>
+  </Target>
+</Project>

@@ -11,12 +11,29 @@
              d:DesignWidth="800"
              d:DataContext="{d:DesignInstance Type=vm:HomeViewModel}">
   <Grid>
-    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-    <TextBlock Text="这是 Home 页面" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center" />
-    <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-      <TextBlock Text="欢迎使用 DevKitApp！" FontSize="20" HorizontalAlignment="Center" />
-      <TextBlock Text="{Binding StatusMessage}" Margin="0,16,0,12" TextWrapping="Wrap" MaxWidth="520" HorizontalAlignment="Center" />
-      <Button Content="读取系统状态" Command="{Binding RefreshSystemInfoCommand}" HorizontalAlignment="Center" Padding="16,6" />
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <TextBlock Text="首页"
+               FontSize="30"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center" />
+    <StackPanel Grid.Row="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+      <TextBlock Text="欢迎使用 DevKit"
+                 FontSize="20"
+                 HorizontalAlignment="Center" />
+      <TextBlock Text="{Binding StatusMessage}"
+                 Margin="0,16,0,12"
+                 TextWrapping="Wrap"
+                 MaxWidth="520"
+                 HorizontalAlignment="Center" />
+      <Button Content="读取系统状态"
+              Command="{Binding RefreshSystemInfoCommand}"
+              HorizontalAlignment="Center"
+              Padding="16,6" />
     </StackPanel>
   </Grid>
 </UserControl>

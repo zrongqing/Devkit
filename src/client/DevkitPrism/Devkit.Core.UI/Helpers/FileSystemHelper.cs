@@ -221,7 +221,7 @@ public static class FileSystemHelper
     /// <param name="rootNodes"> 根节点集合 </param>
     /// <param name="targetPath"> 目标路径 </param>
     /// <returns> 找到的节点，未找到返回null </returns>
-    public static FileNodeModel FindNodeByPath(IEnumerable<FileNodeModel> rootNodes, string targetPath)
+    public static FileNodeModel? FindNodeByPath(IEnumerable<FileNodeModel> rootNodes, string targetPath)
     {
         if (rootNodes == null || string.IsNullOrEmpty(targetPath))
             return null;
@@ -242,12 +242,12 @@ public static class FileSystemHelper
     /// <summary>
     /// 根据路径查找节点（异步方法）
     /// </summary>
-    public static async Task<FileNodeModel> FindNodeByPathAsync(IEnumerable<FileNodeModel> rootNodes, string targetPath)
+    public static async Task<FileNodeModel?> FindNodeByPathAsync(IEnumerable<FileNodeModel> rootNodes, string targetPath)
     {
         return await Task.Run(() => FindNodeByPath(rootNodes, targetPath));
     }
 
-    private static FileNodeModel FindNodeRecursive(FileNodeModel node, string targetPath)
+    private static FileNodeModel? FindNodeRecursive(FileNodeModel node, string targetPath)
     {
         // 检查当前节点
         if (!string.IsNullOrEmpty(node.FullPath) &&
@@ -286,7 +286,7 @@ public static class FileSystemHelper
     /// <param name="rootNodes"> 根节点集合 </param>
     /// <param name="targetPath"> 目标路径 </param>
     /// <returns> 展开路径上的最后一个节点 </returns>
-    public static async Task<FileNodeModel> ExpandToPathAsync(IEnumerable<FileNodeModel> rootNodes, string targetPath)
+    public static async Task<FileNodeModel?> ExpandToPathAsync(IEnumerable<FileNodeModel> rootNodes, string targetPath)
     {
         if (rootNodes == null || string.IsNullOrEmpty(targetPath))
             return null;
@@ -309,7 +309,7 @@ public static class FileSystemHelper
         return await ExpandNodeRecursiveAsync(rootNode, pathParts, 1);
     }
 
-    private static async Task<FileNodeModel> ExpandNodeRecursiveAsync(FileNodeModel currentNode, string[] pathParts, int index)
+    private static async Task<FileNodeModel?> ExpandNodeRecursiveAsync(FileNodeModel currentNode, string[] pathParts, int index)
     {
         if (currentNode == null)
             return null;
@@ -612,7 +612,7 @@ public static class FileSystemHelper
     /// <summary>
     /// 获取指定路径的完整文件夹树（返回根节点）
     /// </summary>
-    public static FileNodeModel GetFolderTree(string rootPath, int maxDepth = -1)
+    public static FileNodeModel? GetFolderTree(string rootPath, int maxDepth = -1)
     {
         if (string.IsNullOrEmpty(rootPath) || !Directory.Exists(rootPath))
             return null;

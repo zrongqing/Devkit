@@ -1,15 +1,26 @@
-﻿using System.Windows;
+using System.Net.Http;
+using System.Windows;
 using Devkit.Core;
 using Devkit.Core.UI.Models;
+using Devkit.Core.UI.Mvvm;
 using Devkit.Core.UI.Services;
-using Devkit.Modules.ModuleName;
+using Devkit.Modules;
+using Devkit.Modules.ModuleManagement;
 using Devkit.Prism;
+using Devkit.Prism.Modules;
 using Devkit.Services;
+using Devkit.Services.Diagnostics;
+using Devkit.Services.Dialogs;
+using Devkit.Services.Interfaces.Dialogs;
+using Devkit.Services.Interfaces.Logging;
+using Devkit.Services.Interfaces.Notifications;
+using Devkit.Services.Logging;
 using Devkit.Services.Interfaces;
+using Devkit.Services.Notifications;
 using Devkit.ViewModels;
 using Devkit.Views;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Syncfusion.Licensing;
 
 namespace Devkit;
@@ -19,105 +30,147 @@ namespace Devkit;
 /// </summary>
 public partial class App : DevkitPrismApplication
 {
-    private IHost _host;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly ClientCrashHandler _crashHandler;
 
     public App()
     {
-        // Add your Syncfusion license key for WPF platform with corresponding Syncfusion NuGet version referred in project. For more information about license key see https://help.syncfusion.com/common/essential-studio/licensing/license-key.
-        // Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Add your license key here"); 
-        var licenseKey = Environment.GetEnvironmentVariable("SYNFUSION_LICENSE_KEY");
+        _loggerFactory = ClientLoggingExtensions.CreateBootstrapLoggerFactory();
+        _crashHandler = new ClientCrashHandler(new ClientLogger(_loggerFactory.CreateLogger<ClientLogger>()));
+
+        DispatcherUnhandledException += _crashHandler.HandleDispatcherException;
+        AppDomain.CurrentDomain.UnhandledException += _crashHandler.HandleAppDomainException;
+        TaskScheduler.UnobservedTaskException += _crashHandler.HandleUnobservedTaskException;
+
+        // Add your Syncfusion license key for WPF platform with corresponding Syncfusion NuGet version referred in project.
+        var licenseKey = Environment.GetEnvironmentVariable("SYNCFUSION_LICENSE_KEY")
+                         ?? Environment.GetEnvironmentVariable("SYNFUSION_LICENSE_KEY");
         SyncfusionLicenseProvider.RegisterLicense(licenseKey);
     }
 
-    public T GetService<T>()
+    public T? GetService<T>()
         where T : class
     {
-        return _containerProvider.Resolve<T>() as T;
-        // return _host.Services.GetService(typeof(T)) as T;
+        return _containerProvider?.Resolve<T>() as T;
     }
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        // For more information about .NET generic host see  https://docs.microsoft.com/aspnet/core/fundamentals/host/generic-host?view=aspnetcore-3.0
-        // var appLocation = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-        // var builder = Host.CreateDefaultBuilder(e.Args)
-        //     .ConfigureAppConfiguration(c =>
-        //     {
-        //         c.SetBasePath(appLocation);
-        //     })
-        //     .ConfigureServices(ConfigureServices);
-        // _host = builder.Build();
-
         ConfigureServices(GetPrismServiceCollection());
         base.OnStartup(e);
     }
 
+    protected override void OnExit(ExitEventArgs e)
+    {
+        GetService<DynamicModuleManager>()?.Shutdown();
+        GetService<IClientNotificationService>()?.CloseAll();
+        DispatcherUnhandledException -= _crashHandler.HandleDispatcherException;
+        AppDomain.CurrentDomain.UnhandledException -= _crashHandler.HandleAppDomainException;
+        TaskScheduler.UnobservedTaskException -= _crashHandler.HandleUnobservedTaskException;
+        _loggerFactory.Dispose();
+        base.OnExit(e);
+    }
+
     private void ConfigureServices(IServiceCollection services)
     {
+        services.AddClientLogging();
         var apiBaseUrl = Environment.GetEnvironmentVariable("DEVKIT_API_BASE_URL") ?? "http://localhost:5000/";
         services.AddSingleton(new HttpClient { BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute) });
         services.AddSingleton<ISystemInfoClient, SystemInfoClient>();
         services.AddSingleton<IFileService, FileService>();
+        services.AddSingleton<IModuleStorage, ModuleStorage>();
         services.AddSingleton<IMessageService, MessageService>();
-        services.AddSingleton<IShellService, ShellService>();
+        services.AddSingleton<IClientUiContext, WpfClientUiContext>();
+        services.AddSingleton<IToastNotificationPresenter, SyncfusionToastNotificationPresenter>();
+        services.AddSingleton<IWindowsToastRegistration, WindowsToastRegistration>();
+        services.AddSingleton<IClientNotificationService, ClientNotificationService>();
+        services.AddSingleton<IConfirmationDialogPresenter, ConfirmationDialogPresenter>();
+        services.AddSingleton<IConfirmationDialogService, ConfirmationDialogService>();
+        services.AddSingleton<DelayedLoadingState>();
         services.AddSingleton<IMenuRegistry, MenuRegistry>();
+        services.AddSingleton<IRemoteMenuConfigurationClient, RemoteMenuConfigurationClient>();
     }
 
     protected override Window CreateShell()
     {
-        var reginon = Container.Resolve<IRegionManager>();
-        reginon.RegisterViewWithRegion(RegionNames.MenuRegion, typeof(MenuView));
-        var shellWin = Container.Resolve<ShellWindow>();
+        var regionManager = Container.Resolve<IRegionManager>();
+        regionManager.RegisterViewWithRegion(RegionNames.MenuRegion, typeof(MenuView));
+        regionManager.RegisterViewWithRegion(RegionNames.MenuTabRegion, typeof(MenuTabView));
 
         LoadMenus();
-        
-        return shellWin;
+
+        Container.Resolve<IWindowsToastRegistration>().EnsureRegistered();
+
+        return Container.Resolve<ShellWindow>();
     }
 
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
     {
+        containerRegistry.RegisterSingleton<IPrismModuleLoader, PrismModuleLoader>();
+        containerRegistry.RegisterSingleton<DynamicModuleManager, DynamicModuleManager>();
+        containerRegistry.RegisterSingleton<IModuleContentCoordinator, ModuleContentCoordinator>();
         containerRegistry.RegisterSingleton<IShellService, ShellService>();
         containerRegistry.RegisterForNavigation<MenuView, MenuViewModel>(SysViewKeys.Menu);
+        containerRegistry.RegisterForNavigation<MenuTabView, MenuTabViewModel>(SysViewKeys.MenuTab);
+        containerRegistry.RegisterForNavigation<HomeView, HomeViewModel>("HomeView");
+        containerRegistry.RegisterForNavigation<SettingView, SettingViewModel>("SettingView");
     }
 
     protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
     {
-        moduleCatalog.AddModule<ModuleNameModule>();
+        moduleCatalog.AddModule<ModuleManagementModule>();
     }
 
+    /// <summary>
+    /// 加载菜单
+    /// </summary>
     private void LoadMenus()
     {
         var menuRegistry = Container.Resolve<IMenuRegistry>();
-        // ① 自动扫描本程序集中的 [MenuItem] 特性
         menuRegistry.ScanFromAssembly(GetType().Assembly);
-        
-        menuRegistry.Register(new MenuItemModel()
-        {
-            Id = "sys.user",
-            ParentId = null,
-            Title = "用户菜单",
-            Order = 0,
-        });
-        
-        // ② 代码动态注册（带导航参数）
+
         menuRegistry.Register(new MenuItemModel
         {
-            Id = "sys.user.detail",
-            ParentId = "sys.user",
-            Title = "用户详情",
-            Order = 20,
-            ViewName = "UserView",
-            Parameters = new NavigationParameters { { "mode", "detail" } }
+            Id = "home",
+            ParentId = null,
+            Title = "首页",
+            Order = 0,
+            ViewName = "HomeView",
+            IsClosable = false
         });
 
-        // ③ VM-first 方式
         menuRegistry.Register(new MenuItemModel
         {
-            Id = "sys.user.dashboard",
-            ParentId = "sys.user",
-            Title = "用户仪表盘",
-            Order = 30,
-            // ViewModelType = typeof(UserDashboardViewModel)
+            Id = "dev",
+            ParentId = null,
+            Title = "dev",
+            Order = -100
         });
+
+        //menuRegistry.Register(new MenuItemModel
+        //{
+        //    Id = "settings",
+        //    ParentId = null,
+        //    Title = "设置",
+        //    Order = 90,
+        //    ViewName = "SettingView",
+        //    AllowMultipleTabs = false
+        //});
+
+        LoadRemoteMenus(menuRegistry);
+    }
+
+    private void LoadRemoteMenus(IMenuRegistry menuRegistry)
+    {
+        try
+        {
+            var remoteMenuClient = Container.Resolve<IRemoteMenuConfigurationClient>();
+            var remoteMenus = remoteMenuClient.GetMenusAsync().GetAwaiter().GetResult();
+            menuRegistry.RegisterRemoteRange(remoteMenus);
+        }
+        catch (Exception exception)
+        {
+            GetService<IClientLogger>()?.Warning(exception, "Remote menu configuration is unavailable.");
+        }
     }
 }

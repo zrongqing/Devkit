@@ -5,13 +5,14 @@ namespace Devkit.Modules.ModuleName.ViewModels;
 
 public class ViewAViewModel : RegionViewModelBase
 {
-    private string _message;
+    private string _message = string.Empty;
 
     public ViewAViewModel(IRegionManager regionManager, IMessageService messageService) :
         base(regionManager)
     {
         Message = messageService.GetMessage();
     }
+
     public string Message
     {
         get =>

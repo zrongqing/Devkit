@@ -13,7 +13,7 @@ public partial class HomeViewModel(ISystemInfoClient systemInfoClient) : ViewMod
     [RelayCommand]
     private async Task RefreshSystemInfoAsync()
     {
-        StatusMessage = "正在读取服务器状态…";
+        StatusMessage = "正在读取服务器状态...";
         try
         {
             var info = await systemInfoClient.GetInfoAsync();

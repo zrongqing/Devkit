@@ -49,7 +49,7 @@ internal abstract class DevkitBasePrismApplication : PrismApplicationBase
 public abstract class DevkitPrismApplication : PrismApplication
 {
     private readonly IServiceCollection _serviceCollection = new ServiceCollection();
-    protected IContainerProvider _containerProvider;
+    protected IContainerProvider? _containerProvider;
     protected override IContainerExtension CreateContainerExtension()
     {
         // 适配Microsoft.Extensions.DependencyInjection，将微软容器中的东西加入到DryIoc中

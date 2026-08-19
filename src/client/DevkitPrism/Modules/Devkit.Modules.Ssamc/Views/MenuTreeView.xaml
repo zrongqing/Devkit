@@ -1,0 +1,161 @@
+<coreViews:LoadingView x:Class="Ssamc.Views.MenuTreeView"
+                       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+                       xmlns:treeViewEngine="clr-namespace:Syncfusion.UI.Xaml.TreeView.Engine;assembly=Syncfusion.SfTreeView.WPF"
+                       xmlns:coreViews="clr-namespace:Devkit.Core.UI.Views;assembly=Devkit.Core.UI"
+                       xmlns:models="clr-namespace:Ssamc.Models"
+                       xmlns:viewModels="clr-namespace:Ssamc.ViewModels"
+                       d:Background="White"
+                       d:DataContext="{d:DesignInstance viewModels:MenuTreeViewModel}"
+                       d:DesignHeight="800"
+                       d:DesignWidth="1200"
+                       mc:Ignorable="d">
+  <Grid Margin="8">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="170" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <syncfusion:ComboBoxAdv Height="30"
+                              DisplayMemberPath="DisplayName"
+                              ItemsSource="{Binding EnvironmentOptions}"
+                              SelectedItem="{Binding SelectedEnvironment, Mode=TwoWay}" />
+
+      <syncfusion:SfTextBoxExt Grid.Column="1"
+                               Height="30"
+                               Margin="8,0,0,0"
+                               Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                               Watermark="搜索菜单 ID、名称、编码、目录或模块">
+        <syncfusion:SfTextBoxExt.InputBindings>
+          <KeyBinding Key="Enter"
+                      Command="{Binding SearchCommand}" />
+        </syncfusion:SfTextBoxExt.InputBindings>
+      </syncfusion:SfTextBoxExt>
+
+      <Button Grid.Column="2"
+              MinWidth="72"
+              Height="30"
+              Margin="8,0,0,0"
+              Command="{Binding SearchCommand}"
+              Content="搜索" />
+
+      <Button Grid.Column="3"
+              MinWidth="72"
+              Height="30"
+              Margin="8,0,0,0"
+              Command="{Binding OpenCommand}"
+              CommandParameter="{Binding SelectedMenu}"
+              Content="打开" />
+
+      <Button Grid.Column="4"
+              MinWidth="72"
+              Height="30"
+              Margin="8,0,0,0"
+              Command="{Binding ReloadCommand}"
+              Content="刷新" />
+    </Grid>
+
+    <Grid Grid.Row="1"
+          Margin="0,8,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="2*"
+                          MinWidth="320" />
+        <ColumnDefinition Width="6" />
+        <ColumnDefinition Width="3*"
+                          MinWidth="360" />
+      </Grid.ColumnDefinitions>
+
+      <Border BorderBrush="#D5D9E0"
+              BorderThickness="1"
+              CornerRadius="3">
+        <syncfusion:SfTreeView x:Name="MenuTree"
+                               EmptyContent="没有可显示的菜单项"
+                               FocusVisualStyle="{x:Null}"
+                               IsAnimationEnabled="True"
+                               ItemDoubleTapped="MenuTree_OnItemDoubleTapped"
+                               ItemsSource="{Binding TreeNodes}"
+                               SelectedItem="{Binding SelectedMenu, Mode=TwoWay}"
+                               SelectionChanged="MenuTree_OnSelectionChanged"
+                               ShowLines="True"
+                               ShowRootLines="True">
+          <syncfusion:SfTreeView.HierarchyPropertyDescriptors>
+            <treeViewEngine:HierarchyPropertyDescriptor ChildPropertyName="Children"
+                                                        IsExpandedPropertyName="IsExpanded"
+                                                        TargetType="{x:Type models:MenuTreeNode}" />
+          </syncfusion:SfTreeView.HierarchyPropertyDescriptors>
+          <syncfusion:SfTreeView.ItemTemplate>
+            <DataTemplate DataType="{x:Type models:MenuTreeNode}">
+              <Grid Margin="2">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center"
+                           Text="{Binding Name}"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="1"
+                           Margin="8,0,4,0"
+                           VerticalAlignment="Center"
+                           Foreground="#6B7280"
+                           Text="{Binding Code}" />
+              </Grid>
+            </DataTemplate>
+          </syncfusion:SfTreeView.ItemTemplate>
+          <syncfusion:SfTreeView.EmptyContentTemplate>
+            <DataTemplate>
+              <TextBlock Margin="16"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         Foreground="#6B7280"
+                         Text="没有可显示的菜单项" />
+            </DataTemplate>
+          </syncfusion:SfTreeView.EmptyContentTemplate>
+        </syncfusion:SfTreeView>
+      </Border>
+
+      <GridSplitter Grid.Column="1"
+                    HorizontalAlignment="Stretch"
+                    ResizeBehavior="PreviousAndNext"
+                    ResizeDirection="Columns"
+                    ShowsPreview="True" />
+
+      <Border Grid.Column="2"
+              BorderBrush="#D5D9E0"
+              BorderThickness="1"
+              CornerRadius="3">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <TextBlock Margin="12,10"
+                     FontSize="16"
+                     FontWeight="SemiBold"
+                     Text="菜单详细" />
+          <syncfusion:PropertyGrid x:Name="MenuDetailsPropertyGrid"
+                                   Grid.Row="1"
+                                   AutoGenerateItems="True"
+                                   ButtonPanelVisibility="Collapsed"
+                                   DescriptionPanelVisibility="Collapsed"
+                                   DisableAnimationOnObjectSelection="True"
+                                   EnableGrouping="True"
+                                   SearchBoxVisibility="Collapsed"
+                                   SelectedObject="{Binding SelectedDetails}"
+                                   SortDirection="{x:Null}" />
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</coreViews:LoadingView>

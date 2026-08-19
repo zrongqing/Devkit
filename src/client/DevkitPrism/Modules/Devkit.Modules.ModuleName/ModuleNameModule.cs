@@ -1,26 +1,28 @@
-﻿using Devkit.Core;
+using Devkit.Core.UI.Services;
+using Devkit.Modules.ModuleName.ViewModels;
 using Devkit.Modules.ModuleName.Views;
+using Devkit.Prism.Modules;
 
 namespace Devkit.Modules.ModuleName;
 
-public class ModuleNameModule : IModule
+public class ModuleNameModule : IModule, IUnloadableModule
 {
-    private readonly IRegionManager _regionManager;
+    private const string ModuleId = "Devkit.Modules.ModuleName";
 
-    public ModuleNameModule(IRegionManager regionManager)
-    {
-        _regionManager = regionManager;
-    }
-
-    #region IModule Members
     public void OnInitialized(IContainerProvider containerProvider)
     {
-        _regionManager.RequestNavigate(RegionNames.ContentRegion, "ViewA");
+        var menuRegistry = containerProvider.Resolve<IMenuRegistry>();
+        menuRegistry.ScanFromAssembly(GetType().Assembly, ModuleId);
     }
 
     public void RegisterTypes(IContainerRegistry containerRegistry)
     {
+        containerRegistry.Register<ViewAViewModel>();
         containerRegistry.RegisterForNavigation<ViewA>();
     }
-    #endregion
+
+    public void OnUnloading(IContainerProvider containerProvider)
+    {
+        containerProvider.Resolve<IMenuRegistry>().UnregisterByModule(ModuleId);
+    }
 }

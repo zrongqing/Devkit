@@ -6,10 +6,10 @@ namespace Devkit.Core.UI.Models;
 
 public class TreeNodeModel : INotifyPropertyChanged
 {
-    private ObservableCollection<TreeNodeModel> _children;
+    private ObservableCollection<TreeNodeModel> _children = [];
     private bool _isChecked;
     private bool _isExpanded;
-    private string _name;
+    private string _name = string.Empty;
 
     public string Name
     {
@@ -61,10 +61,10 @@ public class TreeNodeModel : INotifyPropertyChanged
     }
 
     #region INotifyPropertyChanged Members
-    public event PropertyChangedEventHandler PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
     #endregion
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }

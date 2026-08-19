@@ -1,104 +1,117 @@
 ﻿using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Devkit.Core.UI.Models;
 using Devkit.Core.UI.Mvvm;
 using Devkit.Core.UI.Services;
-using Devkit.Models;
+using Devkit.Prism.Events;
 using Devkit.Services.Interfaces;
 
 namespace Devkit.ViewModels;
 
 public partial class MenuViewModel : ViewModelBase
 {
-    private readonly IRegionManager _regionManager;
+    private readonly IEventAggregator _eventAggregator;
     private readonly IShellService _shellService;
-
-    [ObservableProperty]
-    private MenuItemModel _activeMenuItemModel = null;
-    [ObservableProperty]
-    private ListCollectionView _collectionView;
-
-    [ObservableProperty]
-    private ObservableCollection<MenuItemModel> _menus = new();
+    private readonly IMenuRegistry _menuRegistry;
+    private bool _isSynchronizingActiveMenu;
+    private bool _isListeningForMenuChanges;
 
     public MenuViewModel(IContainerProvider container)
     {
         _shellService = container.Resolve<IShellService>();
+        _eventAggregator = container.Resolve<IEventAggregator>();
+        _menuRegistry = container.Resolve<IMenuRegistry>();
+        _eventAggregator.GetEvent<MenuActiveEvent>().Subscribe(SynchronizeActiveMenu);
+    }
+
+    [ObservableProperty]
+    private MenuItemModel? _activeMenuItemModel;
+    [ObservableProperty]
+    private ListCollectionView? _collectionView;
+    [ObservableProperty]
+    private ObservableCollection<MenuItemModel> _menus = new();
+
+    partial void OnActiveMenuItemModelChanged(MenuItemModel? value)
+    {
+        if (!_isSynchronizingActiveMenu)
+        {
+            MenuClicked(value);
+        }
+    }
+
+    private void SynchronizeActiveMenu(TabItemModel? tab)
+    {
+        try
+        {
+            _isSynchronizingActiveMenu = true;
+            ActiveMenuItemModel = tab == null ? null : _shellService.FindMenu(tab.MenuId);
+        }
+        finally
+        {
+            _isSynchronizingActiveMenu = false;
+        }
     }
 
     [RelayCommand]
     private void Loaded()
     {
-        var meuns = _shellService.LoadMenus().ToList();
-        //var meuns = _shellService.LoadAllMenus().ToList();
-        this.CollectionView = new  ListCollectionView(meuns);
-        
-        // var menus = _shellService.GetMenus();
-        // var convertedMenus = menus.Adapt<List<MenuItemModelModel>>();
-        // var treeMenus = BuildHierarchy(convertedMenus);
-        //
-        // this.CollectionView = new ListCollectionView(treeMenus);
+        if (!_isListeningForMenuChanges)
+        {
+            _menuRegistry.Changed += OnMenuRegistryChanged;
+            _isListeningForMenuChanges = true;
+        }
+
+        RefreshMenus();
     }
 
-    // partial void OnActiveMenuChanged(UIMenu value)
-    // {
-    //     if (value == null)
-    //     {
-    //         return;
-    //     }
-    //     var menuCode = value.Code;
-    //     _ea.GetEvent<MenuClickEvent>().Publish(menuCode);
-    // }
-
-    /// <summary>
-    /// 将扁平的 MenuModel 列表（带 Code / ParentCode）转换为树形结构。
-    /// 返回根节点集合，子节点会被加入各自的 Items 集合。
-    /// </summary>
-    private static ObservableCollection<MenuItemModel> BuildHierarchy(IEnumerable<MenuItemModel> flatList)
+    [RelayCommand]
+    private void Unloaded()
     {
-        if (flatList == null)
-            return new ObservableCollection<MenuItemModel>();
-        
-        // 用 Code 建立字典方便查找
-        var dict = new Dictionary<string, MenuItemModel>();
-        var all = flatList.ToList();
-        
-        // 重置 Items，避免旧数据残留
-        foreach (var item in all)
+        if (_isListeningForMenuChanges)
         {
-            // 保证 Items 不为 null 并清空旧值
-            item.Children = new ObservableCollection<MenuItemModel>();
-            if (!string.IsNullOrEmpty(item.Id))
-            {
-                if (!dict.ContainsKey(item.Id))
-                    dict[item.Id] = item;
-            }
+            _menuRegistry.Changed -= OnMenuRegistryChanged;
+            _isListeningForMenuChanges = false;
         }
-        
-        var roots = new List<MenuItemModel>();
-        
-        foreach (var item in all)
-        {
-            // 如果 ParentCode 为空或找不到父节点，则认为是根节点
-            if (string.IsNullOrWhiteSpace(item.ParentId) || !dict.TryGetValue(item.ParentId, out var parent) || parent == item)
-            {
-                roots.Add(item);
-            }
-            else
-            {
-                // 防止循环引用：如果父节点是当前节点或已在子链中则跳过
-                parent.Children.Add(item);
-            }
-        }
-
-        return new ObservableCollection<MenuItemModel>(null);
     }
+
+    [RelayCommand]
+    private void MenuClicked(MenuItemModel? menu)
+    {
+        if (menu == null || string.IsNullOrWhiteSpace(menu.ViewName) && menu.ViewModelType == null)
+        {
+            return;
+        }
+        
+        _eventAggregator.GetEvent<MenuClickEvent>().Publish(menu.Id);
+    }
+
+    protected override void OnDestroy()
+    {
+        Unloaded();
+        base.OnDestroy();
+    }
+
+    private void OnMenuRegistryChanged(object? sender, EventArgs eventArgs)
+    {
+        if (Application.Current.Dispatcher.CheckAccess())
+        {
+            RefreshMenus();
+        }
+        else
+        {
+            _ = Application.Current.Dispatcher.BeginInvoke(RefreshMenus);
+        }
+    }
+
+    private void RefreshMenus() =>
+        CollectionView = new ListCollectionView(_shellService.LoadMenus().ToList());
 
     #region Filtering
     internal delegate void FilterChanged();
-    internal FilterChanged filterChanged;
+    internal FilterChanged? filterChanged;
 
     private string filterText = string.Empty;
 
@@ -112,7 +125,7 @@ public partial class MenuViewModel : ViewModelBase
             if (filterChanged != null)
                 filterChanged();
 
-            OnPropertyChanging(nameof(FilterText));
+            OnPropertyChanged(nameof(FilterText));
         }
     }
     #endregion

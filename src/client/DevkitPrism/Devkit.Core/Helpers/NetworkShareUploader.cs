@@ -86,10 +86,10 @@ public class NetworkShareUploader : IDisposable
         public int dwType = 1;            // RESOURCETYPE_DISK
         public int dwDisplayType = 3;     // RESOURCEDISPLAYTYPE_GENERIC
         public int dwUsage = 1;           // RESOURCEUSAGE_CONNECTABLE
-        public string lpLocalName = null; // 不映射本地驱动器
-        public string lpRemoteName;       // 共享文件夹路径（根目录）
-        public string lpComment = null;
-        public string lpProvider = null;
+        public string lpLocalName = string.Empty; // 不映射本地驱动器
+        public string lpRemoteName = string.Empty;       // 共享文件夹路径（根目录）
+        public string lpComment = string.Empty;
+        public string lpProvider = string.Empty;
     }
     #endregion
     #endregion

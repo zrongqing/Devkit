@@ -1,0 +1,305 @@
+using Devkit.Core.UI.Contracts;
+using Devkit.Core.UI.Models;
+using Devkit.Core.UI.Mvvm;
+using Devkit.Core.UI.Services;
+using Devkit.Modules;
+using Devkit.Prism.Events;
+using Devkit.Services.Interfaces.Logging;
+using Devkit.ViewModels;
+using Moq;
+using Prism.Events;
+using Xunit;
+
+namespace Devkit.Loading.Tests;
+
+public class MenuTabViewModelTests
+{
+    [Fact]
+    public async Task New_tab_is_created_immediately_and_single_tab_is_reused()
+    {
+        var loadable = new BlockingLoadable();
+        var context = CreateContext(_ => loadable);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+
+        var tab = context.ViewModel.Tabs.Single();
+        Assert.Same(tab, context.ViewModel.SelectedTab);
+        Assert.Same(loadable, tab.Content);
+        Assert.Equal(1, loadable.InitializeCount);
+        await WaitUntilAsync(() => context.GlobalLoading.IsVisible);
+
+        loadable.Complete();
+        await WaitUntilAsync(() => !context.GlobalLoading.IsBusy);
+        Assert.False(tab.HasLoadError);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+        Assert.Single(context.ViewModel.Tabs);
+        Assert.Equal(1, loadable.InitializeCount);
+        context.ViewModel.UnloadedCommand.Execute();
+    }
+
+    [Fact]
+    public async Task Failed_tab_is_retained_and_retry_uses_fresh_content()
+    {
+        var retryLoadable = new BlockingLoadable();
+        var resolveCount = 0;
+        var context = CreateContext(_ =>
+            Interlocked.Increment(ref resolveCount) == 1
+                ? new FailingLoadable()
+                : retryLoadable);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+        var tab = context.ViewModel.Tabs.Single();
+        await WaitUntilAsync(() => tab.HasLoadError);
+
+        Assert.Contains("模块加载失败", tab.LoadErrorMessage);
+        Assert.Single(context.ViewModel.Tabs);
+
+        context.ViewModel.RetryTabCommand.Execute(tab);
+        await WaitUntilAsync(() => retryLoadable.InitializeCount == 1);
+        Assert.Same(retryLoadable, tab.Content);
+
+        retryLoadable.Complete();
+        await WaitUntilAsync(() => !context.GlobalLoading.IsBusy);
+        Assert.False(tab.HasLoadError);
+        Assert.Equal(2, resolveCount);
+        context.ViewModel.UnloadedCommand.Execute();
+    }
+
+    [Fact]
+    public async Task Closing_tab_cancels_module_initialization()
+    {
+        var loadable = new BlockingLoadable();
+        var context = CreateContext(_ => loadable);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+        var tab = context.ViewModel.Tabs.Single();
+        Assert.Equal(1, loadable.InitializeCount);
+        context.ViewModel.CloseTabCommand.Execute(tab);
+
+        Assert.Empty(context.ViewModel.Tabs);
+        await loadable.Canceled.Task.WaitAsync(TimeSpan.FromSeconds(2), Xunit.TestContext.Current.CancellationToken);
+        await WaitUntilAsync(() => !context.GlobalLoading.IsBusy);
+        context.ViewModel.UnloadedCommand.Execute();
+    }
+
+    [Fact]
+    public async Task Closing_module_content_cancels_waits_and_destroys_content()
+    {
+        var loadable = new BlockingDestructibleLoadable();
+        var context = CreateContext(_ => loadable);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+        await WaitUntilAsync(() => loadable.InitializeCount == 1);
+        Assert.Equal(1, context.Coordinator.GetOpenContentCount(context.Menu.ModuleId!));
+
+        var closeTask = context.Coordinator.CloseModuleContentAsync(context.Menu.ModuleId!);
+        await loadable.Canceled.Task.WaitAsync(
+            TimeSpan.FromSeconds(2),
+            Xunit.TestContext.Current.CancellationToken);
+        await closeTask;
+
+        Assert.Empty(context.ViewModel.Tabs);
+        Assert.Equal(0, context.Coordinator.GetOpenContentCount(context.Menu.ModuleId!));
+        Assert.Equal(1, loadable.DestroyCount);
+        context.ViewModel.UnloadedCommand.Execute();
+    }
+
+    [Fact]
+    public async Task Page_loading_view_model_does_not_activate_global_loading()
+    {
+        var loadable = new PageLoadingLoadable();
+        var context = CreateContext(_ => loadable);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+
+        await WaitUntilAsync(() => loadable.PageLoading.IsBusy);
+        Assert.False(context.GlobalLoading.IsBusy);
+        Assert.False(context.GlobalLoading.IsVisible);
+
+        loadable.Complete();
+        await loadable.Finished.Task.WaitAsync(
+            TimeSpan.FromSeconds(2),
+            Xunit.TestContext.Current.CancellationToken);
+        context.ViewModel.UnloadedCommand.Execute();
+    }
+
+    [Fact]
+    public async Task Closed_tab_releases_content_and_can_be_opened_again()
+    {
+        var contents = new List<DestructibleLoadable>();
+        TabItemModel? activeTab = null;
+        var context = CreateContext(_ =>
+        {
+            var content = new DestructibleLoadable();
+            contents.Add(content);
+            return content;
+        });
+        context.Events.GetEvent<MenuActiveEvent>().Subscribe(tab => activeTab = tab);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+        var firstTab = context.ViewModel.Tabs.Single();
+        await WaitUntilAsync(() => contents.Count == 1 && contents[0].InitializeCount == 1);
+        Assert.Same(firstTab, activeTab);
+
+        context.ViewModel.CloseTabCommand.Execute(firstTab);
+
+        Assert.Empty(context.ViewModel.Tabs);
+        Assert.Null(context.ViewModel.SelectedTab);
+        Assert.Null(activeTab);
+        Assert.Equal(1, contents[0].DestroyCount);
+
+        context.Events.GetEvent<MenuClickEvent>().Publish(context.Menu.Id);
+        await WaitUntilAsync(() => contents.Count == 2 && contents[1].InitializeCount == 1);
+
+        var reopenedTab = Assert.Single(context.ViewModel.Tabs);
+        Assert.NotSame(firstTab, reopenedTab);
+        Assert.Same(contents[1], reopenedTab.Content);
+        context.ViewModel.UnloadedCommand.Execute();
+    }
+
+    private static TestContext CreateContext(Func<MenuItemModel, object> contentFactory)
+    {
+        var menu = new MenuItemModel
+        {
+            ModuleId = "Test.Module",
+            Id = "test-module",
+            Title = "Test module",
+            ViewName = "TestView",
+            IsClosable = true
+        };
+        var shellService = new Mock<IShellService>();
+        shellService.Setup(service => service.FindMenu("home")).Returns((MenuItemModel?)null);
+        shellService.Setup(service => service.FindMenu(menu.Id)).Returns(menu);
+        shellService.Setup(service => service.ResolveContent(menu)).Returns(() => contentFactory(menu));
+
+        var events = new EventAggregator();
+        var coordinator = new ModuleContentCoordinator();
+        var globalLoading = new DelayedLoadingState(TimeSpan.FromMilliseconds(20));
+        var viewModel = new MenuTabViewModel(
+            events,
+            shellService.Object,
+            globalLoading,
+            Mock.Of<IClientLogger>(),
+            coordinator);
+        viewModel.LoadedCommand.Execute();
+
+        return new TestContext(viewModel, events, globalLoading, menu, coordinator);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        while (!condition())
+        {
+            await Task.Delay(5, timeout.Token);
+        }
+    }
+
+    private sealed record TestContext(
+        MenuTabViewModel ViewModel,
+        EventAggregator Events,
+        DelayedLoadingState GlobalLoading,
+        MenuItemModel Menu,
+        ModuleContentCoordinator Coordinator);
+
+    private sealed class FailingLoadable : IAsyncLoadable
+    {
+        public Task InitializeAsync(CancellationToken cancellationToken) =>
+            Task.FromException(new InvalidOperationException("load failed"));
+    }
+
+    private sealed class BlockingLoadable : IAsyncLoadable
+    {
+        private readonly TaskCompletionSource _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Canceled { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public int InitializeCount { get; private set; }
+
+        public async Task InitializeAsync(CancellationToken cancellationToken)
+        {
+            InitializeCount++;
+            try
+            {
+                await _completion.Task.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                Canceled.TrySetResult();
+                throw;
+            }
+        }
+
+        public void Complete() => _completion.TrySetResult();
+    }
+
+    private sealed class DestructibleLoadable : IAsyncLoadable, IDestructible
+    {
+        public int InitializeCount { get; private set; }
+        public int DestroyCount { get; private set; }
+
+        public Task InitializeAsync(CancellationToken cancellationToken)
+        {
+            InitializeCount++;
+            return Task.CompletedTask;
+        }
+
+        public void Destroy()
+        {
+            DestroyCount++;
+        }
+    }
+
+    private sealed class BlockingDestructibleLoadable : IAsyncLoadable, IDestructible
+    {
+        private readonly TaskCompletionSource _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Canceled { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public int InitializeCount { get; private set; }
+
+        public int DestroyCount { get; private set; }
+
+        public async Task InitializeAsync(CancellationToken cancellationToken)
+        {
+            InitializeCount++;
+            try
+            {
+                await _completion.Task.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                Canceled.TrySetResult();
+                throw;
+            }
+        }
+
+        public void Destroy()
+        {
+            DestroyCount++;
+            _completion.TrySetResult();
+        }
+    }
+
+    private sealed class PageLoadingLoadable : LoadingViewModelBase, IUsesPageLoading
+    {
+        private readonly TaskCompletionSource _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Finished { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        protected override async Task OnInitializeAsync(CancellationToken cancellationToken)
+        {
+            await RunWithLoadingAsync(token => _completion.Task.WaitAsync(token));
+            Finished.TrySetResult();
+        }
+
+        public void Complete() => _completion.TrySetResult();
+    }
+}
