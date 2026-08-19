@@ -18,7 +18,7 @@ public sealed class ModuleManagementModule : IModule
         containerProvider.Resolve<IMenuRegistry>().Register(new MenuItemModel
         {
             Id = "modules.management",
-            ParentId = null,
+            ParentId = "dev",
             Title = "模块管理",
             Order = -100,
             ViewName = nameof(ModuleManagementView),

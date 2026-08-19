@@ -21,7 +21,7 @@ public class ViewModelBaseTests
     {
         var viewModel = new CancelableViewModel();
         var initialization = viewModel.InitializeAsync(CancellationToken.None);
-        await viewModel.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await viewModel.Started.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         viewModel.Destroy();
         viewModel.Destroy();

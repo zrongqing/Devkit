@@ -14,7 +14,7 @@
              d:DesignWidth="300"
              
              xmlns:vm="clr-namespace:Devkit.ViewModels"
-             xmlns:uiModel = "clr-namespace:Devkit.Core.UI.Models;assembly=Devkit.Core.UI"
+             xmlns:model = "clr-namespace:Devkit.Core.UI.Models;assembly=Devkit.Core.UI"
              xmlns:trigger="clr-namespace:Devkit.Core.UI.Triggers"
              d:DataContext="{d:DesignInstance Type=vm:MenuViewModel}"
              >
@@ -45,36 +45,43 @@
       x:Name="SfTreeView" 
       Grid.Row="1"
       ItemsSource="{Binding CollectionView}"
-      ShowLines="True"
+      ShowLines="False"
       ShowRootLines="True"
       ChildPropertyName="Children"
-      IsAnimationEnabled="True" 
       EmptyContent="No Items"
       FocusVisualStyle="{x:Null}"
+      IsAnimationEnabled="True" 
+      AutoExpandMode="RootNodes"
+      ExpandActionTrigger="Node"
+      SelectionMode="Single"
       SelectedItem="{Binding ActiveMenuItemModel, Mode=TwoWay}"
       >
-      
+      <syncfusion:SfTreeView.HierarchyPropertyDescriptors>
+        <syncfusion:HierarchyPropertyDescriptor 
+          TargetType="{x:Type model:MenuItemModel}"
+          ChildPropertyName="Children"
+          IsExpandedPropertyName="IsExpanded"
+          />
+      </syncfusion:SfTreeView.HierarchyPropertyDescriptors>
+
       <i:Interaction.Triggers>
-        
         <i:EventTrigger EventName="NodeTapped">
           <i:InvokeCommandAction 
                 Command="{Binding MenuClickedCommand}"
                 CommandParameter="{Binding Node.Content}" />
         </i:EventTrigger>
-        
         <i:EventTrigger EventName="Loaded">
           <trigger:TreeViewFilterTrigger/>
         </i:EventTrigger>
-        
       </i:Interaction.Triggers>
 
       <syncfusion:SfTreeView.ItemTemplate>
-        <DataTemplate DataType="{x:Type uiModel:MenuItemModel}">
+        <DataTemplate DataType="{x:Type model:MenuItemModel}">
           <Grid x:Name="grid">
             <Grid Grid.Row="0">
               <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="20" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="auto" />
               </Grid.ColumnDefinitions>
 
               <Grid>
@@ -86,7 +93,6 @@
               </Grid>
 
               <Grid Grid.Column="1"
-                    Margin="1,0,0,0"
                     VerticalAlignment="Center">
                 <TextBlock Text="{Binding Title}"
                            Foreground="Black"
@@ -99,7 +105,8 @@
         </DataTemplate>
       </syncfusion:SfTreeView.ItemTemplate>
 
-      <syncfusion:SfTreeView.EmptyContentTemplate>
+      <!-- Empty Content Template 线条样式 -->
+      <!--<syncfusion:SfTreeView.EmptyContentTemplate>
         <DataTemplate>
           <Grid Margin="16">
             <StackPanel HorizontalAlignment="Center"
@@ -119,7 +126,7 @@
             </StackPanel>
           </Grid>
         </DataTemplate>
-      </syncfusion:SfTreeView.EmptyContentTemplate>
+      </syncfusion:SfTreeView.EmptyContentTemplate>-->
       
     </syncfusion:SfTreeView>
   </Grid>

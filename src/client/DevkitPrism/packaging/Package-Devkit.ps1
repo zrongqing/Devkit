@@ -1,3 +1,5 @@
+#requires -Version 5.1
+
 [CmdletBinding()]
 param(
     [Parameter()]
@@ -252,8 +254,9 @@ try {
     }
 
     $hash = Get-FileHash -LiteralPath $installerPath -Algorithm SHA256
-    "$($hash.Hash.ToLowerInvariant())  $([System.IO.Path]::GetFileName($installerPath))" |
-        Set-Content -LiteralPath $checksumPath -Encoding utf8NoBOM
+    $checksumContent = "$($hash.Hash.ToLowerInvariant())  $([System.IO.Path]::GetFileName($installerPath))$([Environment]::NewLine)"
+    $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($checksumPath, $checksumContent, $utf8WithoutBom)
 
     Write-Host ''
     Write-Host "Installer: $installerPath"

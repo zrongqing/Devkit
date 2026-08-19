@@ -10,6 +10,9 @@
   xmlns:core="clr-namespace:Devkit.Core;assembly=Devkit.Core"
   xmlns:coreViews="clr-namespace:Devkit.Core.UI.Views;assembly=Devkit.Core.UI"
   mc:Ignorable="d"
+  Title="Devkit"
+  Icon="/Devkit;component/Assets/App.ico"
+  ShowIcon="True"
   MinWidth="500"
   MinHeight="350">
 

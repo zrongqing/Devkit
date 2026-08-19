@@ -78,7 +78,7 @@ public class MenuTabViewModelTests
         context.ViewModel.CloseTabCommand.Execute(tab);
 
         Assert.Empty(context.ViewModel.Tabs);
-        await loadable.Canceled.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await loadable.Canceled.Task.WaitAsync(TimeSpan.FromSeconds(2), Xunit.TestContext.Current.CancellationToken);
         await WaitUntilAsync(() => !context.GlobalLoading.IsBusy);
         context.ViewModel.UnloadedCommand.Execute();
     }

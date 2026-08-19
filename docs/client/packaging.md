@@ -6,6 +6,7 @@
 
 - Windows 10/11 x64。
 - 仓库 `global.json` 指定的 .NET SDK。
+- Windows PowerShell 5.1 或 PowerShell 7（`pwsh`）。
 - Inno Setup 6。脚本会依次检查显式参数、`PATH`、`C:\Program Files (x86)\Inno Setup 6` 和 `C:\Program Files\Inno Setup 6`。
 - 可访问 NuGet 源。网络或源不可用时还原失败，流程立即终止且不会留下本次安装包。
 

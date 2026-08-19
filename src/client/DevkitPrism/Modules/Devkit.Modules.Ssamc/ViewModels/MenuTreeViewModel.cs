@@ -65,11 +65,7 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
 
         if (!string.IsNullOrWhiteSpace(settings?.PageEnvironmentKey))
         {
-            SelectedEnvironment = EnvironmentOptions.FirstOrDefault(environment =>
-                                      environment.Key.Equals(
-                                          settings.PageEnvironmentKey,
-                                          StringComparison.OrdinalIgnoreCase))
-                               ?? SelectedEnvironment;
+            SelectedEnvironment = EnvironmentOptions.FirstOrDefault(environment => environment.Key.Equals(settings.PageEnvironmentKey, StringComparison.OrdinalIgnoreCase)) ?? SelectedEnvironment;
         }
 
         await LoadMenuTreeAsync();

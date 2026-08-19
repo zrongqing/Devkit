@@ -124,7 +124,7 @@ public sealed class ApiUpdateViewModelTests : IDisposable
         viewModel.StrSelectApiCodes = "API001";
 
         var scan = viewModel.ScanSourceCodeCommand.ExecuteAsync(null);
-        Assert.True(started.Wait(TimeSpan.FromSeconds(2)));
+        Assert.True(started?.Wait(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken));
         await viewModel.PreviewCommand.ExecuteAsync(null);
         release.Set();
         await scan;

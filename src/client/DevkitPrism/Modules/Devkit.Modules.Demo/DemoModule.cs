@@ -19,7 +19,7 @@ public sealed class DemoModule : IModule, IUnloadableModule
         {
             Id = "demo",
             ModuleId = ModuleId,
-            ParentId = "modules",
+            ParentId = "dev",
             Title = "demo",
             Order = 110
         });

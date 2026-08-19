@@ -28,6 +28,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir={#OutputDir}
 OutputBaseFilename={#OutputBaseFilename}
+SetupIconFile=..\Devkit\Assets\App.ico
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -113,4 +114,3 @@ begin
     ShellExec('open', DesktopRuntimeDownloadUrl, '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode);
   end;
 end;
-

@@ -29,7 +29,9 @@ public static class TextBoxBehavior
     {
         if (e.Key == Key.Enter)
         {
-            var textBox = sender as TextBox;
+            if (sender is not TextBox textBox)
+                return;
+
             var command = GetEnterCommand(textBox);
             if (command?.CanExecute(textBox.Text) == true)
             {

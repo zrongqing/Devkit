@@ -51,7 +51,7 @@ public partial class App : DevkitPrismApplication
     public T? GetService<T>()
         where T : class
     {
-        return _containerProvider.Resolve<T>() as T;
+        return _containerProvider?.Resolve<T>() as T;
     }
 
     protected override void OnStartup(StartupEventArgs e)
@@ -121,6 +121,9 @@ public partial class App : DevkitPrismApplication
         moduleCatalog.AddModule<ModuleManagementModule>();
     }
 
+    /// <summary>
+    /// 加载菜单
+    /// </summary>
     private void LoadMenus()
     {
         var menuRegistry = Container.Resolve<IMenuRegistry>();
@@ -138,21 +141,21 @@ public partial class App : DevkitPrismApplication
 
         menuRegistry.Register(new MenuItemModel
         {
-            Id = "modules",
+            Id = "dev",
             ParentId = null,
-            Title = "模块",
-            Order = 10
+            Title = "dev",
+            Order = -100
         });
 
-        menuRegistry.Register(new MenuItemModel
-        {
-            Id = "settings",
-            ParentId = null,
-            Title = "设置",
-            Order = 90,
-            ViewName = "SettingView",
-            AllowMultipleTabs = false
-        });
+        //menuRegistry.Register(new MenuItemModel
+        //{
+        //    Id = "settings",
+        //    ParentId = null,
+        //    Title = "设置",
+        //    Order = 90,
+        //    ViewName = "SettingView",
+        //    AllowMultipleTabs = false
+        //});
 
         LoadRemoteMenus(menuRegistry);
     }

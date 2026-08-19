@@ -10,7 +10,7 @@ public class DelayedLoadingStateTests
     {
         var state = new DelayedLoadingState(TimeSpan.FromMilliseconds(100));
 
-        await state.RunAsync(_ => Task.Delay(10));
+        await state.RunAsync(_ => Task.Delay(10), TestContext.Current.CancellationToken);
 
         Assert.False(state.IsBusy);
         Assert.False(state.IsVisible);
@@ -22,7 +22,7 @@ public class DelayedLoadingStateTests
         var state = new DelayedLoadingState(TimeSpan.FromMilliseconds(20));
         var completion = NewCompletion();
 
-        var operation = state.RunAsync(_ => completion.Task);
+        var operation = state.RunAsync(_ => completion.Task, TestContext.Current.CancellationToken);
         await WaitUntilAsync(() => state.IsVisible);
 
         Assert.True(state.IsBusy);
@@ -39,7 +39,7 @@ public class DelayedLoadingStateTests
         var state = new DelayedLoadingState(TimeSpan.Zero);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            state.RunAsync(_ => Task.FromException(new InvalidOperationException("failed"))));
+            state.RunAsync(_ => Task.FromException(new InvalidOperationException("failed")), TestContext.Current.CancellationToken));
         Assert.False(state.IsBusy);
         Assert.False(state.IsVisible);
 
@@ -58,8 +58,8 @@ public class DelayedLoadingStateTests
         var firstCompletion = NewCompletion();
         var secondCompletion = NewCompletion();
 
-        var first = state.RunAsync(_ => firstCompletion.Task);
-        var second = state.RunAsync(_ => secondCompletion.Task);
+        var first = state.RunAsync(_ => firstCompletion.Task, TestContext.Current.CancellationToken);
+        var second = state.RunAsync(_ => secondCompletion.Task, TestContext.Current.CancellationToken);
         await WaitUntilAsync(() => state.IsVisible);
 
         firstCompletion.SetResult();

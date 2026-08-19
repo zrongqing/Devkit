@@ -9,18 +9,18 @@ namespace Devkit.Core.UI.Models;
 
 public class FileNodeModel : INotifyPropertyChanged
 {
-    private ObservableCollection<FileNodeModel> _children;
+    private ObservableCollection<FileNodeModel> _children = [];
     private long _fileSize;
-    private string _fullPath;
-    private string _icon;
+    private string _fullPath = string.Empty;
+    private string _icon = string.Empty;
     private bool? _isChecked = false;
     private bool _isExpanded;
     private bool _isLoading;
     private bool _isSelected;
     private bool _isUpdatingCheckedState; // 添加一个标志位防止递归循环
     private DateTime _modifiedTime;
-    private string _name;
-    private FileNodeModel _parent;
+    private string _name = string.Empty;
+    private FileNodeModel? _parent;
     /// <summary>
     /// 文件名字
     /// </summary>
@@ -166,7 +166,7 @@ public class FileNodeModel : INotifyPropertyChanged
         }
     }
 
-    public FileNodeModel Parent
+    public FileNodeModel? Parent
     {
         get => _parent;
         set
@@ -195,10 +195,10 @@ public class FileNodeModel : INotifyPropertyChanged
     }
 
     #region INotifyPropertyChanged Members
-    public event PropertyChangedEventHandler PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
     #endregion
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }

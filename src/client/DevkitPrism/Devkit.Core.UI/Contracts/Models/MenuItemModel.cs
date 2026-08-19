@@ -56,7 +56,10 @@ public class MenuItemModel
     /// 标记该页面是否可关闭（如首页常驻不可关）
     /// </summary>
     public bool IsClosable { get; set; } = true;
-    
+
+    /// <summary> 是否展开子菜单 </summary>
+    public bool IsExpanded { get; set; } = true;
+
     public bool HasChildren => Children?.Any() == true;
     public ObservableCollection<MenuItemModel> Children { get; set; } = new();
     public NavigationParameters? Parameters { get; set; }
