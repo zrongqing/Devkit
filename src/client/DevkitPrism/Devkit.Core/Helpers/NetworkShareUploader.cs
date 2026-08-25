@@ -14,7 +14,8 @@ public class NetworkShareUploader : IDisposable
 
     private readonly string _shareRoot;
     private readonly string _username;
-    private bool _connected;
+    private int _connectionDepth;
+    private bool _ownsConnection;
 
     /// <summary>
     /// 构造函数
@@ -37,8 +38,26 @@ public class NetworkShareUploader : IDisposable
     /// </summary>
     public void Connect()
     {
-        if (_connected)
+        if (_connectionDepth > 0)
+        {
+            _connectionDepth++;
             return;
+        }
+
+        // Prefer the current Windows identity or an existing SMB session. This avoids
+        // replacing a connection that is already available to the signed-in user.
+        if (Directory.Exists(_shareRoot))
+        {
+            _connectionDepth = 1;
+            _ownsConnection = false;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_username) || string.IsNullOrWhiteSpace(_password))
+        {
+            throw new InvalidOperationException(
+                $"当前 Windows 用户无法访问共享目录 [{_shareRoot}]，且未配置用于回退登录的用户名或密码。");
+        }
 
         var netResource = new NetResource
         {
@@ -52,7 +71,8 @@ public class NetworkShareUploader : IDisposable
                 $"连接共享失败 [{_shareRoot}]，错误码：{result}，请检查用户名密码及网络");
         }
 
-        _connected = true;
+        _connectionDepth = 1;
+        _ownsConnection = true;
     }
 
     /// <summary>
@@ -60,12 +80,19 @@ public class NetworkShareUploader : IDisposable
     /// </summary>
     public void Disconnect()
     {
-        if (!_connected)
+        if (_connectionDepth == 0)
+            return;
+
+        _connectionDepth--;
+        if (_connectionDepth > 0)
             return;
 
         try
         {
-            WNetCancelConnection2(_shareRoot, 0, true);
+            if (_ownsConnection)
+            {
+                WNetCancelConnection2(_shareRoot, 0, true);
+            }
         }
         catch
         {
@@ -73,7 +100,7 @@ public class NetworkShareUploader : IDisposable
         }
         finally
         {
-            _connected = false;
+            _ownsConnection = false;
         }
     }
 

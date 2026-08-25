@@ -101,22 +101,41 @@ public partial class WebappUpdateViewModel : ViewModelBase
                 return;
             }
 
-            foreach (var target in SsamcEnvironment.GetShareTargets(targetName))
-            {
-                using var uploader = new NetworkShareUploader(
-                    target.Root,
-                    target.Username,
-                    target.Password);
+            var targets = SsamcEnvironment.GetShareTargets(targetName);
+            var failures = new List<string>();
 
-                foreach (var fileNode in files)
+            foreach (var target in targets)
+            {
+                try
                 {
-                    uploader.UploadFile(
-                        fileNode.FullPath,
-                        ExtractRelativePath(fileNode.FullPath));
+                    using var uploader = new NetworkShareUploader(
+                        target.Root,
+                        target.Username,
+                        target.Password);
+
+                    foreach (var fileNode in files)
+                    {
+                        uploader.UploadFile(
+                            fileNode.FullPath,
+                            ExtractRelativePath(fileNode.FullPath));
+                    }
+                }
+                catch (Exception exception)
+                {
+                    failures.Add($"{target.Root}: {exception.Message}");
                 }
             }
 
-            ShowInformation($"{targetName}，更新成功");
+            if (failures.Count > 0)
+            {
+                ShowError(
+                    $"{targetName} 更新未全部完成（失败 {failures.Count}/{targets.Count}）：" +
+                    Environment.NewLine +
+                    string.Join(Environment.NewLine, failures));
+                return;
+            }
+
+            ShowInformation($"{targetName}，已成功更新 {targets.Count} 个目标。");
         }
         catch (SsamcConfigurationException exception)
         {

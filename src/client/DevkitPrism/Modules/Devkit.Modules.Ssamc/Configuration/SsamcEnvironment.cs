@@ -36,15 +36,31 @@ public static class SsamcEnvironment
             [DevelopmentEnvironment] = "DB_215_58_CONNECTION"
         };
 
+    private static readonly IReadOnlyDictionary<string, ShareTargetDefaults> DefaultShareTargets =
+        new Dictionary<string, ShareTargetDefaults>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["215.22"] = new(
+                [@"\\192.168.215.22\assets_huatek\webapp"],
+                "Administrator"),
+            ["20.53"] = new(
+                [@"\\192.168.20.53\webapp"],
+                "huatek"),
+            [ProductionEnvironment] = new(
+                [
+                    @"\\192.168.209.22\assets_huatek\webapp",
+                    @"\\192.168.209.39\assets_huatek\webapp",
+                    @"\\192.168.10.41\assets_huatek\webapp"
+                ],
+                "huatek")
+        };
+
     public const string ProductionEnvironment = "production";
     public const string TestEnvironment = "test";
     public const string DevelopmentEnvironment = "development";
 
-    public static string SourceCodePath =>
-        Environment.GetEnvironmentVariable(Prefix + "SOURCE_PATH") ?? string.Empty;
+    public static string SourceCodePath => GetOptional("SOURCE_PATH") ?? string.Empty;
 
-    public static string WebappSourcePath =>
-        Environment.GetEnvironmentVariable(Prefix + "WEBAPP_SOURCE_PATH") ?? string.Empty;
+    public static string WebappSourcePath => GetOptional("WEBAPP_SOURCE_PATH") ?? string.Empty;
 
     public static string GetDatabaseConnection(string environmentKey)
     {
@@ -108,29 +124,62 @@ public static class SsamcEnvironment
 
     public static IReadOnlyList<SsamcShareTarget> GetShareTargets(string target)
     {
+        return ResolveShareTargets(target, GetOptional);
+    }
+
+    internal static IReadOnlyList<SsamcShareTarget> ResolveShareTargets(
+        string target,
+        Func<string, string?> readSetting)
+    {
+        ArgumentNullException.ThrowIfNull(readSetting);
+
         var normalizedTarget = Normalize(target);
-        var roots = GetRequired($"WEBAPP_{normalizedTarget}_ROOTS")
-            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var username = GetRequired($"WEBAPP_{normalizedTarget}_USERNAME");
-        var password = GetRequired($"WEBAPP_{normalizedTarget}_PASSWORD");
+        DefaultShareTargets.TryGetValue(target.Trim(), out var defaults);
+
+        var configuredRoots = readSetting($"WEBAPP_{normalizedTarget}_ROOTS");
+        var roots = !string.IsNullOrWhiteSpace(configuredRoots)
+                        ? SplitShareRoots(configuredRoots)
+                        : defaults?.Roots ?? GetRequiredShareRoots(normalizedTarget, readSetting);
+        var username = readSetting($"WEBAPP_{normalizedTarget}_USERNAME")
+                       ?? defaults?.Username
+                       ?? GetRequired($"WEBAPP_{normalizedTarget}_USERNAME", readSetting);
+        var password = readSetting($"WEBAPP_{normalizedTarget}_PASSWORD") ?? string.Empty;
 
         return roots.Select(root => new SsamcShareTarget(root, username, password)).ToArray();
     }
 
     public static IReadOnlyList<string> GetOptionalShareRoots(string target)
     {
-        var value = Environment.GetEnvironmentVariable(
-            Prefix + $"WEBAPP_{Normalize(target)}_ROOTS");
+        var value = GetOptional($"WEBAPP_{Normalize(target)}_ROOTS");
 
-        return string.IsNullOrWhiteSpace(value)
-                   ? Array.Empty<string>()
-                   : value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return SplitShareRoots(value);
+        }
+
+        return DefaultShareTargets.TryGetValue(target.Trim(), out var defaults)
+                   ? defaults.Roots
+                   : Array.Empty<string>();
     }
 
-    private static string GetRequired(string suffix)
+    private static IReadOnlyList<string> GetRequiredShareRoots(
+        string normalizedTarget,
+        Func<string, string?> readSetting)
+    {
+        return SplitShareRoots(GetRequired($"WEBAPP_{normalizedTarget}_ROOTS", readSetting));
+    }
+
+    private static string[] SplitShareRoots(string value)
+    {
+        return value.Split(
+            ';',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    private static string GetRequired(string suffix, Func<string, string?> readSetting)
     {
         var variableName = Prefix + suffix;
-        var value = Environment.GetEnvironmentVariable(variableName);
+        var value = readSetting(suffix);
         if (string.IsNullOrWhiteSpace(value))
         {
             throw new SsamcConfigurationException($"缺少环境变量 {variableName}。");
@@ -141,14 +190,45 @@ public static class SsamcEnvironment
 
     private static string GetOptional(string suffix, string fallback)
     {
-        var value = Environment.GetEnvironmentVariable(Prefix + suffix);
+        var value = GetEnvironmentVariable(Prefix + suffix);
         return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
     }
 
     private static string? GetOptional(string suffix)
     {
-        var value = Environment.GetEnvironmentVariable(Prefix + suffix);
+        var value = GetEnvironmentVariable(Prefix + suffix);
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static string? GetEnvironmentVariable(string variableName)
+    {
+        return ResolveEnvironmentVariable(
+            variableName,
+            Environment.GetEnvironmentVariable);
+    }
+
+    internal static string? ResolveEnvironmentVariable(
+        string variableName,
+        Func<string, EnvironmentVariableTarget, string?> readVariable)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(variableName);
+        ArgumentNullException.ThrowIfNull(readVariable);
+
+        foreach (var target in new[]
+                 {
+                     EnvironmentVariableTarget.Process,
+                     EnvironmentVariableTarget.User,
+                     EnvironmentVariableTarget.Machine
+                 })
+        {
+            var value = readVariable(variableName, target);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+        }
+
+        return null;
     }
 
     private static string Normalize(string target)
@@ -176,6 +256,8 @@ public static class SsamcEnvironment
             environmentKey,
             "未知的 SSAMC 数据库环境。");
     }
+
+    private sealed record ShareTargetDefaults(IReadOnlyList<string> Roots, string Username);
 }
 
 public sealed record SsamcShareTarget(string Root, string Username, string Password);

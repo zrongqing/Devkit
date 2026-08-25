@@ -48,7 +48,17 @@
 - `DEVKIT_SSAMC_WEBAPP_PRODUCTION_ROOTS`、`DEVKIT_SSAMC_WEBAPP_PRODUCTION_USERNAME`、
   `DEVKIT_SSAMC_WEBAPP_PRODUCTION_PASSWORD`
 
-API 更新数据库可通过进程环境覆盖，Webapp 更新所需凭据只从进程环境读取。菜单数据库连接也可以写入上述应用本地配置文件，但包含真实凭据的
+共享目录和用户名未配置时使用以下内置映射；环境变量可覆盖对应值：
+
+- `215.22`：`\\192.168.215.22\assets_huatek\webapp`，用户 `Administrator`
+- `20.53`：`\\192.168.20.53\webapp`，用户 `huatek`
+- `production`：依次更新 `192.168.209.22`、`192.168.209.39` 和 `192.168.10.41`
+  上的 `assets_huatek\webapp`，用户 `huatek`
+
+发布时优先使用当前 Windows 用户身份或已有 SMB 会话直接访问共享目录。只有当前身份无法访问时，
+才使用对应的 `DEVKIT_SSAMC_WEBAPP_*_USERNAME` 和 `DEVKIT_SSAMC_WEBAPP_*_PASSWORD` 环境变量回退登录；
+真实密码不应提交到仓库。
+API 更新数据库可通过进程环境覆盖。菜单数据库连接也可以写入上述应用本地配置文件，但包含真实凭据的
 `menu-tree.json` 不应写入仓库。
 
 ## Menu tree extension points
