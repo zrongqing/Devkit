@@ -5,6 +5,7 @@
                        xmlns:hc="https://handyorg.github.io/handycontrol"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:behaviors="clr-namespace:Devkit.Core.UI.Behaviors;assembly=Devkit.Core.UI"
+                       xmlns:configuration="clr-namespace:Ssamc.Configuration"
                        xmlns:coreViews="clr-namespace:Devkit.Core.UI.Views;assembly=Devkit.Core.UI"
                        xmlns:viewModels="clr-namespace:Ssamc.ViewModels"
                        d:Background="White"
@@ -57,12 +58,12 @@
     <Grid Grid.Row="0">
       <StackPanel Orientation="Horizontal">
         <Button Command="{Binding UpdateCommand}"
-                CommandParameter="{Binding Content, RelativeSource={RelativeSource Self}}"
+                CommandParameter="{x:Static configuration:SsamcEnvironment.DevelopmentEnvironment}"
                 Content="215.58"
                 Style="{StaticResource ButtonPrimary}" />
         <Button Margin="10,0,0,0"
                 Command="{Binding UpdateCommand}"
-                CommandParameter="{Binding Content, RelativeSource={RelativeSource Self}}"
+                CommandParameter="{x:Static configuration:SsamcEnvironment.TestEnvironment}"
                 Content="20.54"
                 Style="{StaticResource ButtonPrimary}" />
         <Button Margin="10,0,0,0"

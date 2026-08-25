@@ -120,7 +120,7 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
     }
 
     [RelayCommand]
-    private Task Update(object? buttonParameter)
+    private Task Update(string? environmentKey)
     {
         return RunWithLoadingAsync(async cancellationToken =>
         {
@@ -136,14 +136,13 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
                 return;
             }
 
-            var target = buttonParameter?.ToString();
-            if (string.IsNullOrWhiteSpace(target))
+            if (string.IsNullOrWhiteSpace(environmentKey))
             {
                 ShowWarning("未指定数据库目标环境。");
                 return;
             }
 
-            var connectionString = SsamcEnvironment.GetDatabaseConnection(target);
+            var connectionString = SsamcEnvironment.GetDatabaseConnection(environmentKey);
             var results = await Task.Run(() => UpdateApis(
                               updateApiCodes,
                               connectionString,

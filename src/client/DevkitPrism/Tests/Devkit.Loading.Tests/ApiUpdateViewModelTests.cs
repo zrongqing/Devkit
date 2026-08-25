@@ -3,6 +3,7 @@ using Ssamc.Core.ApiCodeCollector;
 using Ssamc.Servers;
 using Devkit.Services.Interfaces;
 using Devkit.Services.Interfaces.Notifications;
+using Ssamc.Configuration;
 using Ssamc.ViewModels;
 using Moq;
 using Xunit;
@@ -12,8 +13,8 @@ namespace Devkit.Loading.Tests;
 [Collection("Ssamc environment")]
 public sealed class ApiUpdateViewModelTests : IDisposable
 {
-    private const string FirstConnectionVariable = "DEVKIT_SSAMC_DB_215_58_CONNECTION";
-    private const string SecondConnectionVariable = "DEVKIT_SSAMC_DB_20_54_CONNECTION";
+    private const string FirstConnectionVariable = "DEVKIT_SSAMC_DB_DEVELOPMENT_CONNECTION";
+    private const string SecondConnectionVariable = "DEVKIT_SSAMC_DB_TEST_CONNECTION";
     private readonly string? _firstOriginal = Environment.GetEnvironmentVariable(FirstConnectionVariable);
     private readonly string? _secondOriginal = Environment.GetEnvironmentVariable(SecondConnectionVariable);
     private readonly string _sourceDirectory;
@@ -45,8 +46,8 @@ public sealed class ApiUpdateViewModelTests : IDisposable
         viewModel.StrSelectApiCodes = "API001";
         await viewModel.PreviewCommand.ExecuteAsync(null);
         viewModel.StrUpdateApis = "API001";
-        await viewModel.UpdateCommand.ExecuteAsync("215.58");
-        await viewModel.UpdateCommand.ExecuteAsync("20.54");
+        await viewModel.UpdateCommand.ExecuteAsync(SsamcEnvironment.DevelopmentEnvironment);
+        await viewModel.UpdateCommand.ExecuteAsync(SsamcEnvironment.TestEnvironment);
 
         Assert.Equal(4, busyStarts);
         Assert.False(viewModel.PageLoading.IsBusy);
@@ -56,24 +57,28 @@ public sealed class ApiUpdateViewModelTests : IDisposable
         server.Verify(
             service => service.UpdateExtendCode("API001", "extension", It.IsAny<string>()),
             Times.Exactly(2));
+        server.Verify(
+            service => service.UpdateExtendCode("API001", "extension", "first-connection"),
+            Times.Once);
+        server.Verify(
+            service => service.UpdateExtendCode("API001", "extension", "second-connection"),
+            Times.Once);
         notifications.Verify(service => service.Show(It.Is<NotificationRequest>(request =>
             request.Level == NotificationLevel.Info)), Times.Exactly(2));
     }
 
     [Fact]
-    public async Task Missing_target_configuration_reports_error_and_resets_loading()
+    public async Task Missing_target_reports_warning_and_resets_loading()
     {
-        Environment.SetEnvironmentVariable(FirstConnectionVariable, null);
         var server = CreateSuccessfulServer();
         var notifications = CreateNotificationMock();
         var viewModel = CreateViewModel(server.Object, notifications);
         viewModel.StrUpdateApis = "API001";
 
-        await viewModel.UpdateCommand.ExecuteAsync("215.58");
+        await viewModel.UpdateCommand.ExecuteAsync(null);
 
         notifications.Verify(service => service.Show(It.Is<NotificationRequest>(request =>
-            request.Level == NotificationLevel.Warning &&
-            request.Message.Contains(FirstConnectionVariable))), Times.Once);
+            request.Level == NotificationLevel.Warning)), Times.Once);
         Assert.False(viewModel.PageLoading.IsBusy);
         Assert.False(viewModel.PageLoading.IsVisible);
         server.Verify(
@@ -98,7 +103,7 @@ public sealed class ApiUpdateViewModelTests : IDisposable
         var viewModel = CreateViewModel(server.Object, notifications);
         viewModel.StrUpdateApis = "API001";
 
-        await viewModel.UpdateCommand.ExecuteAsync("215.58");
+        await viewModel.UpdateCommand.ExecuteAsync(SsamcEnvironment.DevelopmentEnvironment);
 
         notifications.Verify(service => service.Show(It.Is<NotificationRequest>(request =>
             request.Level == NotificationLevel.Error &&

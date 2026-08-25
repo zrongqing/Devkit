@@ -3,6 +3,39 @@ namespace Ssamc.Configuration;
 public static class SsamcEnvironment
 {
     private const string Prefix = "DEVKIT_SSAMC_";
+    private static readonly IReadOnlyDictionary<string, string> DefaultDatabaseConnections =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [ProductionEnvironment] =
+                "data source=192.168.10.68/ssamcerp;user id=barcode2_read;password=barcode2",
+            [TestEnvironment] =
+                "data source=192.168.20.54/ssamcerp;user id=barcode2;password=barcode2",
+            [DevelopmentEnvironment] =
+                "data source=192.168.215.58/ssamcerp;user id=barcode2;password=barcode2"
+        };
+
+    private static readonly IReadOnlyDictionary<string, string> DatabaseEnvironmentAliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [ProductionEnvironment] = ProductionEnvironment,
+            ["10.68"] = ProductionEnvironment,
+            ["192.168.10.68"] = ProductionEnvironment,
+            [TestEnvironment] = TestEnvironment,
+            ["20.54"] = TestEnvironment,
+            ["192.168.20.54"] = TestEnvironment,
+            [DevelopmentEnvironment] = DevelopmentEnvironment,
+            ["215.58"] = DevelopmentEnvironment,
+            ["192.168.215.58"] = DevelopmentEnvironment
+        };
+
+    private static readonly IReadOnlyDictionary<string, string> LegacyDatabaseVariableSuffixes =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [ProductionEnvironment] = "DB_10_68_CONNECTION",
+            [TestEnvironment] = "DB_20_54_CONNECTION",
+            [DevelopmentEnvironment] = "DB_215_58_CONNECTION"
+        };
+
     public const string ProductionEnvironment = "production";
     public const string TestEnvironment = "test";
     public const string DevelopmentEnvironment = "development";
@@ -13,9 +46,19 @@ public static class SsamcEnvironment
     public static string WebappSourcePath =>
         Environment.GetEnvironmentVariable(Prefix + "WEBAPP_SOURCE_PATH") ?? string.Empty;
 
-    public static string GetDatabaseConnection(string target)
+    public static string GetDatabaseConnection(string environmentKey)
     {
-        return GetRequired($"DB_{Normalize(target)}_CONNECTION");
+        var resolvedEnvironment = ResolveDatabaseEnvironment(environmentKey);
+        var configuredConnection = GetOptional($"DB_{Normalize(resolvedEnvironment)}_CONNECTION");
+        if (!string.IsNullOrWhiteSpace(configuredConnection))
+        {
+            return configuredConnection;
+        }
+
+        var legacyConnection = GetOptional(LegacyDatabaseVariableSuffixes[resolvedEnvironment]);
+        return !string.IsNullOrWhiteSpace(legacyConnection)
+                   ? legacyConnection
+                   : DefaultDatabaseConnections[resolvedEnvironment];
     }
 
     public static string GetMenuDatabaseConnection(
@@ -27,8 +70,8 @@ public static class SsamcEnvironment
             return configuredConnection.Trim();
         }
 
-        var normalizedEnvironment = Normalize(environmentKey);
-        var environmentConnection = GetOptional($"MENU_DB_{normalizedEnvironment}_CONNECTION");
+        var resolvedEnvironment = ResolveDatabaseEnvironment(environmentKey);
+        var environmentConnection = GetOptional($"MENU_DB_{Normalize(resolvedEnvironment)}_CONNECTION");
         if (!string.IsNullOrWhiteSpace(environmentConnection))
         {
             return environmentConnection;
@@ -41,19 +84,7 @@ public static class SsamcEnvironment
             return legacyConnection;
         }
 
-        return environmentKey.ToLowerInvariant() switch
-        {
-            ProductionEnvironment =>
-                "data source=192.168.10.68/ssamcerp;user id=barcode2_read;password=barcode2",
-            TestEnvironment =>
-                "data source=192.168.20.54/ssamcerp;user id=barcode2;password=barcode2",
-            DevelopmentEnvironment =>
-                "data source=192.168.215.57/ssamcerp;user id=barcode2;password=barcode2",
-            _ => throw new ArgumentOutOfRangeException(
-                     nameof(environmentKey),
-                     environmentKey,
-                     "未知的 SSAMC 菜单数据库环境。")
-        };
+        return GetDatabaseConnection(resolvedEnvironment);
     }
 
     public static IReadOnlyList<SsamcPageEnvironment> GetPageEnvironments()
@@ -128,6 +159,22 @@ public static class SsamcEnvironment
         }
 
         return target.Replace('.', '_').Replace('-', '_').ToUpperInvariant();
+    }
+
+    private static string ResolveDatabaseEnvironment(string environmentKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(environmentKey);
+
+        var value = environmentKey.Trim();
+        if (DatabaseEnvironmentAliases.TryGetValue(value, out var resolvedEnvironment))
+        {
+            return resolvedEnvironment;
+        }
+
+        throw new ArgumentOutOfRangeException(
+            nameof(environmentKey),
+            environmentKey,
+            "未知的 SSAMC 数据库环境。");
     }
 }
 

@@ -5,8 +5,13 @@
 运行 API 更新功能前，按界面目标配置数据库连接：
 
 - `DEVKIT_SSAMC_SOURCE_PATH`
-- `DEVKIT_SSAMC_DB_215_58_CONNECTION`
-- `DEVKIT_SSAMC_DB_20_54_CONNECTION`
+- `DEVKIT_SSAMC_DB_DEVELOPMENT_CONNECTION`
+- `DEVKIT_SSAMC_DB_TEST_CONNECTION`
+- `DEVKIT_SSAMC_DB_PRODUCTION_CONNECTION`
+
+未配置时使用 `SsamcEnvironment` 中开发（215.58）、测试（20.54）、生产（10.68）的内置映射。
+旧版 `DEVKIT_SSAMC_DB_215_58_CONNECTION`、`DEVKIT_SSAMC_DB_20_54_CONNECTION` 和
+`DEVKIT_SSAMC_DB_10_68_CONNECTION` 仍可作为兼容覆盖项。
 
 菜单树根据页面中选择的正式、测试或开发环境连接对应的 Oracle 数据库。可在应用目录的
 `Modules/ssamc/menu-tree.json` 中覆盖连接串：
@@ -43,7 +48,7 @@
 - `DEVKIT_SSAMC_WEBAPP_PRODUCTION_ROOTS`、`DEVKIT_SSAMC_WEBAPP_PRODUCTION_USERNAME`、
   `DEVKIT_SSAMC_WEBAPP_PRODUCTION_PASSWORD`
 
-API 更新和 Webapp 更新所需凭据只从进程环境读取。菜单数据库连接也可以写入上述应用本地 配置文件，但包含真实凭据的
+API 更新数据库可通过进程环境覆盖，Webapp 更新所需凭据只从进程环境读取。菜单数据库连接也可以写入上述应用本地配置文件，但包含真实凭据的
 `menu-tree.json` 不应写入仓库。
 
 ## Menu tree extension points
