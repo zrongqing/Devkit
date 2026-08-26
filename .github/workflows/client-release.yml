@@ -3,7 +3,10 @@ name: Release Devkit Client
 on:
   push:
     tags:
-      - "v*"
+      - "client-v*"
+
+permissions:
+  contents: write
 
 concurrency:
   group: client-release-${{ github.ref }}
@@ -15,17 +18,14 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
 
-    permissions:
-      contents: write
-
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up .NET SDK
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
 
@@ -33,11 +33,11 @@ jobs:
         shell: pwsh
         run: |
           $tag = $env:GITHUB_REF_NAME
-          if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
-            throw "Release tag '$tag' must use the format v1.2.3."
+          if ($tag -notmatch '^client-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$') {
+            throw "Release tag '$tag' must use the format client-v1.2.3 or client-v1.2.3-rc.1."
           }
 
-          $version = $tag.Substring(1)
+          $version = $tag -replace '^client-v', ''
           [xml]$buildProperties = Get-Content ./src/client/DevkitPrism/Directory.Build.props
           $sourceVersion = $buildProperties.Project.PropertyGroup.VersionPrefix
           if ($sourceVersion -ne $version) {
@@ -65,12 +65,22 @@ jobs:
       - name: Create GitHub Release
         shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$env:GITHUB_REF_NAME" `
-            "./build/client/package/*.exe" `
-            "./build/client/package/*.sha256" `
+          $assets = @(Get-ChildItem ./build/client/package -File |
+            Where-Object { $_.Name -match '\.(exe|sha256)$' } |
+            Select-Object -ExpandProperty FullName)
+
+          if ($assets.Count -ne 2) {
+            throw "Expected an installer and checksum, found $($assets.Count) files."
+          }
+
+          $releaseFlags = @()
+          if ($env:RELEASE_VERSION.Contains('-')) {
+            $releaseFlags += '--prerelease'
+          }
+
+          gh release create "$env:GITHUB_REF_NAME" @assets @releaseFlags `
             --verify-tag `
             --generate-notes `
-            --title "Devkit $env:GITHUB_REF_NAME"
-
+            --title "Devkit Client $env:RELEASE_VERSION"
