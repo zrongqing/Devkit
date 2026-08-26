@@ -37,7 +37,7 @@
     <PackageVersion Include="Syncfusion.Themes.Windows11Dark.WPF" Version="33.1.44.0" />
     <PackageVersion Include="Syncfusion.Themes.Windows11Light.WPF" Version="33.1.44.0" />
     <PackageVersion Include="Syncfusion.Tools.WPF" Version="33.1.44.0" />
-    <PackageVersion Include="coverlet.collector" Version="3.1.2">
+    <PackageVersion Include="coverlet.collector" Version="10.0.1">
     </PackageVersion>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
     <PackageVersion Include="Serilog.Extensions.Logging" Version="10.0.0" />
