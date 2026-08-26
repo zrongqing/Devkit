@@ -305,7 +305,13 @@ public sealed class MenuTreeViewModelTests
             "DEVKIT_SSAMC_MENU_DB_CONNECTION",
             "DEVKIT_SSAMC_MENU_DB_PRODUCTION_CONNECTION",
             "DEVKIT_SSAMC_MENU_DB_TEST_CONNECTION",
-            "DEVKIT_SSAMC_MENU_DB_DEVELOPMENT_CONNECTION"
+            "DEVKIT_SSAMC_MENU_DB_DEVELOPMENT_CONNECTION",
+            "DEVKIT_SSAMC_DB_PRODUCTION_CONNECTION",
+            "DEVKIT_SSAMC_DB_TEST_CONNECTION",
+            "DEVKIT_SSAMC_DB_DEVELOPMENT_CONNECTION",
+            "DEVKIT_SSAMC_DB_10_68_CONNECTION",
+            "DEVKIT_SSAMC_DB_20_54_CONNECTION",
+            "DEVKIT_SSAMC_DB_215_58_CONNECTION"
         };
         var originals = names.ToDictionary(name => name, Environment.GetEnvironmentVariable);
 
@@ -323,7 +329,7 @@ public sealed class MenuTreeViewModelTests
                 "192.168.20.54/ssamcerp",
                 SsamcEnvironment.GetMenuDatabaseConnection(SsamcEnvironment.TestEnvironment));
             Assert.Contains(
-                "192.168.215.57/ssamcerp",
+                "192.168.215.58/ssamcerp",
                 SsamcEnvironment.GetMenuDatabaseConnection(SsamcEnvironment.DevelopmentEnvironment));
         }
         finally
@@ -333,6 +339,19 @@ public sealed class MenuTreeViewModelTests
                 Environment.SetEnvironmentVariable(pair.Key, pair.Value);
             }
         }
+    }
+
+    [Theory]
+    [InlineData("10.68", SsamcEnvironment.ProductionEnvironment)]
+    [InlineData("20.54", SsamcEnvironment.TestEnvironment)]
+    [InlineData("215.58", SsamcEnvironment.DevelopmentEnvironment)]
+    public void Database_connection_aliases_map_to_stable_environment_keys(
+        string addressAlias,
+        string environmentKey)
+    {
+        Assert.Equal(
+            SsamcEnvironment.GetDatabaseConnection(environmentKey),
+            SsamcEnvironment.GetDatabaseConnection(addressAlias));
     }
 
     [Fact]

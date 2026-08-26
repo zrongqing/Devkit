@@ -62,7 +62,12 @@ pwsh ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 `
 
 ## GitHub Actions
 
-工作流文件为 `.github/workflows/client-package.yml`。
+工作流文件为：
+
+- `.github/workflows/client-package.yml`：持续集成打包。
+- `.github/workflows/client-release.yml`：正式版本发布。
+
+如果不熟悉 Workflow、Job、Runner、Artifact、Tag 或 Release，请先阅读 [GitHub Actions Workflows 入门与 Devkit 客户端流程](./github-workflows.md)。
 
 ### 自动打包
 
@@ -87,9 +92,26 @@ pwsh ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 `
 gh workflow run client-package.yml -f version=0.2.0
 ```
 
+### 正式发布
+
+正式发布由 `client-release.yml` 在推送版本标签时触发。标签必须使用 `v<主版本>.<次版本>.<修订版本>` 格式，标签中的版本必须与 `src/client/DevkitPrism/Directory.Build.props` 中的 `VersionPrefix` 一致，并且标签指向的提交必须已经包含在 `main` 中。
+
+例如发布 `0.2.0`：
+
+```powershell
+git switch main
+git pull --ff-only
+git tag -a v0.2.0 -m "Devkit v0.2.0"
+git push origin v0.2.0
+```
+
+工作流会执行与持续集成相同的完整打包入口。构建、测试或安装器生成失败时不会创建 Release；全部成功后创建对应的 GitHub Release，自动生成发布说明，并附加 EXE 安装器和 SHA-256 文件。Release 工作流仅为创建 Release 授予 `contents: write`，无需额外配置个人访问令牌。
+
 ### 下载产物
 
-成功运行的 Summary 页面包含以安装器文件名命名的 Artifact，保留 14 天，其中包括安装器和 SHA-256 文件。工作流只授予 `contents: read`，不会创建标签或 GitHub Release。
+`client-package.yml` 成功运行后，Summary 页面包含以安装器文件名命名的 Artifact，保留 14 天，其中包括安装器和 SHA-256 文件。该工作流只授予 `contents: read`，不会创建标签或 GitHub Release。
+
+`client-release.yml` 成功运行后，安装器和 SHA-256 文件位于仓库的 **Releases** 页面，不受 Actions Artifact 的 14 天保留期限制。发布工作流不会自行创建或移动标签，只接受已经推送且通过校验的版本标签。
 
 下载后可校验：
 
@@ -127,6 +149,9 @@ C:\Temp\Devkit\unins000.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 
 - **找不到 `ISCC.exe`**：安装 Inno Setup 6，加入 PATH，或传入 `-InnoCompilerPath`。
 - **版本无效**：使用 `主版本.次版本.修订版本`，可附加 SemVer 预发布或构建后缀。
+- **正式发布未触发**：确认标签使用 `v1.2.3` 格式，并且是在 Release 工作流已合并到 `main` 后推送。
+- **正式发布版本不匹配**：标签去掉 `v` 后必须与 `Directory.Build.props` 中的 `VersionPrefix` 完全一致。
+- **正式发布标签不在 `main`**：只对已经包含在 `main` 中的提交创建标签并推送。
 - **NuGet/服务器失败**：检查网络与 `NuGet.config` 中的源；还原失败不会生成安装包。
 - **测试失败**：修复或确认失败原因后重新运行。打包入口不会重试或跳过测试。
 - **缺少模块**：确认三个模块项目均在解决方案内，且模块构建输出仍遵循 `Modules/Module.Build.props`。

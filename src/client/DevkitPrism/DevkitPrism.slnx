@@ -19,7 +19,7 @@
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
   </Folder>
-  <Folder Name="/_Solution Items/">
+  <Folder Name="/_props/_Solution Items/">
     <File Path="../../../documents/dev/开发记录.md" />
     <File Path="../../../README.md" />
     <File Path="../AGENTS.md" />

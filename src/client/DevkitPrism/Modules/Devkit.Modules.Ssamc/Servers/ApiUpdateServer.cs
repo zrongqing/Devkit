@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
 using Ssamc.Core.ApiCodeCollector;
 using Ssamc.DB.Context;
@@ -20,6 +21,7 @@ public class ApiUpdateServer : IApiUpdateServer
     public List<ApiSourceInfo> CopyApiSourceInfos { get; set; } = [];
 
     #region IApiUpdateServer Members
+
     public List<ApiSourceInfo> GetAllApiSourceInfos(string sourcePath)
     {
         var apiInfos = _apiScanner.ScanSourceFiles(sourcePath);
@@ -55,7 +57,9 @@ public class ApiUpdateServer : IApiUpdateServer
 
     public string GetExecutionSourceCodeByApiCode(string sourcePath, string apiCode)
     {
-        return _apiScanner.GetExecutionSourceCode(sourcePath, apiCode);
+        var sourceCode = _apiScanner.GetExecutionSourceCode(sourcePath, apiCode);
+        var formattedSourceCode = FormatMethodBodySourceCode(sourceCode);
+        return IndentSourceCode(formattedSourceCode);
     }
 
     public bool UpdateExtendCode(string apiCode, string extendCode, string connectionString)
@@ -95,6 +99,7 @@ public class ApiUpdateServer : IApiUpdateServer
         db.SaveChanges();
         return true;
     }
+
     #endregion
 
     private static string FormatSourceCode(string sourceCode)
@@ -115,5 +120,49 @@ public class ApiUpdateServer : IApiUpdateServer
         {
             return sourceCode;
         }
+    }
+
+    private static string FormatMethodBodySourceCode(string sourceCode)
+    {
+        if (string.IsNullOrWhiteSpace(sourceCode))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var block = SyntaxFactory.ParseStatement($"{{{Environment.NewLine}{sourceCode}{Environment.NewLine}}}")
+                as BlockSyntax;
+            if (block is null)
+            {
+                return sourceCode;
+            }
+
+            var formattedLines = block
+                .NormalizeWhitespace("    ", Environment.NewLine)
+                .ToFullString()
+                .Split(Environment.NewLine);
+
+            var bodyLines = formattedLines[1..^1]
+                .Select(line => line.StartsWith("    ", StringComparison.Ordinal) ? line[4..] : line);
+            return string.Join(Environment.NewLine, bodyLines);
+        }
+        catch (Exception)
+        {
+            return sourceCode;
+        }
+    }
+
+    private static string IndentSourceCode(string sourceCode)
+    {
+        if (string.IsNullOrWhiteSpace(sourceCode))
+        {
+            return string.Empty;
+        }
+
+        return string.Join(
+            Environment.NewLine,
+            sourceCode.Split(Environment.NewLine)
+                .Select(line => string.IsNullOrWhiteSpace(line) ? string.Empty : $"    {line}"));
     }
 }

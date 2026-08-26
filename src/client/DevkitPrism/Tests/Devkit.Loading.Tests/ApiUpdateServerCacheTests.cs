@@ -96,6 +96,36 @@ public sealed class ApiUpdateServerCacheTests : IDisposable
         Assert.Contains("fallbackValue", server.GetSourceCodeByApiCode(_sourceDirectory, ApiCode));
     }
 
+    [Fact]
+    public void Execution_source_is_formatted_and_indented_as_method_body_code()
+    {
+        File.WriteAllText(
+            _sourceFile,
+            $$"""
+              public class SampleApi
+              {
+                  [ApiSourceCode("{{ApiCode}}")] public string Execute(){var result="formattedValue";if(result.Length>0){return result;}return string.Empty;}
+              }
+              """);
+        var server = CreateServer(_cacheDatabase);
+
+        var executionSource = server.GetExecutionSourceCodeByApiCode(_sourceDirectory, ApiCode);
+
+        Assert.All(
+            executionSource.Split(Environment.NewLine).Where(line => !string.IsNullOrWhiteSpace(line)),
+            line => Assert.StartsWith("    ", line));
+        var expected = string.Join(
+            Environment.NewLine,
+            "    var result = \"formattedValue\";",
+            "    if (result.Length > 0)",
+            "    {",
+            "        return result;",
+            "    }",
+            string.Empty,
+            "    return string.Empty;");
+        Assert.Equal(expected, executionSource);
+    }
+
     public void Dispose()
     {
         Directory.Delete(_testDirectory, recursive: true);
