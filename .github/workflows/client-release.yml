@@ -1,0 +1,76 @@
+name: Release Devkit Client
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: client-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and release Windows x64 client
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Validate release tag
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
+            throw "Release tag '$tag' must use the format v1.2.3."
+          }
+
+          $version = $tag.Substring(1)
+          [xml]$buildProperties = Get-Content ./src/client/DevkitPrism/Directory.Build.props
+          $sourceVersion = $buildProperties.Project.PropertyGroup.VersionPrefix
+          if ($sourceVersion -ne $version) {
+            throw "Release tag version '$version' does not match VersionPrefix '$sourceVersion'."
+          }
+
+          git fetch origin main:refs/remotes/origin/main
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to fetch origin/main.'
+          }
+
+          git merge-base --is-ancestor $env:GITHUB_SHA origin/main
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release tag '$tag' must point to a commit contained in main."
+          }
+
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Package client
+        shell: pwsh
+        run: |
+          ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 `
+            -Version $env:RELEASE_VERSION
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$env:GITHUB_REF_NAME" `
+            "./build/client/package/*.exe" `
+            "./build/client/package/*.sha256" `
+            --verify-tag `
+            --generate-notes `
+            --title "Devkit $env:GITHUB_REF_NAME"
+
