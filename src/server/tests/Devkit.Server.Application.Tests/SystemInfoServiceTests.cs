@@ -1,4 +1,5 @@
 using Devkit.Server.Infrastructure.SystemInfo;
+using Xunit;
 
 namespace Devkit.Server.Application.Tests;
 
