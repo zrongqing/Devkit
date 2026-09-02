@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <!-- .NET 10 Web SDK currently injects Microsoft.AspNetCore.OpenApi with a transitive NU1903 advisory. Re-enable auditing when the SDK updates its dependency. -->
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Devkit.Server.Application\Devkit.Server.Application.csproj" />
+    <ProjectReference Include="..\Devkit.Server.Infrastructure\Devkit.Server.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

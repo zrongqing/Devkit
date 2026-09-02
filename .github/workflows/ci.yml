@@ -1,0 +1,210 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect affected components
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      client: ${{ steps.filter.outputs.client }}
+      web: ${{ steps.filter.outputs.web }}
+      server: ${{ steps.filter.outputs.server }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: filter
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          client=false
+          web=false
+          server=false
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            client=true
+            web=true
+            server=true
+            changed_files=""
+          else
+            if [[ "$EVENT_NAME" == "pull_request" ]]; then
+              compare_from="$BASE_SHA"
+            elif [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then
+              compare_from="$(git rev-list --max-parents=0 "$HEAD_SHA" | tail -n 1)"
+            else
+              compare_from="$BEFORE_SHA"
+            fi
+
+            changed_files="$(git diff --name-only "$compare_from" "$HEAD_SHA")"
+            printf '%s\n' "$changed_files"
+
+            while IFS= read -r path; do
+              [[ -z "$path" ]] && continue
+
+              case "$path" in
+                .github/workflows/*|global.json|NuGet.config)
+                  client=true
+                  web=true
+                  server=true
+                  ;;
+                src/client/*)
+                  client=true
+                  ;;
+                src/web/*)
+                  web=true
+                  ;;
+                src/server/*|compose.yaml|.dockerignore)
+                  server=true
+                  ;;
+              esac
+
+              case "$path" in
+                src/server/src/Devkit.Server.Api/Contracts/*|src/server/src/Devkit.Server.Api/Endpoints/*|src/server/src/Devkit.Server.Api/Program.cs)
+                  client=true
+                  web=true
+                  server=true
+                  ;;
+              esac
+            done <<< "$changed_files"
+          fi
+
+          echo "client=$client" >> "$GITHUB_OUTPUT"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+          echo "server=$server" >> "$GITHUB_OUTPUT"
+
+  client:
+    name: Client build and test
+    if: needs.changes.outputs.client == 'true'
+    needs: changes
+    runs-on: windows-2025
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore client
+        run: dotnet restore src/client/DevkitPrism/DevkitPrism.slnx --nologo
+
+      - name: Build client
+        run: dotnet build src/client/DevkitPrism/DevkitPrism.slnx --configuration Release --no-restore --nologo
+
+      - name: Test client
+        run: dotnet test src/client/DevkitPrism/DevkitPrism.slnx --configuration Release --no-build --no-restore --nologo
+
+  web:
+    name: Web build
+    if: needs.changes.outputs.web == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: src/web
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web
+        run: npm run build
+
+  server:
+    name: Server test and container build
+    if: needs.changes.outputs.server == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore server
+        run: dotnet restore src/server/Devkit.Server.slnx --nologo
+
+      - name: Build server
+        run: dotnet build src/server/Devkit.Server.slnx --configuration Release --no-restore --nologo
+
+      - name: Test server
+        run: dotnet test src/server/Devkit.Server.slnx --configuration Release --no-build --no-restore --nologo
+
+      - name: Build server container
+        run: docker build --file src/server/src/Devkit.Server.Api/Dockerfile --tag devkit-server:ci .
+
+  required:
+    name: Required status
+    if: always()
+    needs:
+      - changes
+      - client
+      - web
+      - server
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Verify component results
+        shell: bash
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          CLIENT_RESULT: ${{ needs.client.result }}
+          WEB_RESULT: ${{ needs.web.result }}
+          SERVER_RESULT: ${{ needs.server.result }}
+        run: |
+          set -euo pipefail
+
+          for result in "$CHANGES_RESULT" "$CLIENT_RESULT" "$WEB_RESULT" "$SERVER_RESULT"; do
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "A required CI job ended with result: $result"
+              exit 1
+            fi
+          done
+
+          echo "All affected components passed CI."

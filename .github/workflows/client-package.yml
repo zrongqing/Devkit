@@ -1,0 +1,73 @@
+name: Package Devkit Client
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/client-package.yml"
+      - "src/client/**"
+      - "global.json"
+      - "NuGet.config"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional semantic version override (for example, 0.2.0)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build, test, and package Windows x64 client
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Package client
+        id: package
+        shell: pwsh
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          $parameters = @{}
+          if (-not [string]::IsNullOrWhiteSpace($env:REQUESTED_VERSION)) {
+            $parameters.Version = $env:REQUESTED_VERSION
+          }
+          else {
+            $parameters.VersionSuffix = "ci.${{ github.run_number }}"
+          }
+
+          ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 @parameters
+
+          $installers = @(Get-ChildItem ./build/client/package -Filter 'Devkit-Setup-*-win-x64.exe')
+          if ($installers.Count -ne 1) {
+            throw "Expected exactly one installer, found $($installers.Count)."
+          }
+
+          $installer = $installers[0]
+          "artifact-name=$($installer.BaseName)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.package.outputs.artifact-name }}
+          path: |
+            build/client/package/*.exe
+            build/client/package/*.sha256
+          if-no-files-found: error
+          retention-days: 14

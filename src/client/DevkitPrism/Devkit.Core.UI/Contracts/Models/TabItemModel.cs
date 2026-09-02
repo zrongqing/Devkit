@@ -1,0 +1,63 @@
+﻿using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
+
+namespace Devkit.Core.UI.Models;
+
+/// <summary>
+/// Tab选项卡
+/// </summary>
+public partial class TabItemModel : ObservableObject
+{
+    [ObservableProperty]
+    private bool _allowPin = true;
+    /// <summary>
+    /// 是否能关闭
+    /// </summary>
+    [ObservableProperty]
+    private bool _canClose = true;
+    [ObservableProperty]
+    private Visibility _closeButtonState = Visibility.Visible;
+    /// <summary>
+    /// 唯一ID
+    /// </summary>
+    /// <remarks>
+    /// menu_code
+    /// </remarks>
+    [ObservableProperty]
+    private string _code;
+    /// <summary>
+    /// 显示
+    /// </summary>
+    [ObservableProperty]
+    private string _header;
+    /// <summary>
+    /// 是否选中
+    /// </summary>
+    [ObservableProperty]
+    private bool _isSelected;
+    [ObservableProperty]
+    private bool _showPin = true;
+    [ObservableProperty]
+    private bool _isPinned;
+    [ObservableProperty]
+    private string _menuId;
+
+    public string? ModuleId { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLoadError))]
+    private string? _loadErrorMessage;
+
+    [ObservableProperty]
+    private object? _content;
+
+    public TabItemModel(string code, string header, object? content = null)
+    {
+        Header = header;
+        Code = code;
+        MenuId = code;
+        Content = content;
+    }
+
+    public bool HasLoadError => !string.IsNullOrWhiteSpace(LoadErrorMessage);
+}

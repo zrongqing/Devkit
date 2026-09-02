@@ -1,0 +1,36 @@
+<Solution>
+  <Folder Name="/Modules/">
+    <Project Path="Modules/Devkit.Modules.Demo/Devkit.Modules.Demo.csproj" Id="ecd62e14-f436-4b0b-b4d1-cfeaf96da5c8" />
+    <Project Path="Modules/Devkit.Modules.ModuleName/Devkit.Modules.ModuleName.csproj" />
+    <Project Path="Modules/Devkit.Modules.Barcode2/Devkit.Modules.Barcode2.csproj" />
+  </Folder>
+  <Folder Name="/Modules/_props/">
+    <File Path="Modules/Module.Build.props" />
+  </Folder>
+  <Folder Name="/Services/">
+    <Project Path="Services/Devkit.Services.Interfaces/Devkit.Services.Interfaces.csproj" />
+    <Project Path="Services/Devkit.Services/Devkit.Services.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Devkit.Loading.Tests/Devkit.Loading.Tests.csproj" />
+    <Project Path="Tests/Devkit.Modules.ModuleName.Tests/Devkit.Modules.ModuleName.Tests.csproj" />
+  </Folder>
+  <Folder Name="/_packaging/">
+    <File Path="packaging/Devkit.iss" />
+    <File Path="packaging/Package-Devkit.ps1" />
+  </Folder>
+  <Folder Name="/_props/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/_props/_Solution Items/">
+    <File Path="../../../documents/dev/开发记录.md" />
+    <File Path="../../../README.md" />
+    <File Path="../AGENTS.md" />
+    <File Path="../TECH_STACK.md" />
+  </Folder>
+  <Project Path="Devkit.Core.UI/Devkit.Core.UI.csproj" />
+  <Project Path="Devkit.Core/Devkit.Core.csproj" />
+  <Project Path="Devkit.Prism/Devkit.Prism.csproj" />
+  <Project Path="Devkit/Devkit.csproj" />
+</Solution>

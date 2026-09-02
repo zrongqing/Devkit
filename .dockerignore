@@ -1,0 +1,9 @@
+**
+!global.json
+!NuGet.config
+!src/
+!src/server/
+!src/server/**
+
+src/server/**/bin/
+src/server/**/obj/

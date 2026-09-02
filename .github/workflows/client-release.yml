@@ -1,0 +1,86 @@
+name: Release Devkit Client
+
+on:
+  push:
+    tags:
+      - "client-v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: client-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and release Windows x64 client
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Validate release tag
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          if ($tag -notmatch '^client-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$') {
+            throw "Release tag '$tag' must use the format client-v1.2.3 or client-v1.2.3-rc.1."
+          }
+
+          $version = $tag -replace '^client-v', ''
+          [xml]$buildProperties = Get-Content ./src/client/DevkitPrism/Directory.Build.props
+          $sourceVersion = $buildProperties.Project.PropertyGroup.VersionPrefix
+          if ($sourceVersion -ne $version) {
+            throw "Release tag version '$version' does not match VersionPrefix '$sourceVersion'."
+          }
+
+          git fetch origin main:refs/remotes/origin/main
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to fetch origin/main.'
+          }
+
+          git merge-base --is-ancestor $env:GITHUB_SHA origin/main
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release tag '$tag' must point to a commit contained in main."
+          }
+
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Package client
+        shell: pwsh
+        run: |
+          ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 `
+            -Version $env:RELEASE_VERSION
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = @(Get-ChildItem ./build/client/package -File |
+            Where-Object { $_.Name -match '\.(exe|sha256)$' } |
+            Select-Object -ExpandProperty FullName)
+
+          if ($assets.Count -ne 2) {
+            throw "Expected an installer and checksum, found $($assets.Count) files."
+          }
+
+          $releaseFlags = @()
+          if ($env:RELEASE_VERSION.Contains('-')) {
+            $releaseFlags += '--prerelease'
+          }
+
+          gh release create "$env:GITHUB_REF_NAME" @assets @releaseFlags `
+            --verify-tag `
+            --generate-notes `
+            --title "Devkit Client $env:RELEASE_VERSION"

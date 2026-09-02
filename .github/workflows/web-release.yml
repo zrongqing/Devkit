@@ -1,0 +1,100 @@
+name: Release Devkit Web
+
+on:
+  push:
+    tags:
+      - "web-v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: web-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and release static web files
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$GITHUB_REF_NAME" =~ ^web-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$ ]]; then
+            echo "Release tag '$GITHUB_REF_NAME' must use the format web-v1.2.3 or web-v1.2.3-rc.1."
+            exit 1
+          fi
+
+          version="${GITHUB_REF_NAME#web-v}"
+          source_version="$(node -p "require('./src/web/package.json').version")"
+          if [[ "$source_version" != "$version" ]]; then
+            echo "Release tag version '$version' does not match package.json version '$source_version'."
+            exit 1
+          fi
+
+          git fetch origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+            echo "Release tag '$GITHUB_REF_NAME' must point to a commit contained in main."
+            exit 1
+          }
+
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        working-directory: src/web
+        run: npm ci
+
+      - name: Build web
+        working-directory: src/web
+        run: npm run build
+
+      - name: Package static files
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive="devkit-web-${RELEASE_VERSION}.tar.gz"
+          tar -czf "$archive" -C src/web/dist .
+          sha256sum "$archive" > "$archive.sha256"
+
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "checksum=$archive.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCHIVE: ${{ steps.package.outputs.archive }}
+          CHECKSUM: ${{ steps.package.outputs.checksum }}
+        run: |
+          set -euo pipefail
+
+          release_flags=()
+          if [[ "$RELEASE_VERSION" == *-* ]]; then
+            release_flags+=(--prerelease)
+          fi
+
+          gh release create "$GITHUB_REF_NAME" \
+            "$ARCHIVE" \
+            "$CHECKSUM" \
+            --verify-tag \
+            --generate-notes \
+            --title "Devkit Web $RELEASE_VERSION" \
+            "${release_flags[@]}"
