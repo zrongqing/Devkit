@@ -14,8 +14,7 @@ public class SYS_PAGE_EVENT
     /// ID
     /// </summary>
     [Key]
-    [StringLength(32)]
-    public long? ID { get; set; }
+    public long ID { get; set; }
 
     /// <summary>
     /// 名称
@@ -51,7 +50,7 @@ public class SYS_PAGE_EVENT
     /// <summary>
     /// 视图字段
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_VIEW_FIELD { get; set; }
 
     /// <summary>
@@ -63,8 +62,8 @@ public class SYS_PAGE_EVENT
     /// <summary>
     /// 排序
     /// </summary>
-    [Precision(5)]
-    public short? INT_SORT { get; set; }
+    // [Precision(5)]
+    public int? INT_SORT { get; set; }
 
     /// <summary>
     /// 单据状态
@@ -81,20 +80,18 @@ public class SYS_PAGE_EVENT
     /// <summary>
     /// 视图
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_VIEW { get; set; }
 
     /// <summary>
     /// 窗口宽度
     /// </summary>
-    [Precision(5)]
-    public short? INT_WIN_WIDTH { get; set; }
+    public int? INT_WIN_WIDTH { get; set; }
 
     /// <summary>
     /// 窗口高度
     /// </summary>
-    [Precision(5)]
-    public short? INT_WIN_HEIGHT { get; set; }
+    public int? INT_WIN_HEIGHT { get; set; }
 
     /// <summary>
     /// 编码
@@ -110,7 +107,7 @@ public class SYS_PAGE_EVENT
     /// <summary>
     /// 事件来源
     /// </summary>
-    [StringLength(20)]
+    // [StringLength(20)]
     public string? STR_FROM { get; set; }
 
     /// <summary>
@@ -126,8 +123,8 @@ public class SYS_PAGE_EVENT
     /// <summary>
     /// 操作日期
     /// </summary>
-    [StringLength(20)]
-    [Unicode(false)]
+    // [StringLength(20)]
+    // [Unicode(false)]
     public string? DT_UP { get; set; }
 
     /// <summary>
@@ -151,8 +148,7 @@ public class SYS_PAGE_EVENT
     /// <summary>
     /// 返回操作类别
     /// </summary>
-    [StringLength(20)]
-    [Unicode(false)]
+    // [StringLength(20)]
     public string? STR_RETURN_TYPE { get; set; }
 
     /// <summary>
@@ -164,7 +160,7 @@ public class SYS_PAGE_EVENT
     /// <summary>
     /// 开发项目
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_PROJECT { get; set; }
 
     /// <summary>
@@ -176,7 +172,7 @@ public class SYS_PAGE_EVENT
     /// <summary>
     /// 任务节点
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_CENTER_NODE { get; set; }
 
     /// <summary>
@@ -194,15 +190,15 @@ public class SYS_PAGE_EVENT
     /// <summary>
     /// 目标日期
     /// </summary>
-    [StringLength(20)]
-    [Unicode(false)]
+    // [StringLength(20)]
+    // [Unicode(false)]
     public string? DT_UPGRADE { get; set; }
 
     /// <summary>
     /// 删除日期
     /// </summary>
-    [StringLength(20)]
-    [Unicode(false)]
+    // [StringLength(20)]
+    // [Unicode(false)]
     public string? DT_DELETE { get; set; }
 
     /// <summary>
@@ -214,81 +210,81 @@ public class SYS_PAGE_EVENT
     /// <summary>
     /// 指定服务器运行
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_HOST { get; set; }
 
     /// <summary>
     /// 数据库
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_DB { get; set; }
 
     /// <summary>
     /// 数据库
     /// </summary>
-    [StringLength(20)]
-    [Unicode(false)]
+    // [StringLength(20)]
+    // [Unicode(false)]
     public string? STR_DB { get; set; }
 
     /// <summary>
     /// 此列表的字段进行操作
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_PAGE_LIST_TO { get; set; }
 
     /// <summary>
     /// 对此列表进行操作
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_PAGE_LIST_FROM { get; set; }
 
     /// <summary>
     /// 列表名称
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_PAGE_LIST { get; set; }
 
     /// <summary>
     /// 页面名称
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_PAGE { get; set; }
 
     /// <summary>
     /// 模块名称
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_MODULE { get; set; }
 
     /// <summary>
     /// 归属名称
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_MAIN { get; set; }
 
     /// <summary>
     /// 源代码
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_CODE { get; set; }
 
     /// <summary>
     /// 操作人
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_BY { get; set; }
 
     /// <summary>
     /// 定服务器运行
     /// </summary>
-    [StringLength(50)]
-    [Unicode(false)]
+    // [StringLength(50)]
+    // [Unicode(false)]
     public string? STR_HOST { get; set; }
 
     /// <summary>
     /// 选择框返回SQL
     /// </summary>
-    [StringLength(500)]
-    [Unicode(false)]
+    // [StringLength(500)]
+    // [Unicode(false)]
     public string? STR_RETURN_SQL { get; set; }
 }

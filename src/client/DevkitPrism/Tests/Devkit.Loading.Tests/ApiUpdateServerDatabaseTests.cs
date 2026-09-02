@@ -48,6 +48,19 @@ public sealed class ApiUpdateServerDatabaseTests : IDisposable
     }
 
     [Fact]
+    public void Event_id_uses_the_legacy_oracle_string_conversion()
+    {
+        using var db = new MyDbContext(_options);
+        var property = db.Model.FindEntityType(typeof(SYS_PAGE_EVENT))!
+            .FindProperty(nameof(SYS_PAGE_EVENT.ID))!;
+        var converter = property.GetValueConverter()!;
+
+        Assert.Equal(typeof(string), converter.ProviderClrType);
+        Assert.Equal("1987760499496050688", converter.ConvertToProvider(1987760499496050688L));
+        Assert.Equal(1987760499496050688L, converter.ConvertFromProvider("1987760499496050688"));
+    }
+
+    [Fact]
     public void Duplicate_main_event_rolls_back_the_entire_batch()
     {
         SeedEvent(1, "GOOD", "Good", 101, "old-good");

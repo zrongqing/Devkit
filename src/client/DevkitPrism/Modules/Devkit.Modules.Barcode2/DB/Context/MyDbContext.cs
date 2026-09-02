@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Barcode2.DB.Entities;
@@ -38,6 +39,19 @@ public partial class MyDbContext : DbContext
             entity.Property(e => e.STR_EXTEND)
                 .HasColumnType("CLOB"); // 替代默认的 NVARCHAR(max)
         });
+
+        // The legacy Oracle schema stores the event primary key as VARCHAR2(32),
+        // while related tables expose the same numeric identifier as NUMBER(19).
+        // Keep a numeric CLR key so existing relationships and application code
+        // remain strongly typed, but read and write the principal key as text.
+        modelBuilder.Entity<SYS_PAGE_EVENT>()
+            .Property(entity => entity.ID)
+            .HasConversion(new ValueConverter<long, string>(
+                value => value.ToString(CultureInfo.InvariantCulture),
+                value => long.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture)))
+            .HasColumnType("VARCHAR2(32)")
+            .IsUnicode(false)
+            .HasMaxLength(32);
 
         // Oracle EF Core maps NUMBER(1) to bool by convention. Keep the CLR
         // value numeric so menu filtering remains an explicit IS_DELETE == 0,

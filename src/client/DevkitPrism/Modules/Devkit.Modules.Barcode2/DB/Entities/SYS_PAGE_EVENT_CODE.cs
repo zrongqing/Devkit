@@ -27,7 +27,7 @@ public class SYS_PAGE_EVENT_CODE
     /// 事件
     /// </summary>
     [Key]
-    [Precision(19)]
+    // [Precision(19)]
     public long ID { get; set; }
 
     /// <summary>
@@ -46,12 +46,12 @@ public class SYS_PAGE_EVENT_CODE
     /// 列表名称
     /// </summary>
     // [Column(TypeName = "NUMBER(32)")]
-    public decimal? ID_PAGE_LIST { get; set; }
+    public long? ID_PAGE_LIST { get; set; }
 
     /// <summary>
     /// 事件
     /// </summary>
-    [Precision(19)]
+    // [Precision(19)]
     public long? ID_EVENT { get; set; }
 
     /// <summary>
@@ -90,8 +90,7 @@ public class SYS_PAGE_EVENT_CODE
     /// <summary>
     /// 数据库
     /// </summary>
-    [StringLength(20)]
-
+    // [StringLength(20)]
     public string? STR_DB { get; set; }
 
     /// <summary>
