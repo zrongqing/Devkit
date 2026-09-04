@@ -52,7 +52,8 @@ public sealed class ApiUpdateViewModelTests : IDisposable
                     updates.Count == 1 &&
                     updates.Single().LookupKind == ApiLookupKind.Code &&
                     updates.Single().Identifier == "API001" &&
-                    updates.Single().ExtendCode == "extension"),
+                    updates.Single().ExtendCode == "extension" &&
+                    updates.Single().ExecutionSource == "execution"),
                 "first-connection"),
             Times.Once);
         server.Verify(service => service.UpdateExtendBatch(
@@ -149,7 +150,8 @@ public sealed class ApiUpdateViewModelTests : IDisposable
                 It.Is<IReadOnlyCollection<ApiExtendUpdateRequest>>(updates =>
                     updates.Select(update => update.Identifier).SequenceEqual(new[] { "Api One", "Api Two" }) &&
                     updates.All(update => update.LookupKind == ApiLookupKind.Name &&
-                                                  update.ExtendCode == "name-extension")),
+                                          update.ExtendCode == "name-extension" &&
+                                          update.ExecutionSource == "name-execution")),
                 "first-connection"),
             Times.Once);
     }
@@ -231,7 +233,13 @@ public sealed class ApiUpdateViewModelTests : IDisposable
             .Returns(["API001"]);
         server.Setup(service => service.GetExecutionSourceCodeByApiCode(_sourceDirectory, "API001"))
             .Returns("execution");
+        server.Setup(service => service.GetExecutionSourceCodeByApiCode(
+                _sourceDirectory, It.IsAny<string>()))
+            .Returns("execution");
         server.Setup(service => service.GetExecutionSourceCodeByApiName(_sourceDirectory, "Api One"))
+            .Returns("name-execution");
+        server.Setup(service => service.GetExecutionSourceCodeByApiName(
+                _sourceDirectory, It.IsAny<string>()))
             .Returns("name-execution");
         server.Setup(service => service.GetSourceCodeByApiCode(_sourceDirectory, "API001"))
             .Returns("extension");

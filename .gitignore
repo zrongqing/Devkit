@@ -426,3 +426,4 @@ FodyWeavers.xsd
 # 忽略 build 文件夹里的所有内容
 /build/**
 !**/build/.gitignore
+/.zcode/plans

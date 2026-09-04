@@ -131,9 +131,80 @@ public sealed class ApiUpdateServerDatabaseTests : IDisposable
         Assert.All(verification.SYS_PAGE_EVENT_CODE, entity => Assert.StartsWith("old-", entity.STR_EXTEND));
     }
 
+    [Fact]
+    public void Batch_updates_execution_and_extend_source_together()
+    {
+        SeedEvent(1, "CODE001", "First Name", 101, "old-extend", "old-source");
+
+        var result = _server.UpdateExtendBatch(
+            [
+                new ApiExtendUpdateRequest(ApiLookupKind.Code, "CODE001", "new-extend", "new-source")
+            ],
+            "unused");
+
+        Assert.True(result);
+        using var db = new MyDbContext(_options);
+        var detail = db.SYS_PAGE_EVENT_CODE.Single(entity => entity.ID == 101);
+        Assert.Equal("new-extend", detail.STR_EXTEND);
+        Assert.Equal("new-source", detail.STR_SOURCE);
+        Assert.False(string.IsNullOrWhiteSpace(detail.DT_UP));
+    }
+
+    [Fact]
+    public void Empty_scan_results_leave_the_whole_row_untouched()
+    {
+        SeedEvent(1, "CODE001", "First Name", 101, "old-extend", "old-source");
+
+        var result = _server.UpdateExtendBatch(
+            [
+                new ApiExtendUpdateRequest(ApiLookupKind.Code, "CODE001", string.Empty, string.Empty)
+            ],
+            "unused");
+
+        Assert.True(result);
+        using var db = new MyDbContext(_options);
+        var detail = db.SYS_PAGE_EVENT_CODE.Single(entity => entity.ID == 101);
+        Assert.Equal("old-extend", detail.STR_EXTEND);
+        Assert.Equal("old-source", detail.STR_SOURCE);
+        Assert.Null(detail.DT_UP);
+        Assert.Null(db.SYS_PAGE_EVENT.Single(entity => entity.ID == 1).DT_UP);
+    }
+
+    [Fact]
+    public void Missing_scan_content_keeps_that_column_only()
+    {
+        SeedEvent(1, "CODE001", "First Name", 101, "old-extend-1", "old-source-1");
+        SeedEvent(2, "CODE002", "Second Name", 102, "old-extend-2", "old-source-2");
+
+        var result = _server.UpdateExtendBatch(
+            [
+                // 只提供扩展源代码：STR_SOURCE 保留旧值
+                new ApiExtendUpdateRequest(ApiLookupKind.Code, "CODE001", "new-extend-1"),
+                // 只提供执行源代码：STR_EXTEND 保留旧值
+                new ApiExtendUpdateRequest(ApiLookupKind.Code, "CODE002", string.Empty, "new-source-2")
+            ],
+            "unused");
+
+        Assert.True(result);
+        using var db = new MyDbContext(_options);
+        var first = db.SYS_PAGE_EVENT_CODE.Single(entity => entity.ID == 101);
+        Assert.Equal("new-extend-1", first.STR_EXTEND);
+        Assert.Equal("old-source-1", first.STR_SOURCE);
+
+        var second = db.SYS_PAGE_EVENT_CODE.Single(entity => entity.ID == 102);
+        Assert.Equal("old-extend-2", second.STR_EXTEND);
+        Assert.Equal("new-source-2", second.STR_SOURCE);
+    }
+
     public void Dispose() => _connection.Dispose();
 
-    private void SeedEvent(long eventId, string code, string name, long detailId, string extendCode)
+    private void SeedEvent(
+        long eventId,
+        string code,
+        string name,
+        long detailId,
+        string extendCode,
+        string? sourceCode = null)
     {
         using var db = new MyDbContext(_options);
         db.SYS_PAGE_EVENT.Add(new SYS_PAGE_EVENT
@@ -146,7 +217,8 @@ public sealed class ApiUpdateServerDatabaseTests : IDisposable
         {
             ID = detailId,
             ID_EVENT = eventId,
-            STR_EXTEND = extendCode
+            STR_EXTEND = extendCode,
+            STR_SOURCE = sourceCode
         });
         db.SaveChanges();
     }

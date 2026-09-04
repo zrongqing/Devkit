@@ -185,10 +185,17 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
         foreach (var identifier in updateIdentifiers)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var sourceCode = lookupKind == ApiLookupKind.Code
+            var extendCode = lookupKind == ApiLookupKind.Code
                                  ? _apiUpdateServer.GetSourceCodeByApiCode(apiInfos, identifier)
                                  : _apiUpdateServer.GetSourceCodeByApiName(apiInfos, identifier);
-            updates.Add(new ApiExtendUpdateRequest(lookupKind, identifier, sourceCode));
+            var executionSource = lookupKind == ApiLookupKind.Code
+                                      ? _apiUpdateServer.GetExecutionSourceCodeByApiCode(
+                                          SourceCodePath,
+                                          identifier)
+                                      : _apiUpdateServer.GetExecutionSourceCodeByApiName(
+                                          SourceCodePath,
+                                          identifier);
+            updates.Add(new ApiExtendUpdateRequest(lookupKind, identifier, extendCode, executionSource));
         }
 
         _apiUpdateServer.UpdateExtendBatch(updates, connectionString);

@@ -45,25 +45,25 @@ public class ApiUpdateServer : IApiUpdateServer
 
     public string GetSourceCodeByApiCode(string sourcePath, string apiCode)
     {
-        var sourceCode = _apiCollector.GetApiExtendCode(sourcePath, apiCode);
+        var sourceCode = _apiCollector.GetSourceCode(sourcePath, apiCode);
         return FormatSourceCode(sourceCode);
     }
 
     public string GetSourceCodeByApiCode(List<ApiSourceInfo> apiSourceInfos, string apiCode)
     {
-        var sourceCode = _apiCollector.GetApiExtendCode(apiSourceInfos, apiCode);
+        var sourceCode = _apiCollector.GetSourceCode(apiSourceInfos, apiCode);
         return FormatSourceCode(sourceCode);
     }
 
     public string GetSourceCodeByApiName(string sourcePath, string apiName)
     {
-        var sourceCode = _apiCollector.GetApiExtendCodeByName(sourcePath, apiName);
+        var sourceCode = _apiCollector.GetSourceCodeByName(sourcePath, apiName);
         return FormatSourceCode(sourceCode);
     }
 
     public string GetSourceCodeByApiName(List<ApiSourceInfo> apiSourceInfos, string apiName)
     {
-        var sourceCode = _apiCollector.GetApiExtendCodeByName(apiSourceInfos, apiName);
+        var sourceCode = _apiCollector.GetSourceCodeByName(apiSourceInfos, apiName);
         return FormatSourceCode(sourceCode);
     }
 
@@ -111,15 +111,42 @@ public class ApiUpdateServer : IApiUpdateServer
 
             foreach (var target in targets)
             {
-                var detailCount = db.SYS_PAGE_EVENT_CODE
-                    .Where(entity => entity.ID == target.DetailId)
-                    .ExecuteUpdate(setters => setters
-                        .SetProperty(entity => entity.STR_EXTEND, target.Request.ExtendCode)
-                        .SetProperty(entity => entity.DT_UP, updatedAt));
+                var extendCode = target.Request.ExtendCode;
+                var executionSource = target.Request.ExecutionSource;
+                var hasExtendCode = !string.IsNullOrWhiteSpace(extendCode);
+                var hasExecutionSource = !string.IsNullOrWhiteSpace(executionSource);
+
+                // 两份源代码都未在扫描文件中找到时，该行不做任何改动（含 DT_UP）
+                if (!hasExtendCode && !hasExecutionSource)
+                {
+                    continue;
+                }
+
                 var eventCount = db.SYS_PAGE_EVENT
                     .Where(entity => entity.ID == target.EventId)
                     .ExecuteUpdate(setters => setters
                         .SetProperty(entity => entity.DT_UP, updatedAt));
+
+                var detailCount = db.SYS_PAGE_EVENT_CODE
+                    .Where(entity => entity.ID == target.DetailId)
+                    .ExecuteUpdate(setters => setters
+                        .SetProperty(entity => entity.DT_UP, updatedAt));
+
+                if (hasExtendCode)
+                {
+                    detailCount = db.SYS_PAGE_EVENT_CODE
+                        .Where(entity => entity.ID == target.DetailId)
+                        .ExecuteUpdate(setters => setters
+                            .SetProperty(entity => entity.STR_EXTEND, extendCode));
+                }
+
+                if (hasExecutionSource)
+                {
+                    detailCount = db.SYS_PAGE_EVENT_CODE
+                        .Where(entity => entity.ID == target.DetailId)
+                        .ExecuteUpdate(setters => setters
+                            .SetProperty(entity => entity.STR_SOURCE, executionSource));
+                }
 
                 if (detailCount != 1 || eventCount != 1)
                 {
@@ -127,6 +154,7 @@ public class ApiUpdateServer : IApiUpdateServer
                         target.Request,
                         $"更新期间主副表记录数发生变化（主表 {eventCount} 条，副表 {detailCount} 条）");
                 }
+                db.SaveChanges();
             }
 
             transaction.Commit();

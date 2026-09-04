@@ -16,13 +16,13 @@ public class ApiCollector
     /// <summary>
     /// 获取源代码
     /// </summary>
-    public string GetApiExtendCode(string sourcePath, string apiCode)
+    public string GetSourceCode(string sourcePath, string apiCode)
     {
         var apiInfos = _scanner.GetApiSourceInfos(sourcePath, apiCode);
-        return GetApiExtendCode(apiInfos, apiCode);
+        return GetSourceCode(apiInfos, apiCode);
     }
 
-    public string GetApiExtendCode(List<ApiSourceInfo> apiInfos, string apiCode)
+    public string GetSourceCode(List<ApiSourceInfo> apiInfos, string apiCode)
     {
         var targetInfos = apiInfos.Where(info => info.ApiCodes.Contains(apiCode)).ToList();
 
@@ -41,13 +41,13 @@ public class ApiCollector
         return sb.ToString();
     }
 
-    public string GetApiExtendCodeByName(string sourcePath, string apiName)
+    public string GetSourceCodeByName(string sourcePath, string apiName)
     {
         var apiInfos = _scanner.GetApiSourceInfosByName(sourcePath, apiName);
-        return GetApiExtendCodeByName(apiInfos, apiName);
+        return GetSourceCodeByName(apiInfos, apiName);
     }
 
-    public string GetApiExtendCodeByName(List<ApiSourceInfo> apiInfos, string apiName)
+    public string GetSourceCodeByName(List<ApiSourceInfo> apiInfos, string apiName)
     {
         var targetInfos = apiInfos
             .Where(info => info.ApiNames.Contains(apiName, StringComparer.Ordinal))
