@@ -22,6 +22,8 @@
 
 ## 工作流程
 
+该 Agent 属于本身固定包含测试步骤的专用流程，是普通开发默认不运行测试规则的例外。
+
 1. 确认工作区、版本输入、SDK、NuGet 源和 `ISCC.exe` 可用。
 2. 调用 `packaging/Package-Devkit.ps1`，不复制或另写一套 CI 专用打包逻辑。
 3. 严格执行 restore、Release build 和完整 test；任何一步失败即停止。

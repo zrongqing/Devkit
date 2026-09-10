@@ -11,7 +11,9 @@
 - `src/web`：Vue 3 + TypeScript 前端模板。
 - `src/server`：.NET 10 分层模块化单体，提供 HTTP API 与 OpenAPI 文档。
 - `src/client/DevkitPrism`：现有 WPF/Prism 桌面客户端。
-- `docs/agents`：角色协作模板。
+- `.agents`：角色协作模板、仓库级 Skills 与 Harness 定义。
+- `.agents/skills/server-development`：服务端开发 Skill，可通过 `$server-development` 显式调用，也可按任务描述自动触发。
+- `.agents/harness/server.md`：服务端目录、文档位置与默认验证方式。
 
 ## 首个跨端契约
 
