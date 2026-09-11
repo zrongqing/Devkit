@@ -17,10 +17,10 @@
 从仓库根目录执行：
 
 ```powershell
-pwsh ./src/client/DevkitPrism/packaging/Package-Devkit.ps1
+pwsh ./client/DevkitPrism/packaging/Package-Devkit.ps1
 ```
 
-默认读取 `src/client/DevkitPrism/Directory.Build.props` 中的 `VersionPrefix`，当前为 `0.0.1`。默认产物为：
+默认读取 `client/DevkitPrism/Directory.Build.props` 中的 `VersionPrefix`，当前为 `0.0.1`。默认产物为：
 
 ```text
 build/client/package/Devkit-Setup-0.1.0-win-x64.exe
@@ -30,19 +30,19 @@ build/client/package/Devkit-Setup-0.1.0-win-x64.exe.sha256
 指定完整语义版本：
 
 ```powershell
-pwsh ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 -Version 0.2.0
+pwsh ./client/DevkitPrism/packaging/Package-Devkit.ps1 -Version 0.2.0
 ```
 
 在基线版本后追加预发布后缀：
 
 ```powershell
-pwsh ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 -VersionSuffix preview.1
+pwsh ./client/DevkitPrism/packaging/Package-Devkit.ps1 -VersionSuffix preview.1
 ```
 
 指定输出目录或 Inno Setup 编译器：
 
 ```powershell
-pwsh ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 `
+pwsh ./client/DevkitPrism/packaging/Package-Devkit.ps1 `
   -OutputDirectory C:\Temp\DevkitPackage `
   -InnoCompilerPath 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
 ```
@@ -94,7 +94,7 @@ gh workflow run client-package.yml -f version=0.2.0
 
 ### 正式发布
 
-正式发布由 `client-release.yml` 在推送版本标签时触发。标签必须使用 `v<主版本>.<次版本>.<修订版本>` 格式，标签中的版本必须与 `src/client/DevkitPrism/Directory.Build.props` 中的 `VersionPrefix` 一致，并且标签指向的提交必须已经包含在 `main` 中。
+正式发布由 `client-release.yml` 在推送版本标签时触发。标签必须使用 `v<主版本>.<次版本>.<修订版本>` 格式，标签中的版本必须与 `client/DevkitPrism/Directory.Build.props` 中的 `VersionPrefix` 一致，并且标签指向的提交必须已经包含在 `main` 中。
 
 例如发布 `0.2.0`：
 

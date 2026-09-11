@@ -22,16 +22,16 @@ notepad .env
 先使用主机可访问的连接串迁移数据库，再构建并启动：
 
 ```powershell
-src/server/scripts/Update-Database.ps1 `
+server/scripts/Update-Database.ps1 `
   -ConnectionString "Server=localhost;Database=Devkit;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True"
-src/server/scripts/Start-Development.ps1
+server/scripts/Start-Development.ps1
 docker compose ps
 ```
 
 单独构建带版本的镜像：
 
 ```powershell
-src/server/scripts/Publish-Server.ps1 -Tag "devkit-server:0.1.0" -Version "0.1.0"
+server/scripts/Publish-Server.ps1 -Tag "devkit-server:0.1.0" -Version "0.1.0"
 ```
 
 停止服务但保留 Redis 数据：
@@ -45,7 +45,7 @@ docker compose down
 ## Visual Studio 设置
 
 1. 安装完整 Visual Studio 的 ASP.NET 和 Web 开发、容器开发工具工作负载；本机当前只检测到 Build Tools，GUI 步骤需要完整 IDE。
-2. 打开 `src/server/Devkit.Server.slnx`，将 `Devkit.Server.Api` 设为启动项目。
+2. 打开 `server/Devkit.Server.slnx`，将 `Devkit.Server.Api` 设为启动项目。
 3. 使用 Manage User Secrets 设置 `Jwt:SigningKey`；如需覆盖数据库或管理员配置，也放在 User Secrets。
 4. 选择 `Devkit.Server.Api` profile 可在 Windows 主机调试，默认地址为 `https://localhost:12510` 和 `http://localhost:12511`。
 5. 选择 Docker profile 可使用 Dockerfile 调试；如 IDE 未识别该 profile，在项目上执行 Add > Docker Support，使 Visual Studio 安装/补齐容器工具 targets。

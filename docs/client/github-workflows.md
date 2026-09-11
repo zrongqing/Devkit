@@ -107,7 +107,7 @@ jobs:
 ```yaml
 - shell: pwsh
   run: |
-    ./src/client/DevkitPrism/packaging/Package-Devkit.ps1
+    ./client/DevkitPrism/packaging/Package-Devkit.ps1
 ```
 
 ### `${{ ... }}` 和 `$env:...`
@@ -308,7 +308,7 @@ Tag 必须严格符合 `v1.2.3`，避免把随意命名的 Tag 误发布为正�
 工作流读取：
 
 ```text
-src/client/DevkitPrism/Directory.Build.props
+client/DevkitPrism/Directory.Build.props
 ```
 
 其中的 `VersionPrefix` 必须与 Tag 去掉 `v` 后的版本一致。例如：
@@ -446,7 +446,7 @@ gh workflow run client-package.yml -f version=0.1.0
 
 ### 第一步：更新源码版本
 
-把 `src/client/DevkitPrism/Directory.Build.props` 中的版本修改为：
+把 `client/DevkitPrism/Directory.Build.props` 中的版本修改为：
 
 ```xml
 <VersionPrefix>0.2.0</VersionPrefix>
@@ -603,8 +603,8 @@ Release 必须证明 Tag 对应的确切代码能够通过测试并生成安装�
 - [持续集成打包工作流](../../.github/workflows/client-package.yml)
 - [正式发布工作流](../../.github/workflows/client-release.yml)
 - [客户端打包与安装](./packaging.md)
-- [客户端版本基线](../../src/client/DevkitPrism/Directory.Build.props)
-- [客户端打包脚本](../../src/client/DevkitPrism/packaging/Package-Devkit.ps1)
+- [客户端版本基线](../../client/DevkitPrism/Directory.Build.props)
+- [客户端打包脚本](../../client/DevkitPrism/packaging/Package-Devkit.ps1)
 
 ## GitHub 官方资料
 

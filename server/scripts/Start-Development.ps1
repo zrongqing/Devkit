@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repositoryRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+$repositoryRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $environmentFile = Join-Path $repositoryRoot '.env'
 
 Push-Location $repositoryRoot

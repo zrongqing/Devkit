@@ -87,7 +87,7 @@ function Get-AbsolutePath {
 
 $packagingRoot = $PSScriptRoot
 $clientRoot = (Resolve-Path (Join-Path $packagingRoot '..')).Path
-$repositoryRoot = (Resolve-Path (Join-Path $clientRoot '..\..\..')).Path
+$repositoryRoot = (Resolve-Path (Join-Path $clientRoot '..\..')).Path
 $solutionPath = Join-Path $clientRoot 'DevkitPrism.slnx'
 $applicationProject = Join-Path $clientRoot 'Devkit\Devkit.csproj'
 $buildPropertiesPath = Join-Path $clientRoot 'Directory.Build.props'

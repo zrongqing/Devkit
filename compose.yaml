@@ -3,7 +3,7 @@ services:
     image: ${DEVKIT_SERVER_IMAGE:-devkit-server:local}
     build:
       context: .
-      dockerfile: src/server/src/Devkit.Server.Api/Dockerfile
+      dockerfile: server/src/Devkit.Server.Api/Dockerfile
       args:
         VERSION: ${DEVKIT_SERVER_VERSION:-0.1.0}
     ports:

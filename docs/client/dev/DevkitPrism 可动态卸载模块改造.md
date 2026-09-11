@@ -63,7 +63,7 @@
 - 验证加载失败回滚：无效 DLL、没有 `IModule`、缺失依赖、初始化异常和文件路径失效均不留下菜单、容器注册或半加载状态。
 - 验证状态持久化：首次默认加载、主动卸载后重启不自动加载、手动加载恢复启用、外部路径保留、状态文件缺失或损坏时安全降级。
 - 验证管理页确认逻辑、菜单实时刷新、卸载后重新加载，以及应用退出不修改启用状态。
-- 执行 `dotnet build src/client/DevkitPrism/DevkitPrism.slnx` 和 `dotnet test src/client/DevkitPrism/DevkitPrism.slnx`；保留现有警告治理边界，但要求测试全部通过。
+- 执行 `dotnet build client/DevkitPrism/DevkitPrism.slnx` 和 `dotnet test client/DevkitPrism/DevkitPrism.slnx`；保留现有警告治理边界，但要求测试全部通过。
 
 ## Assumptions
 

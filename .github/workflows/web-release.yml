@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: src/web/package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Validate release tag
         shell: bash
@@ -42,7 +42,7 @@ jobs:
           fi
 
           version="${GITHUB_REF_NAME#web-v}"
-          source_version="$(node -p "require('./src/web/package.json').version")"
+          source_version="$(node -p "require('./web/package.json').version")"
           if [[ "$source_version" != "$version" ]]; then
             echo "Release tag version '$version' does not match package.json version '$source_version'."
             exit 1
@@ -57,11 +57,11 @@ jobs:
           echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
 
       - name: Install dependencies
-        working-directory: src/web
+        working-directory: web
         run: npm ci
 
       - name: Build web
-        working-directory: src/web
+        working-directory: web
         run: npm run build
 
       - name: Package static files
@@ -71,7 +71,7 @@ jobs:
           set -euo pipefail
 
           archive="devkit-web-${RELEASE_VERSION}.tar.gz"
-          tar -czf "$archive" -C src/web/dist .
+          tar -czf "$archive" -C web/dist .
           sha256sum "$archive" > "$archive.sha256"
 
           echo "archive=$archive" >> "$GITHUB_OUTPUT"

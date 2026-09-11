@@ -25,7 +25,7 @@
 ## 自动测试
 
 ```powershell
-dotnet test src/server/Devkit.Server.slnx
+dotnet test server/Devkit.Server.slnx
 ```
 
 API 集成测试使用临时 SQLite 数据库和内存/故障缓存替身，覆盖注册开关、管理员引导、登录锁定、DTO 敏感字段、refresh 轮换与重放、注销、审计/软删除和 Redis 降级。
@@ -41,7 +41,7 @@ API 集成测试使用临时 SQLite 数据库和内存/故障缓存替身，覆�
 运行：
 
 ```powershell
-src/server/scripts/Smoke-Test.ps1 -BaseUrl http://localhost:8080
+server/scripts/Smoke-Test.ps1 -BaseUrl http://localhost:8080
 ```
 
 如果 Redis 由现有容器运行而不是本仓库 Compose 管理，可指定容器名，例如 `-RedisContainer myredis`。

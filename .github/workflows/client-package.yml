@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - ".github/workflows/client-package.yml"
-      - "src/client/**"
+      - "client/**"
       - "global.json"
       - "NuGet.config"
   workflow_dispatch:
@@ -52,7 +52,7 @@ jobs:
             $parameters.VersionSuffix = "ci.${{ github.run_number }}"
           }
 
-          ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 @parameters
+          ./client/DevkitPrism/packaging/Package-Devkit.ps1 @parameters
 
           $installers = @(Get-ChildItem ./build/client/package -Filter 'Devkit-Setup-*-win-x64.exe')
           if ($installers.Count -ne 1) {

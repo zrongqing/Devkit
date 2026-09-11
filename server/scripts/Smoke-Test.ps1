@@ -5,7 +5,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repositoryRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+$repositoryRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $suffix = [Guid]::NewGuid().ToString('N')
 $userName = "smoke-$suffix"
 $password = 'SmokeTestPassword123'

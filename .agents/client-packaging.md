@@ -6,7 +6,7 @@
 
 ## 输入
 
-- `src/client/DevkitPrism` 客户端解决方案和三个动态模块。
+- `client/DevkitPrism` 客户端解决方案和三个动态模块。
 - `Directory.Build.props` 中的 `VersionPrefix`，或调用方提供的完整语义版本/版本后缀。
 - 可用的 .NET SDK、NuGet 源和 Inno Setup 6 编译器。
 - GitHub 自动运行编号或手动工作流版本输入。

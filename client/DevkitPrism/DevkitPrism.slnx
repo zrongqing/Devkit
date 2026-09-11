@@ -24,8 +24,8 @@
     <File Path="Directory.Packages.props" />
   </Folder>
   <Folder Name="/_props/_Solution Items/">
-    <File Path="../../../documents/dev/开发记录.md" />
-    <File Path="../../../README.md" />
+    <File Path="../../docs/dev/开发记录.md" />
+    <File Path="../../README.md" />
     <File Path="../AGENTS.md" />
     <File Path="../TECH_STACK.md" />
   </Folder>

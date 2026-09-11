@@ -2,8 +2,8 @@
 
 ## 仓库边界
 
-- `src/web`、`src/server`、`src/client` 为三个独立交付物；不直接共享跨语言源码。
-- `src/server` 是服务端根目录，服务端源码位于 `src/server/src`；服务端开发文档默认写入 `src/server/docs`，用户明确指定其他位置时除外。
+- `web`、`server`、`client` 为三个独立交付物；不直接共享跨语言源码。
+- `server` 是服务端根目录，服务端源码位于 `server/src`；服务端开发文档默认写入 `server/docs`，用户明确指定其他位置时除外。
 - 服务端 OpenAPI 和版本化 HTTP 契约是三端交互的唯一事实来源。
 - 技术栈尚未定型的事项记录在各端 `TECH_STACK.md`，不要将个人偏好当作既定标准。
 

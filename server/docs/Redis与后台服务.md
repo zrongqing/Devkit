@@ -21,7 +21,7 @@ Redis 故障不会阻止注册、登录、刷新或用户资料查询，但会�
 本机只启动 Redis：
 
 ```powershell
-src/server/scripts/Start-Development.ps1 -DependenciesOnly
+server/scripts/Start-Development.ps1 -DependenciesOnly
 docker compose ps
 docker compose logs redis
 ```

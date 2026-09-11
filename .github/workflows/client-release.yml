@@ -38,7 +38,7 @@ jobs:
           }
 
           $version = $tag -replace '^client-v', ''
-          [xml]$buildProperties = Get-Content ./src/client/DevkitPrism/Directory.Build.props
+          [xml]$buildProperties = Get-Content ./client/DevkitPrism/Directory.Build.props
           $sourceVersion = $buildProperties.Project.PropertyGroup.VersionPrefix
           if ($sourceVersion -ne $version) {
             throw "Release tag version '$version' does not match VersionPrefix '$sourceVersion'."
@@ -59,7 +59,7 @@ jobs:
       - name: Package client
         shell: pwsh
         run: |
-          ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 `
+          ./client/DevkitPrism/packaging/Package-Devkit.ps1 `
             -Version $env:RELEASE_VERSION
 
       - name: Create GitHub Release

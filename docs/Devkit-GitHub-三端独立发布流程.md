@@ -41,7 +41,7 @@ Devkit 同时包含 WPF 客户端、Vue 3 Web 前端和 ASP.NET Core 服务端�
 - `client-v1.2.0`、`web-v1.5.0`、`server-v2.1.0` 这类组件标签负责触发独立正式发布。
 - WPF 安装包发布到 GitHub Releases；Web 发布静态文件或 Web 容器；服务端发布 Docker 镜像并部署到目标环境。
 - 使用 GitHub Environments 隔离 `staging`、`production-web` 和 `production-server` 的密钥、审批与并发部署。
-- API 契约变更必须额外验证 Web 和 WPF，不能只因为文件位于 `src/server` 就仅构建服务端。
+- API 契约变更必须额外验证 Web 和 WPF，不能只因为文件位于 `server` 就仅构建服务端。
 
 一句话概括：**分支表示代码协作过程，目录表示变更范围，标签表示不可变版本，Environment 表示部署目标。**
 
@@ -195,7 +195,7 @@ jobs:
             throw "Invalid client release tag: $env:RELEASE_TAG"
           }
 
-          ./src/client/DevkitPrism/packaging/Package-Devkit.ps1 -Version $version
+          ./client/DevkitPrism/packaging/Package-Devkit.ps1 -Version $version
 
       - name: Create GitHub Release
         shell: pwsh
@@ -235,7 +235,7 @@ git push origin client-v0.2.0
 
 ### 发布前先固定依赖
 
-`src/web` 当前没有 `package-lock.json`。CI 不能在每次发布时重新解析一组可能变化的依赖，应先在 Web 目录生成并提交锁文件，然后统一使用 `npm ci`。`actions/setup-node` 官方说明也建议提交包管理器锁文件，以提高安全性和可重复性，参见 [setup-node](https://github.com/actions/setup-node#checking-in-lockfiles)。
+`web` 当前没有 `package-lock.json`。CI 不能在每次发布时重新解析一组可能变化的依赖，应先在 Web 目录生成并提交锁文件，然后统一使用 `npm ci`。`actions/setup-node` 官方说明也建议提交包管理器锁文件，以提高安全性和可重复性，参见 [setup-node](https://github.com/actions/setup-node#checking-in-lockfiles)。
 
 建议同时在 `package.json` 或 `.nvmrc` 固定 Node.js 主版本，使本地和 Actions 使用同一运行时。
 
@@ -259,7 +259,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: src/web
+        working-directory: web
 
     steps:
       - uses: actions/checkout@v6
@@ -268,7 +268,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: src/web/package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - run: npm ci
       - run: npm run build
@@ -324,7 +324,7 @@ jobs:
           global-json-file: global.json
 
       - name: Test server
-        run: dotnet test src/server/Devkit.Server.slnx --configuration Release
+        run: dotnet test server/Devkit.Server.slnx --configuration Release
 
       - name: Resolve image metadata
         shell: bash
@@ -347,7 +347,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: src/server/src/Devkit.Server.Api/Dockerfile
+          file: server/src/Devkit.Server.Api/Dockerfile
           push: true
           tags: |
             ${{ env.IMAGE }}:${{ env.VERSION }}
@@ -374,9 +374,9 @@ GitHub 官方的 [Publishing Docker images](https://docs.github.com/en/actions/t
 
 | 变更路径 | 至少应执行的验证 |
 | --- | --- |
-| `src/client/**` | 客户端构建与测试 |
-| `src/web/**` | Web 类型检查与构建 |
-| `src/server/**` 的内部实现 | 服务端构建与测试 |
+| `client/**` | 客户端构建与测试 |
+| `web/**` | Web 类型检查与构建 |
+| `server/**` 的内部实现 | 服务端构建与测试 |
 | OpenAPI、DTO、API 路径或认证契约 | 服务端测试 + Web 构建/契约测试 + WPF 构建/契约测试 |
 | `global.json`、共享 CI 脚本、根配置 | 根据影响范围构建两端 .NET 或全部三端 |
 
@@ -412,7 +412,7 @@ Rulesets 可以同时保护分支和标签，并限制更新或删除，参见 [
 1. **恢复 NuGet TLS 校验。** 当前 `NuGet.config` 对 `nuget.org` 配置了 `allowInsecureConnections` 和 `disableTLSCertificateValidation`。正式 CI 不应关闭包源 TLS 校验，应查明本机证书或代理问题后移除这两个设置。
 2. **提交 Web 锁文件。** 没有 `package-lock.json` 就无法稳定使用 `npm ci`，同一标签在不同时间可能解析出不同依赖。
 3. **收紧 Docker 构建上下文。** 当前服务端 Dockerfile 从仓库根目录 `COPY . .`，`.dockerignore` 又没有排除 `.env`、证书、`build/`、客户端和 Web 目录。本地未跟踪文件也可能被发送给 Docker daemon；应改为按需复制或扩大忽略规则。
-4. **给服务端增加唯一版本源。** 可以在 `src/server/Directory.Build.props` 增加 `VersionPrefix`，发布时由 `server-v*` 覆盖，确保程序集、镜像和发布记录版本一致。
+4. **给服务端增加唯一版本源。** 可以在 `server/Directory.Build.props` 增加 `VersionPrefix`，发布时由 `server-v*` 覆盖，确保程序集、镜像和发布记录版本一致。
 5. **把客户端正式版从 Artifact 升级为 Release。** Artifact 适合 CI 验证，GitHub Release 更适合长期下载、发布说明和版本追踪。GitHub 支持在 Release 中附加二进制资产，参见 [Managing releases](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)。
 6. **补客户端签名和更新清单。** 当前安装包未签名，正式分发前应解决 Windows 信任与升级通道。
 7. **确定 Web 与 Server 的真实生产平台。** 在此之前先完成可重复构建和 GHCR/Artifact 发布，不要把“产物已生成”误认为“生产已部署”。

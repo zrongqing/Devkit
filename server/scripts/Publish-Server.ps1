@@ -5,10 +5,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repositoryRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+$repositoryRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 
 docker build `
-    --file (Join-Path $repositoryRoot 'src/server/src/Devkit.Server.Api/Dockerfile') `
+    --file (Join-Path $repositoryRoot 'server/src/Devkit.Server.Api/Dockerfile') `
     --build-arg "VERSION=$Version" `
     --tag $Tag `
     $repositoryRoot
