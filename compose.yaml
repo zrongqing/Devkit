@@ -1,9 +1,44 @@
 services:
   devkit-server:
+    image: ${DEVKIT_SERVER_IMAGE:-devkit-server:local}
     build:
       context: .
       dockerfile: src/server/src/Devkit.Server.Api/Dockerfile
+      args:
+        VERSION: ${DEVKIT_SERVER_VERSION:-0.1.0}
     ports:
       - "8080:8080"
     environment:
       ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: ${DEVKIT_SQL_CONNECTION_STRING}
+      Jwt__Issuer: ${DEVKIT_JWT_ISSUER:-Devkit.Server}
+      Jwt__Audience: ${DEVKIT_JWT_AUDIENCE:-Devkit.Clients}
+      Jwt__SigningKey: ${DEVKIT_JWT_SIGNING_KEY}
+      Redis__ConnectionString: redis:6379,abortConnect=false
+      Registration__Enabled: ${DEVKIT_REGISTRATION_ENABLED:-false}
+      BootstrapAccount__Enabled: ${DEVKIT_BOOTSTRAP_ENABLED:-false}
+      BootstrapAccount__UserName: ${DEVKIT_BOOTSTRAP_USER_NAME:-}
+      BootstrapAccount__Email: ${DEVKIT_BOOTSTRAP_EMAIL:-}
+      BootstrapAccount__Password: ${DEVKIT_BOOTSTRAP_PASSWORD:-}
+    depends_on:
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  redis:
+    image: redis:8.0
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${DEVKIT_REDIS_HOST_PORT:-6379}:6379"
+    volumes:
+      - devkit-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  devkit-redis-data:

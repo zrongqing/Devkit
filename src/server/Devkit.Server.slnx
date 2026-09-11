@@ -7,5 +7,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Devkit.Server.Application.Tests/Devkit.Server.Application.Tests.csproj" />
+    <Project Path="tests/Devkit.Server.Api.IntegrationTests/Devkit.Server.Api.IntegrationTests.csproj" />
   </Folder>
 </Solution>

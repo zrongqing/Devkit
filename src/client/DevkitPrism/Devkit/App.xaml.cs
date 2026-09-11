@@ -9,6 +9,7 @@ using Devkit.Modules.ModuleManagement;
 using Devkit.Prism;
 using Devkit.Prism.Modules;
 using Devkit.Services;
+using Devkit.Services.Authentication;
 using Devkit.Services.Diagnostics;
 using Devkit.Services.Dialogs;
 using Devkit.Services.Configuration;
@@ -18,6 +19,7 @@ using Devkit.Services.Interfaces.Logging;
 using Devkit.Services.Interfaces.Notifications;
 using Devkit.Services.Logging;
 using Devkit.Services.Interfaces;
+using Devkit.Services.Interfaces.Authentication;
 using Devkit.Services.Notifications;
 using Devkit.ViewModels;
 using Devkit.Views;
@@ -79,6 +81,7 @@ public partial class App : DevkitPrismApplication
         var apiBaseUrl = Environment.GetEnvironmentVariable("DEVKIT_API_BASE_URL") ?? "http://localhost:5000/";
         services.AddSingleton(new HttpClient { BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute) });
         services.AddSingleton<ISystemInfoClient, SystemInfoClient>();
+        services.AddSingleton<IAuthClient, AuthClient>();
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IModuleStorage, ModuleStorage>();
         services.AddSingleton<ILocalSettingsStore>(_ =>

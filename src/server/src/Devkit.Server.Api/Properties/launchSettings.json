@@ -7,6 +7,13 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "applicationUrl": "https://localhost:12510;http://localhost:12511"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchBrowser": true,
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/health/live",
+      "publishAllPorts": true,
+      "useSSL": false
     }
   }
 }

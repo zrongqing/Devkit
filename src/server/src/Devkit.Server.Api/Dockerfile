@@ -3,6 +3,7 @@ WORKDIR /source
 
 COPY global.json NuGet.config ./
 COPY src/server/Directory.Build.props src/server/
+COPY src/server/Directory.Packages.props src/server/
 COPY src/server/src/Devkit.Server.Domain/Devkit.Server.Domain.csproj src/server/src/Devkit.Server.Domain/
 COPY src/server/src/Devkit.Server.Application/Devkit.Server.Application.csproj src/server/src/Devkit.Server.Application/
 COPY src/server/src/Devkit.Server.Infrastructure/Devkit.Server.Infrastructure.csproj src/server/src/Devkit.Server.Infrastructure/
@@ -19,6 +20,15 @@ RUN dotnet publish src/server/src/Devkit.Server.Api/Devkit.Server.Api.csproj \
     -p:Version=$VERSION
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
+USER root
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/publish .
+ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8080
+USER $APP_UID
+HEALTHCHECK --interval=15s --timeout=3s --start-period=15s --retries=3 \
+    CMD curl --fail --silent http://localhost:8080/health/live || exit 1
 ENTRYPOINT ["dotnet", "Devkit.Server.Api.dll"]
