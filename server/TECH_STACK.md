@@ -8,6 +8,6 @@
 - 缓存：Redis 8，通过 `IDistributedCache` 使用；缓存失败时业务回退 SQL Server，readiness 仍报告异常。
 - 后台作业：ASP.NET Core `BackgroundService` + `PeriodicTimer`；当前用于清理过期 refresh token。
 - 部署：Linux .NET 10 容器，Docker Compose 编排 API 与 Redis；SQL Server 2022 使用外部实例。
-- OpenAPI：ASP.NET Core 内置 OpenAPI，文档地址 `/openapi/v1.json`。
+- OpenAPI：ASP.NET Core 内置 OpenAPI，文档地址 `/openapi/v1.json`；Swagger UI 页面地址 `/swagger`。
 - 消息队列、PLC、ERP 等外部集成：待定。
 - 日志、指标与分布式追踪平台：当前使用结构化控制台日志，集中式可观测性平台待定。
