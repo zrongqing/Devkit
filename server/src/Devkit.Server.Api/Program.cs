@@ -129,6 +129,7 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => fa
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 app.MapSystemEndpoints();
 app.MapAuthEndpoints();
+app.MapModuleControlEndpoints();
 app.Run();
 
 public partial class Program;

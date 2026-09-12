@@ -1,4 +1,5 @@
 using Devkit.Server.Domain.Identity;
+using Devkit.Server.Domain.Modules;
 using Microsoft.EntityFrameworkCore;
 
 namespace Devkit.Server.Infrastructure.Persistence;
@@ -9,6 +10,9 @@ public sealed class DevkitDbContext(DbContextOptions<DevkitDbContext> options) :
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<ModuleInstance> ModuleInstances => Set<ModuleInstance>();
+    public DbSet<BufferedModuleCommand> BufferedModuleCommands => Set<BufferedModuleCommand>();
+    public DbSet<ModuleCommandSequence> ModuleCommandSequences => Set<ModuleCommandSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

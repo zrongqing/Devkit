@@ -9,5 +9,6 @@
 - 后台作业：ASP.NET Core `BackgroundService` + `PeriodicTimer`；当前用于清理过期 refresh token。
 - 部署：Linux .NET 10 容器，Docker Compose 编排 API 与 Redis；SQL Server 2022 使用外部实例。
 - OpenAPI：ASP.NET Core 内置 OpenAPI，文档地址 `/openapi/v1.json`；Swagger UI 页面地址 `/swagger`。
-- 消息队列、PLC、ERP 等外部集成：待定。
+- 模块通信：第一阶段使用 SQL Server 持久化命令缓冲、目标模块内严格顺序、处理租约和幂等键；高吞吐阶段是否切换 Kafka、RabbitMQ 或云消息服务由压测决定。
+- PLC、ERP 等外部集成：具体协议和适配器待定，按独立业务服务隔离。
 - 日志、指标与分布式追踪平台：当前使用结构化控制台日志，集中式可观测性平台待定。

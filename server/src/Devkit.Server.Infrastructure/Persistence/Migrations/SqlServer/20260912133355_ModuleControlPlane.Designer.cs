@@ -4,6 +4,7 @@ using Devkit.Server.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Devkit.Server.Infrastructure.Persistence.Migrations.SqlServer
 {
     [DbContext(typeof(DevkitDbContext))]
-    partial class DevkitDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260912133355_ModuleControlPlane")]
+    partial class ModuleControlPlane
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

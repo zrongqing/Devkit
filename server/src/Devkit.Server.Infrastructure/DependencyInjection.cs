@@ -1,10 +1,14 @@
 using Devkit.Server.Application.Abstractions;
+using Devkit.Server.Application.Contracts.Modules;
+using Devkit.Server.Application.Modules;
+using Devkit.Server.Domain.Abstractions;
 using Devkit.Server.Domain.Identity;
 using Devkit.Server.Infrastructure.Caching;
 using Devkit.Server.Infrastructure.Configuration;
 using Devkit.Server.Infrastructure.Health;
 using Devkit.Server.Infrastructure.Identity;
 using Devkit.Server.Infrastructure.Mapping;
+using Devkit.Server.Infrastructure.Modules;
 using Devkit.Server.Infrastructure.Persistence;
 using Devkit.Server.Infrastructure.SystemInfo;
 using Devkit.Server.Infrastructure.Workers;
@@ -57,6 +61,26 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(RefreshTokenCleanupOptions.SectionName))
             .Validate(options => options.IntervalMinutes > 0, "BackgroundJobs:RefreshTokenCleanup:IntervalMinutes must be positive")
             .ValidateOnStart();
+        services.AddOptions<ModuleControlOptions>()
+            .Bind(configuration.GetSection(ModuleControlOptions.SectionName))
+            .Validate(options => !options.Enabled || System.Text.Encoding.UTF8.GetByteCount(options.ApiKey) >= 32,
+                "Enabled module control requires ModuleControl:ApiKey with at least 32 UTF-8 bytes")
+            .Validate(options => options.OfflineAfterSeconds > 0, "ModuleControl:OfflineAfterSeconds must be positive")
+            .Validate(options => options.DefaultLeaseSeconds > 0, "ModuleControl:DefaultLeaseSeconds must be positive")
+            .Validate(options => options.MaximumLeaseSeconds >= options.DefaultLeaseSeconds,
+                "ModuleControl:MaximumLeaseSeconds must be greater than or equal to DefaultLeaseSeconds")
+            .Validate(options => options.MaximumPayloadBytes is >= 1024 and <= 1048576,
+                "ModuleControl:MaximumPayloadBytes must be between 1024 and 1048576")
+            .ValidateOnStart();
+        services.AddSingleton(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<ModuleControlOptions>>().Value;
+            return new ModuleRuntimePolicy(
+                TimeSpan.FromSeconds(options.OfflineAfterSeconds),
+                TimeSpan.FromSeconds(options.DefaultLeaseSeconds),
+                TimeSpan.FromSeconds(options.MaximumLeaseSeconds),
+                options.MaximumPayloadBytes);
+        });
 
         services.AddScoped<AuditingSaveChangesInterceptor>();
         services.AddDbContext<DevkitDbContext>((serviceProvider, options) =>
@@ -86,6 +110,8 @@ public static class DependencyInjection
         services.AddScoped<IMapper, ServiceMapper>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<UserProfileCache>();
+        services.AddScoped<IModuleRuntimeStore, SqlModuleRuntimeStore>();
+        services.AddScoped<IModuleRuntimeService, ModuleRuntimeService>();
         services.AddScoped<AuthService>();
         services.AddScoped<IAuthService>(serviceProvider => serviceProvider.GetRequiredService<AuthService>());
         services.AddScoped<IAccessTokenValidator>(serviceProvider => serviceProvider.GetRequiredService<AuthService>());
