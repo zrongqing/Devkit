@@ -51,6 +51,7 @@ public static class AuthEndpoints
         return group;
     }
 
+    // [EndpointSummary("Registers a user when public registration is enabled")]
     private static async Task<IResult> RegisterAsync(
         RegisterRequest request,
         HttpContext context,

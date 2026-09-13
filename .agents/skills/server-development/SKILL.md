@@ -10,5 +10,4 @@ Before working, read the repository `AGENTS.md`, `server/AGENTS.md`, and `.agent
 - Keep service implementation under `server`; use `server/src` for source code.
 - Write new server development documentation to `server/docs` unless the user specifies another location.
 - When an HTTP or OpenAPI contract changes, update the affected Web and Desktop callers in the same change.
-- By default, do not create, modify, or run tests. Run tests only when the user explicitly requests them or when an explicitly invoked packaging, release, or CI workflow has mandatory test steps.
 - Use the build command and failure handling defined in the server harness.

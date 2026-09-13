@@ -88,6 +88,10 @@ public static class DependencyInjection
             var connectionString = configuration.GetConnectionString("Default")
                 ?? throw new InvalidOperationException("ConnectionStrings:Default is required");
             options.UseSqlServer(connectionString, sqlServer => sqlServer.EnableRetryOnFailure());
+            var bootstrapAccount = configuration
+                .GetSection(BootstrapAccountOptions.SectionName)
+                .Get<BootstrapAccountOptions>() ?? new BootstrapAccountOptions();
+            options.UseIdentityDataSeeding(bootstrapAccount);
             options.AddInterceptors(serviceProvider.GetRequiredService<AuditingSaveChangesInterceptor>());
         });
 

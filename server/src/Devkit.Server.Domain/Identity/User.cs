@@ -13,5 +13,8 @@ public sealed class User : AuditableEntity
     public DateTime? LockoutEndUtc { get; set; }
     public int AuthenticationVersion { get; set; }
     public ICollection<UserRole> UserRoles { get; set; } = [];
+    public ICollection<UserClaim> UserClaims { get; set; } = [];
+    public ICollection<UserLogin> UserLogins { get; set; } = [];
+    public ICollection<UserToken> UserTokens { get; set; } = [];
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

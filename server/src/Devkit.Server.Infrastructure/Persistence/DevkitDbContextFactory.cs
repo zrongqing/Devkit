@@ -1,3 +1,5 @@
+using Devkit.Server.Infrastructure.Configuration;
+using Devkit.Server.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -9,9 +11,18 @@ public sealed class DevkitDbContextFactory : IDesignTimeDbContextFactory<DevkitD
     {
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__Default")
             ?? "Server=localhost;Database=Devkit;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True";
-        var options = new DbContextOptionsBuilder<DevkitDbContext>()
-            .UseSqlServer(connectionString, sqlServer => sqlServer.EnableRetryOnFailure())
-            .Options;
-        return new DevkitDbContext(options);
+        var bootstrapAccount = new BootstrapAccountOptions
+        {
+            Enabled = bool.TryParse(
+                Environment.GetEnvironmentVariable("BootstrapAccount__Enabled"),
+                out var enabled) && enabled,
+            UserName = Environment.GetEnvironmentVariable("BootstrapAccount__UserName") ?? string.Empty,
+            Email = Environment.GetEnvironmentVariable("BootstrapAccount__Email") ?? string.Empty,
+            Password = Environment.GetEnvironmentVariable("BootstrapAccount__Password") ?? string.Empty
+        };
+        var optionsBuilder = new DbContextOptionsBuilder<DevkitDbContext>()
+            .UseSqlServer(connectionString, sqlServer => sqlServer.EnableRetryOnFailure());
+        optionsBuilder.UseIdentityDataSeeding(bootstrapAccount);
+        return new DevkitDbContext(optionsBuilder.Options);
     }
 }
