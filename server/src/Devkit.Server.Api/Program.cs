@@ -18,6 +18,7 @@ var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.0.0";
 builder.Services.AddDevkitInfrastructure(
     builder.Configuration,
     new ServerRuntimeOptions("Devkit Server", version, builder.Environment.EnvironmentName));
+builder.Services.AddEndpointModules(typeof(Program).Assembly);
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
 {
     context.ProblemDetails.Extensions.TryAdd("traceId", context.HttpContext.TraceIdentifier);
@@ -127,9 +128,7 @@ app.UseSwaggerUI(options =>
 app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
-app.MapSystemEndpoints();
-app.MapAuthEndpoints();
-app.MapModuleControlEndpoints();
+app.MapEndpointModules();
 app.Run();
 
 public partial class Program;

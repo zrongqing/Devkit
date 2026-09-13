@@ -6,9 +6,9 @@ using Devkit.Server.Application.Contracts.Auth;
 
 namespace Devkit.Server.Api.Endpoints;
 
-public static class AuthEndpoints
+public sealed class AuthEndpoints : IEndpointModule
 {
-    public static RouteGroupBuilder MapAuthEndpoints(this IEndpointRouteBuilder endpoints)
+    public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/auth").WithTags("Authentication");
         group.MapPost("/register", RegisterAsync)
@@ -48,7 +48,6 @@ public static class AuthEndpoints
             .Produces<ApiResponse<UserProfileDto>>()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound);
-        return group;
     }
 
     // [EndpointSummary("Registers a user when public registration is enabled")]

@@ -5,9 +5,9 @@ using Devkit.Server.Application.Contracts.Modules;
 
 namespace Devkit.Server.Api.Endpoints;
 
-public static class ModuleControlEndpoints
+public sealed class ModuleControlEndpoints : IEndpointModule
 {
-    public static RouteGroupBuilder MapModuleControlEndpoints(this IEndpointRouteBuilder endpoints)
+    public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/internal/modules")
             .WithTags("Module Control (Internal)")
@@ -65,7 +65,6 @@ public static class ModuleControlEndpoints
             .Produces<ApiResponse<BufferedModuleCommandResponse>>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
-        return group;
     }
 
     private static async Task<IResult> ListInstancesAsync(
