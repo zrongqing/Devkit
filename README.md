@@ -24,3 +24,10 @@
 运行服务端：`dotnet run --project server/src/Devkit.Server.Api`。Web 端复制 `web/.env.example` 为 `.env.local` 后执行 `npm install`、`npm run dev`。桌面端可设置 `DEVKIT_API_BASE_URL` 指向服务端地址。
 
 各端待定技术选型见对应的 `TECH_STACK.md`；贡献规则见根 `AGENTS.md`。
+
+## 导航框架文档
+
+- [分端导航总体架构](docs/navigation-framework.md)
+- [Web 前端框架](web/docs/frontend-framework.md)
+- [服务端菜单接口与配置](server/docs/navigation-menu-api.md)
+- [Desktop 菜单接入](client/docs/navigation-client.md)

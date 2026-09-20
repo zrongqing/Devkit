@@ -30,6 +30,14 @@ builder.Services.AddOpenApi("v1", options =>
     options.ShouldInclude = description => description.RelativePath?.StartsWith("api/v1", StringComparison.OrdinalIgnoreCase) == true
         || description.RelativePath?.StartsWith("health", StringComparison.OrdinalIgnoreCase) == true;
 });
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options => options.AddPolicy("Web", policy =>
+{
+    if (allowedOrigins.Length > 0)
+    {
+        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+    }
+}));
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -117,6 +125,7 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 app.UseExceptionHandler();
 app.UseRateLimiter();
+app.UseCors("Web");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapDevkitOpenApi();

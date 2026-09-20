@@ -9,6 +9,7 @@ using Devkit.Server.Infrastructure.Health;
 using Devkit.Server.Infrastructure.Identity;
 using Devkit.Server.Infrastructure.Mapping;
 using Devkit.Server.Infrastructure.Modules;
+using Devkit.Server.Infrastructure.Navigation;
 using Devkit.Server.Infrastructure.Persistence;
 using Devkit.Server.Infrastructure.SystemInfo;
 using Devkit.Server.Infrastructure.Workers;
@@ -72,6 +73,12 @@ public static class DependencyInjection
             .Validate(options => options.MaximumPayloadBytes is >= 1024 and <= 1048576,
                 "ModuleControl:MaximumPayloadBytes must be between 1024 and 1048576")
             .ValidateOnStart();
+        services.AddOptions<NavigationOptions>()
+            .Bind(configuration.GetSection(NavigationOptions.SectionName))
+            .Validate(NavigationMenuComposer.TryValidateAll,
+                "Navigation configuration must define valid Web and Client menu trees")
+            .ValidateOnStart();
+        services.AddSingleton<INavigationMenuService, NavigationMenuService>();
         services.AddSingleton(serviceProvider =>
         {
             var options = serviceProvider.GetRequiredService<IOptions<ModuleControlOptions>>().Value;
