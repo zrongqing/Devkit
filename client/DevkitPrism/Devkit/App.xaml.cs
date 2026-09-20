@@ -78,7 +78,7 @@ public partial class App : DevkitPrismApplication
     private void ConfigureServices(IServiceCollection services)
     {
         services.AddClientLogging();
-        var apiBaseUrl = Environment.GetEnvironmentVariable("DEVKIT_API_BASE_URL") ?? "http://localhost:5000/";
+        var apiBaseUrl = Environment.GetEnvironmentVariable("DEVKIT_API_BASE_URL") ?? "http://localhost:12511/";
         services.AddSingleton(new HttpClient { BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute) });
         services.AddSingleton<ISystemInfoClient, SystemInfoClient>();
         services.AddSingleton<IAuthClient, AuthClient>();
@@ -121,6 +121,9 @@ public partial class App : DevkitPrismApplication
         containerRegistry.RegisterForNavigation<MenuTabView, MenuTabViewModel>(SysViewKeys.MenuTab);
         containerRegistry.RegisterForNavigation<HomeView, HomeViewModel>("HomeView");
         containerRegistry.RegisterForNavigation<SettingView, SettingViewModel>("SettingView");
+        containerRegistry.RegisterForNavigation<SystemStatusView, SystemStatusViewModel>("SystemStatusView");
+        containerRegistry.RegisterForNavigation<AboutView, AboutViewModel>("AboutView");
+        containerRegistry.RegisterForNavigation<UnavailableView, UnavailableViewModel>("UnavailableView");
     }
 
     protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)

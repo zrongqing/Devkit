@@ -23,15 +23,20 @@ onMounted(refresh)
 </script>
 
 <template>
-  <section class="status-card">
-    <div class="card-heading"><h2>系统状态</h2><button :disabled="loading" @click="refresh">刷新</button></div>
-    <p v-if="loading">正在读取服务状态…</p>
-    <p v-else-if="error" class="error">{{ error }}</p>
-    <dl v-else-if="info">
-      <dt>服务</dt><dd>{{ info.serviceName }}</dd>
-      <dt>版本</dt><dd>{{ info.version }}</dd>
-      <dt>环境</dt><dd>{{ info.environment }}</dd>
-      <dt>服务时间</dt><dd>{{ new Date(info.serverTime).toLocaleString() }}</dd>
-    </dl>
-  </section>
+  <el-card class="status-card" shadow="never">
+    <template #header>
+      <div class="card-heading">
+        <div><strong>服务连接</strong><span>实时读取服务端系统信息</span></div>
+        <el-button type="primary" plain :loading="loading" @click="refresh">刷新</el-button>
+      </div>
+    </template>
+    <el-skeleton v-if="loading" :rows="4" animated />
+    <el-alert v-else-if="error" :title="error" type="error" show-icon :closable="false" />
+    <el-descriptions v-else-if="info" :column="1" border>
+      <el-descriptions-item label="服务">{{ info.serviceName }}</el-descriptions-item>
+      <el-descriptions-item label="版本">{{ info.version }}</el-descriptions-item>
+      <el-descriptions-item label="环境">{{ info.environment }}</el-descriptions-item>
+      <el-descriptions-item label="服务时间">{{ new Date(info.serverTime).toLocaleString() }}</el-descriptions-item>
+    </el-descriptions>
+  </el-card>
 </template>
