@@ -2,6 +2,12 @@ import { ref } from "vue";
 import type { TokenPair } from "./types";
 
 const key = "devkit.session";
+const permissionKey = "devkit.permissions";
+type PermissionSnapshot = {
+  id: string;
+  administrator: boolean;
+  permissions: string[];
+};
 function restore(): TokenPair | null {
   try {
     return JSON.parse(
@@ -11,15 +17,32 @@ function restore(): TokenPair | null {
     return null;
   }
 }
-export const session = ref<TokenPair | null>(restore());
-export const permissions = ref<{
-  id: string;
-  administrator: boolean;
-  permissions: string[];
-} | null>(null);
+function restorePermissions(currentSession: TokenPair | null): PermissionSnapshot | null {
+  if (!currentSession) return null;
+  try {
+    const value = JSON.parse(sessionStorage.getItem(permissionKey) ?? "null");
+    return value?.id === currentSession.user.id &&
+      typeof value.administrator === "boolean" &&
+      Array.isArray(value.permissions) &&
+      value.permissions.every((permission: unknown) => typeof permission === "string")
+      ? value as PermissionSnapshot
+      : null;
+  } catch {
+    return null;
+  }
+}
+const restoredSession = restore();
+export const session = ref<TokenPair | null>(restoredSession);
+export const permissions = ref<PermissionSnapshot | null>(restorePermissions(restoredSession));
+export const permissionDenied = ref(false);
+let sessionGeneration = 0;
 export function saveSession(value: TokenPair | null) {
+  sessionGeneration++;
+  loadingPermissions = undefined;
   session.value = value;
   permissions.value = null;
+  permissionDenied.value = false;
+  sessionStorage.removeItem(permissionKey);
   if (value) sessionStorage.setItem(key, JSON.stringify(value));
   else sessionStorage.removeItem(key);
 }
@@ -41,7 +64,8 @@ async function renew() {
         return false;
       }
       const body = await response.json();
-      saveSession(body.data as TokenPair);
+      session.value = body.data as TokenPair;
+      sessionStorage.setItem(key, JSON.stringify(session.value));
       return true;
     })().finally(() => {
       refreshing = undefined;
@@ -65,6 +89,7 @@ export async function authorizedFetch(
     saveSession(null);
     window.dispatchEvent(new Event("devkit-session-expired"));
   }
+  if (response.status === 403 && session.value) permissionDenied.value = true;
   return response;
 }
 export async function request<T>(
@@ -79,11 +104,28 @@ export async function request<T>(
   if (response.status === 204) return undefined as T;
   return (await response.json()).data as T;
 }
-export async function loadPermissions() {
-  permissions.value = await request<NonNullable<typeof permissions.value>>(
-    "/api/v1/auth/permissions",
-  );
-  return permissions.value;
+let loadingPermissions: Promise<PermissionSnapshot> | undefined;
+export function loadPermissions(force = false): Promise<PermissionSnapshot> {
+  if (!session.value) return Promise.reject(new Error("请先登录。"));
+  if (loadingPermissions) return loadingPermissions;
+  if (permissions.value && !force) return Promise.resolve(permissions.value);
+  const generation = sessionGeneration;
+  const userId = session.value.user.id;
+  const pending = request<PermissionSnapshot>("/api/v1/auth/permissions")
+    .then((value) => {
+      if (sessionGeneration !== generation || session.value?.user.id !== userId)
+        throw new Error("登录状态已变更，请重新加载权限。");
+      if (value.id !== userId) throw new Error("权限数据与当前用户不匹配。");
+      permissions.value = value;
+      sessionStorage.setItem(permissionKey, JSON.stringify(value));
+      permissionDenied.value = false;
+      return value;
+    })
+    .finally(() => {
+      if (loadingPermissions === pending) loadingPermissions = undefined;
+    });
+  loadingPermissions = pending;
+  return pending;
 }
 export const hasPermission = (value: string) =>
   permissions.value?.administrator ||

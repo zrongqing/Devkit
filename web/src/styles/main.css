@@ -49,6 +49,8 @@ button, input { font: inherit; }
 .header-left strong, .header-left span { display: block; }
 .header-left span { margin-top: 3px; color: var(--muted); font-size: 12px; }
 .mobile-menu-button { display: none; }
+.permission-warning { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 26px; color: #925f14; background: #fff5dd; border-bottom: 1px solid #f3dcaa; font-size: 13px; }
+.permission-warning span { margin-right: auto; }
 .workspace-tabs { min-height: 0; flex: 1; display: flex; flex-direction: column; }
 .workspace-tabs > .el-tabs__header { margin: 0; padding: 12px 18px 0; background: #fff; }
 .workspace-tabs > .el-tabs__content { flex: 1; overflow: auto; }
@@ -90,6 +92,7 @@ button, input { font: inherit; }
   .welcome-panel { padding: 42px 22px; }
   .welcome-features { gap: 14px; }
   .system-header { height: 68px; padding: 0 14px; }
+  .system-header .session-username, .system-header .refresh-permission-label { display: none; }
   .system-header > .el-button span { display: none; }
   .workspace-tabs > .el-tabs__header { padding-left: 10px; padding-right: 10px; }
   .workspace-tabs .el-tab-pane { padding: 16px; }

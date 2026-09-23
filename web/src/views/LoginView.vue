@@ -12,15 +12,24 @@ const router = useRouter();
 async function submit() {
   busy.value = true;
   error.value = "";
+  let signedIn = false;
   try {
     saveSession(await login(account.value, password.value));
-    await loadPermissions();
+    signedIn = true;
+    try {
+      await loadPermissions();
+    } catch {
+      saveSession(null);
+      throw new Error("权限获取失败，请重试登录。");
+    }
     const target = String(route.query.redirect ?? "/system/home");
     await router.replace(
       target.startsWith("/system/") ? target : "/system/home",
     );
-  } catch {
-    error.value = "登录失败，请检查账号、密码及服务端状态。";
+  } catch (reason) {
+    error.value = signedIn && reason instanceof Error
+      ? reason.message
+      : "登录失败，请检查账号、密码及服务端状态。";
   } finally {
     busy.value = false;
   }
