@@ -10,7 +10,7 @@ $environmentFile = Join-Path $repositoryRoot '.env'
 Push-Location $repositoryRoot
 try {
     if ($DependenciesOnly) {
-        docker compose up --detach redis
+        docker compose up --detach redis qdrant
     }
     else {
         if (-not (Test-Path -LiteralPath $environmentFile)) {

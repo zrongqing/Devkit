@@ -1,6 +1,6 @@
 {
   "Workspace": {
-    "DataRoot": "D:\\server data\\devkit",
+    "DataRoot": "D:\\.server data\\devkit",
     "MaximumUploadBytes": 20971520,
     "MinimumFreeBytes": 104857600,
     "QdrantUrl": "http://localhost:6333",
