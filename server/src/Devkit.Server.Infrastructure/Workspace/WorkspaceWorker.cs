@@ -17,12 +17,16 @@ public sealed class WorkspaceWorker(IServiceScopeFactory scopes,ILogger<Workspac
         {
             try
             {
-                using var scope=scopes.CreateScope();var db=scope.ServiceProvider.GetRequiredService<DevkitDbContext>();
+                using var scope=scopes.CreateScope();
                 await scope.ServiceProvider.GetRequiredService<LocalFileService>().EnsureDefaultAsync(stoppingToken);
+                break;
             }
             catch(OperationCanceledException)when(stoppingToken.IsCancellationRequested){break;}
-            catch(Exception e){logger.LogWarning("Workspace initialization pending: {Type}",e.GetType().Name);}
-            break;
+            catch(Exception e)
+            {
+                logger.LogWarning("Workspace initialization pending: {Type}",e.GetType().Name);
+                await Task.Delay(TimeSpan.FromSeconds(2),stoppingToken);
+            }
         }
         while(!stoppingToken.IsCancellationRequested)
         {
@@ -35,7 +39,6 @@ public sealed class WorkspaceWorker(IServiceScopeFactory scopes,ILogger<Workspac
     private async Task TickAsync(CancellationToken ct)
     {
         using var scope=scopes.CreateScope();var db=scope.ServiceProvider.GetRequiredService<DevkitDbContext>();var now=DateTime.UtcNow;
-        await scope.ServiceProvider.GetRequiredService<LocalFileService>().EnsureDefaultAsync(ct);
         // Recover uploads whose process terminated. Completed originals remain on disk for administrator recovery.
         await db.Set<Domain.FileStorage.StoredFile>().Where(x=>x.Status=="uploading"&&x.CreatedAtUtc<now.AddHours(-2)).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"failed"),ct);
         foreach(var attempt in await db.Set<StudyAttempt>().AsNoTracking().Where(x=>x.Status=="active"&&x.DeadlineUtc<=now).Take(20).ToListAsync(ct))
