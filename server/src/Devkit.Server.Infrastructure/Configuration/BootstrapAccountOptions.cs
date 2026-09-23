@@ -4,8 +4,9 @@ public sealed class BootstrapAccountOptions
 {
     public const string SectionName = "BootstrapAccount";
 
-    public bool Enabled { get; set; }
-    public string UserName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
+    public bool Enabled { get; set; } = true;
+    public string UserName { get; set; } = "admin";
+    public string Email { get; set; } = "admin@example.invalid";
+    public string Password { get; set; } = "admin";
+    public bool IsBuiltInDefault => UserName == "admin" && Password == "admin";
 }

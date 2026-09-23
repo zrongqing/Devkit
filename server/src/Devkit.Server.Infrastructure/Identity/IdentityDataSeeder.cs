@@ -35,11 +35,7 @@ internal static class IdentityDataSeeder
             user = CreateAdministrator(options, normalizedUserName, normalizedEmail, now);
             dbContext.Users.Add(user);
         }
-        else if (user.IsDeleted)
-        {
-            user.IsDeleted = false;
-            user.UpdatedAtUtc = now;
-        }
+        else { return false; }
 
         EnsureUserRole(dbContext, user, administratorRole, now);
         dbContext.SaveChanges();
@@ -77,11 +73,7 @@ internal static class IdentityDataSeeder
             user = CreateAdministrator(options, normalizedUserName, normalizedEmail, now);
             dbContext.Users.Add(user);
         }
-        else if (user.IsDeleted)
-        {
-            user.IsDeleted = false;
-            user.UpdatedAtUtc = now;
-        }
+        else { return false; }
 
         await EnsureUserRoleAsync(dbContext, user, administratorRole, now, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -218,7 +210,7 @@ internal static class IdentityDataSeeder
     {
         if (string.IsNullOrWhiteSpace(options.UserName)
             || string.IsNullOrWhiteSpace(options.Email)
-            || PasswordPolicy.Validate(options.Password) is not null)
+            || (!options.IsBuiltInDefault && PasswordPolicy.Validate(options.Password) is not null))
         {
             throw new InvalidOperationException(
                 "Enabled bootstrap account requires user name, email, and a password matching the password policy.");

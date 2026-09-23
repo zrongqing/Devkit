@@ -15,10 +15,10 @@ public sealed class DevkitDbContextFactory : IDesignTimeDbContextFactory<DevkitD
         {
             Enabled = bool.TryParse(
                 Environment.GetEnvironmentVariable("BootstrapAccount__Enabled"),
-                out var enabled) && enabled,
-            UserName = Environment.GetEnvironmentVariable("BootstrapAccount__UserName") ?? string.Empty,
-            Email = Environment.GetEnvironmentVariable("BootstrapAccount__Email") ?? string.Empty,
-            Password = Environment.GetEnvironmentVariable("BootstrapAccount__Password") ?? string.Empty
+                out var enabled) ? enabled : true,
+            UserName = Environment.GetEnvironmentVariable("BootstrapAccount__UserName") ?? "admin",
+            Email = Environment.GetEnvironmentVariable("BootstrapAccount__Email") ?? "admin@example.invalid",
+            Password = Environment.GetEnvironmentVariable("BootstrapAccount__Password") ?? "admin"
         };
         var optionsBuilder = new DbContextOptionsBuilder<DevkitDbContext>()
             .UseSqlServer(connectionString, sqlServer => sqlServer.EnableRetryOnFailure());

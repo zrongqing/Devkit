@@ -94,7 +94,8 @@ internal static class NavigationMenuComposer
                 item.TargetKey,
                 item.IconKey,
                 item.Order,
-                item.IsClosable))
+                item.IsClosable,
+                item.RequiredPermission))
             .ToArray();
     }
 

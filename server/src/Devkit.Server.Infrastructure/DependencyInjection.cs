@@ -50,7 +50,7 @@ public static class DependencyInjection
             .Validate(options => !options.Enabled || (
                 !string.IsNullOrWhiteSpace(options.UserName)
                 && !string.IsNullOrWhiteSpace(options.Email)
-                && PasswordPolicy.Validate(options.Password) is null),
+                && (options.IsBuiltInDefault || PasswordPolicy.Validate(options.Password) is null)),
                 "Enabled bootstrap account requires user name, email, and a password matching the password policy")
             .ValidateOnStart();
         services.AddOptions<RedisOptions>()
