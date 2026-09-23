@@ -22,7 +22,7 @@ internal sealed class DevkitApiFactory(
     : WebApplicationFactory<Program>
 {
     public string DataRoot { get; } = Path.Combine(
-        Environment.GetEnvironmentVariable("DEVKIT_TEST_ROOT") ?? (OperatingSystem.IsWindows() ? @"D:\server data\devkit\temp\tests" : Path.GetTempPath()),
+        Environment.GetEnvironmentVariable("DEVKIT_TEST_ROOT") ?? (OperatingSystem.IsWindows() ? @"D:\.server data\devkit\temp\tests" : Path.GetTempPath()),
         $"devkit-tests-{Guid.NewGuid():N}");
     public TestExternalServices External { get; } = new();
     public TestModelGateway Model { get; } = new();

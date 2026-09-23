@@ -19,5 +19,5 @@
 # 备考模块补充
 
 - Qdrant 固定使用 `v1.19.1`，采用服务端原生 BM25 多语言分词和可选稠密向量；通过 HttpClient 调用 REST API，避免引入另一套客户端版本依赖。参见 [Qdrant 全文检索](https://qdrant.tech/documentation/search/text-search/full-text-search/)。
-- 文件原件、临时目录、日志与备份默认统一放在 `D:\server data\devkit`。生产密钥和本机模型配置通过外部配置文件或环境变量注入。
+- 文件原件、临时目录、日志与备份默认统一放在 `D:\.server data\devkit`。生产密钥和本机模型配置通过外部配置文件或环境变量注入。
 - Web / Application / Domain / Infrastructure 各自交付；考试、文件存储、身份管理按命名空间隔离，客户端不在本次实施范围。

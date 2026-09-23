@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$DataRoot = 'D:\server data\devkit',
+    [string]$DataRoot = 'D:\.server data\devkit',
     [string]$Filter = ''
 )
 

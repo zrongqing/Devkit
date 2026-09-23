@@ -46,7 +46,7 @@ API 集成测试使用独立 SQLite 数据库和内存 / 故障缓存替身，�
 | `DevkitApiFactory.cs` | 隔离宿主、SQLite、文件目录及任务执行；不启动真实后台索引工作线程 |
 | `TestExternalServices.cs` | 受控的 Qdrant HTTP 和模型替身；仍执行生产索引代码的序列化与过滤逻辑 |
 
-默认测试文件位于 `D:\server data\devkit\temp\tests\devkit-tests-<随机ID>`，每个宿主独立创建并仅清理自己的目录。TRX 结果保留于 `D:\server data\devkit\temp\test-results`。可通过启动脚本的 `-DataRoot` 或直接测试时的 `DEVKIT_TEST_ROOT` 调整测试根路径。
+默认测试文件位于 `D:\.server data\devkit\temp\tests\devkit-tests-<随机ID>`，每个宿主独立创建并仅清理自己的目录。TRX 结果保留于 `D:\.server data\devkit\temp\test-results`。可通过启动脚本的 `-DataRoot` 或直接测试时的 `DEVKIT_TEST_ROOT` 调整测试根路径。
 
 这些用例不访问真实 SQL Server、共享 Docker 卷或模型密钥。SQLite 用例验证 HTTP 和业务行为，不替代 SQL Server 并发隔离验证；Qdrant 替身不验证真实引擎的中文分词和相关性排序。外部服务的实际联调另在隔离部署中执行。
 
