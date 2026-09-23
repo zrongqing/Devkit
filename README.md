@@ -23,6 +23,8 @@
 
 运行服务端：`dotnet run --project server/src/Devkit.Server.Api`。Web 端复制 `web/.env.example` 为 `.env.local` 后执行 `npm install`、`npm run dev`。桌面端可设置 `DEVKIT_API_BASE_URL` 指向服务端地址。
 
+Visual Studio 调试后端、Web 联调及 Docker Compose 发布步骤见 [Docker 发布与 Visual Studio](server/docs/Docker发布与VisualStudio.md)。
+
 各端待定技术选型见对应的 `TECH_STACK.md`；贡献规则见根 `AGENTS.md`。
 
 ## 导航框架文档

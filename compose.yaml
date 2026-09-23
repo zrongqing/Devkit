@@ -1,4 +1,35 @@
 services:
+  nginx:
+    profiles: [web]
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    ports:
+      - "${DEVKIT_WEB_HOST_IP:-127.0.0.1}:${DEVKIT_WEB_HOST_PORT:-8081}:80"
+    depends_on:
+      devkit-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - type: bind
+        source: ./web/dist
+        target: /usr/share/nginx/html
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./web/nginx.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+      - type: volume
+        source: nginx-logs
+        target: /var/log/nginx
+        volume:
+          nocopy: true
+
   devkit-server:
     image: ${DEVKIT_SERVER_IMAGE:-devkit-server:local}
     build:
@@ -78,6 +109,8 @@ services:
         max-file: "3"
 
 volumes:
+  nginx-logs:
+    name: devkit_nginx-logs
   # Keep Qdrant on Docker's Linux filesystem; Windows bind mounts are unsafe for it.
   qdrant-data:
     name: devkit_qdrant-data
