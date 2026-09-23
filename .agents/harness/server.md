@@ -17,12 +17,15 @@ Create new server development documents in `server/docs` unless the user gives a
 
 ## Validation
 
-The default server validation command is:
+The server validation commands are:
 
 ```powershell
 dotnet build server/Devkit.Server.slnx
+dotnet test server/Devkit.Server.slnx
 ```
 
-Do not create, modify, or run tests unless the user explicitly requests testing. An explicitly invoked packaging, release, or CI workflow may run its mandatory tests and is the only default-policy exception.
+When adding, changing, or fixing a server endpoint, add or update meaningful API / contract tests and run them. Cover the normal flow, validation, authentication / authorization, and relevant failure paths. Targeted runs are useful during development; run the server solution tests before completing an endpoint change.
 
-If restore or build fails, stop, report the failing command and relevant error, and do not claim validation succeeded. In the final report, state that tests were not run when the default policy applied.
+Keep tests isolated from real databases, user files, external model credentials, and shared Docker resources. Use dedicated test storage under the configured data root and controlled external-service replacements.
+
+If restore, build, or tests fail, report the relevant failure, fix the cause within scope, and rerun the affected checks. Never weaken assertions or skip required checks to hide failures. Report the actual build and test commands and results, and state any unresolved blocker without claiming validation succeeded.

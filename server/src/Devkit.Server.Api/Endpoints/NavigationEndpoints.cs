@@ -1,6 +1,7 @@
 using Devkit.Server.Api.Contracts;
 using Devkit.Server.Application.Abstractions;
 using Devkit.Server.Application.Contracts.Navigation;
+using Devkit.Server.Application.Workspace;
 
 namespace Devkit.Server.Api.Endpoints;
 
@@ -21,9 +22,18 @@ public sealed class NavigationEndpoints : IEndpointModule
             .Produces<ApiResponse<IReadOnlyList<ClientNavigationMenuItemDto>>>();
     }
 
-    private static IResult GetWebMenus(HttpContext context, INavigationMenuService navigationMenuService)
+    private static async Task<IResult> GetWebMenus(HttpContext context, INavigationMenuService navigationMenuService, IWorkspaceAccess access)
     {
-        var menus = navigationMenuService.GetMenus(NavigationAudience.Web)
+        Actor? actor = context.User.Identity?.IsAuthenticated == true ? await access.CurrentAsync(context.RequestAborted) : null;
+        var configured = navigationMenuService.GetMenus(NavigationAudience.Web);
+        var allowed = configured.Where(item => item.RequiredPermission is null || actor is not null && (actor.Administrator || actor.Permissions.Contains(item.RequiredPermission))).ToList();
+        bool changed;
+        do
+        {
+            changed = allowed.RemoveAll(item => item.ParentId is not null && !allowed.Any(parent => parent.Id == item.ParentId)) > 0;
+            changed |= allowed.RemoveAll(item => string.IsNullOrWhiteSpace(item.TargetKey) && !allowed.Any(child => child.ParentId == item.Id)) > 0;
+        } while (changed);
+        var menus = allowed
             .Select(item => new WebNavigationMenuItemDto(
                 item.Id,
                 item.ParentId,

@@ -19,4 +19,5 @@ public sealed class NavigationMenuOption
     public int Order { get; set; }
     public bool IsVisible { get; set; } = true;
     public bool IsClosable { get; set; } = true;
+    public string? RequiredPermission { get; set; }
 }

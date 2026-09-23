@@ -5,6 +5,7 @@ using System.Threading.RateLimiting;
 using Devkit.Server.Api.Endpoints;
 using Devkit.Server.Application.Abstractions;
 using Devkit.Server.Infrastructure;
+using Devkit.Server.Infrastructure.Workspace;
 using Devkit.Server.Infrastructure.Configuration;
 using Devkit.Server.Infrastructure.SystemInfo;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -14,11 +15,20 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+// Keep machine settings and model credentials outside the source tree.
+var externalConfig = Environment.GetEnvironmentVariable("DEVKIT_CONFIG_FILE");
+if (!string.IsNullOrWhiteSpace(externalConfig))
+{
+    builder.Configuration.AddJsonFile(externalConfig, optional: false, reloadOnChange: false)
+        .AddEnvironmentVariables().AddCommandLine(args);
+}
 var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.0.0";
 builder.Services.AddDevkitInfrastructure(
     builder.Configuration,
     new ServerRuntimeOptions("Devkit Server", version, builder.Environment.EnvironmentName));
 builder.Services.AddEndpointModules(typeof(Program).Assembly);
+builder.Services.AddWorkspace(builder.Configuration);
+builder.Services.AddExceptionHandler<WorkspaceExceptionHandler>();
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
 {
@@ -35,7 +45,7 @@ builder.Services.AddCors(options => options.AddPolicy("Web", policy =>
 {
     if (allowedOrigins.Length > 0)
     {
-        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Content-Disposition");
     }
 }));
 

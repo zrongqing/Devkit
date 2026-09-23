@@ -7,4 +7,5 @@ public sealed record NavigationMenuItem(
     string TargetKey,
     string? IconKey,
     int Order,
-    bool IsClosable);
+    bool IsClosable,
+    string? RequiredPermission = null);
