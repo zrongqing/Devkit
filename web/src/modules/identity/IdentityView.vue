@@ -35,7 +35,7 @@ async function load() {
   ]);
 }
 async function refreshPermissions() {
-  await loadPermissions();
+  await loadPermissions(true);
   await navigation.load(true);
 }
 function editRole(r?: Role) {

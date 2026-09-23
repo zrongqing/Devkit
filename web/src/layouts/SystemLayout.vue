@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
+import { ElMessage } from "element-plus";
 import {
   ArrowLeft,
   Fold,
@@ -12,7 +13,8 @@ import RecursiveMenuItem from "../components/navigation/RecursiveMenuItem.vue";
 import { resolvePageComponent } from "../router/pageRegistry";
 import { useNavigationStore } from "../stores/navigation";
 import { useTabsStore } from "../stores/tabs";
-import { session, saveSession, loadPermissions } from "../api/session";
+import { session, saveSession, loadPermissions, permissionDenied, hasPermission } from "../api/session";
+import { routePermission } from "../router";
 import { logout } from "../api/auth";
 
 const route = useRoute();
@@ -22,6 +24,7 @@ const tabs = useTabsStore();
 const collapsed = ref(false);
 const mobileMenuOpen = ref(false);
 const initialized = ref(false);
+const refreshingPermissions = ref(false);
 
 const openedDirectories = computed(() =>
   navigation.items.filter((item) => !item.routeKey).map((item) => item.id),
@@ -58,6 +61,22 @@ async function signOut() {
     }
   }
   await router.replace("/login");
+}
+
+async function refreshPermissionCache() {
+  if (!session.value || refreshingPermissions.value) return;
+  refreshingPermissions.value = true;
+  try {
+    await loadPermissions(true);
+    await navigation.load(true);
+    const required = routePermission(String(route.params.routeKey ?? ""));
+    if (required && !hasPermission(required)) await router.replace("/system/home");
+    ElMessage.success("权限已更新");
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "刷新权限失败，请稍后重试");
+  } finally {
+    refreshingPermissions.value = false;
+  }
 }
 
 watch(
@@ -128,7 +147,7 @@ function removeTab(name: string | number) {
 }
 
 async function retryMenus() {
-  if (session.value) await loadPermissions();
+  if (session.value) await loadPermissions(true);
   await navigation.load(true);
   syncRoute(String(route.params.routeKey ?? "home"));
 }
@@ -211,9 +230,11 @@ function navigateTo(routeKey: string, replace = false) {
           </div>
         </div>
         <div>
-          <span v-if="session" style="margin-right: 12px">{{
+          <span v-if="session" class="session-username" style="margin-right: 12px">{{
             session.user.userName
           }}</span
+          ><el-button v-if="session" :icon="Refresh" :loading="refreshingPermissions" title="刷新权限" @click="refreshPermissionCache"
+            ><span class="refresh-permission-label">刷新权限</span></el-button
           ><el-button v-if="session" @click="signOut">退出登录</el-button
           ><el-button v-else type="primary" @click="router.push('/login')"
             >登录</el-button
@@ -222,6 +243,12 @@ function navigateTo(routeKey: string, replace = false) {
           >
         </div>
       </header>
+
+      <div v-if="session && permissionDenied" class="permission-warning">
+        <span>服务端拒绝了该操作，当前权限可能已变化。请刷新权限或重新登录。</span>
+        <el-button size="small" :loading="refreshingPermissions" @click="refreshPermissionCache">刷新权限</el-button>
+        <el-button size="small" @click="signOut">重新登录</el-button>
+      </div>
 
       <el-tabs
         :model-value="tabs.activeId"
