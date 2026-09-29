@@ -28,6 +28,8 @@ export const useTabsStore = defineStore('tabs', () => {
   function openUnavailable(routeKey: string) {
     return open({
       id: `unavailable:${routeKey}`,
+      menuCode: routeKey,
+      type: "module",
       parentId: null,
       title: '页面尚未部署',
       routeKey,

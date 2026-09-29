@@ -1,5 +1,6 @@
 import type { ApiResponse } from './types'
 import { authorizedFetch } from './session'
+import { canonicalMenuCode } from './menuCodeCompatibility'
 import type { WebNavigationMenuItem } from '../types/navigation'
 
 export async function getWebNavigationMenus(signal?: AbortSignal): Promise<WebNavigationMenuItem[]> {
@@ -9,5 +10,10 @@ export async function getWebNavigationMenus(signal?: AbortSignal): Promise<WebNa
   }
 
   const body = (await response.json()) as ApiResponse<WebNavigationMenuItem[]>
-  return body.data
+  return body.data.map(item => ({
+    ...item,
+    id: canonicalMenuCode(item.id),
+    menuCode: canonicalMenuCode(item.menuCode),
+    parentId: item.parentId === null ? null : canonicalMenuCode(item.parentId),
+  }))
 }

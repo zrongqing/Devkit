@@ -5,3 +5,13 @@ public sealed record SystemInfoResponse(
     string Version,
     string Environment,
     DateTimeOffset ServerTime);
+
+public sealed record SystemRuntimeResponse(
+    SystemInfoResponse Info,
+    DateTimeOffset StartedAtUtc,
+    double UptimeSeconds,
+    long WorkingSetBytes,
+    long ManagedMemoryBytes,
+    int ThreadCount,
+    int ProcessorCount,
+    double TotalProcessorSeconds);

@@ -37,7 +37,7 @@ public sealed class WorkspaceEndpoints : IEndpointModule
     private static Task<Ok<ApiResponse<SuccessView>>> Run(HttpContext c,Func<Actor,Task> operation)=>Run(c,async actor=>{await operation(actor);return new SuccessView();});
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        var group=endpoints.MapGroup("/api/v1/exam-study").RequireAuthorization().WithTags("Exam Study");
+        var group=endpoints.MapGroup("/api/v1/exam-study").RequireAuthorization().WithTags("Exam Study").AddEndpointFilter<StudyPermissionFilter>();
         group.MapGet("/knowledge-bases",(HttpContext c,StudyService s,bool all=false)=>Run(c,a=>s.BasesAsync(a,all,c.RequestAborted))).Produces<ApiResponse<IReadOnlyList<KnowledgeBase>>>();
         group.MapPost("/knowledge-bases",(HttpContext c,StudyService s,NamedRequest r)=>Run(c,a=>s.SaveBaseAsync(a,null,r,c.RequestAborted)));
         group.MapPut("/knowledge-bases/{id:guid}",(HttpContext c,StudyService s,Guid id,NamedRequest r)=>Run(c,a=>s.SaveBaseAsync(a,id,r,c.RequestAborted)));
@@ -87,6 +87,9 @@ public sealed class WorkspaceEndpoints : IEndpointModule
 
         var identity=endpoints.MapGroup("/api/v1/identity").RequireAuthorization().WithTags("Identity Administration");
         identity.MapGet("/users",(HttpContext c,IAccountAdministration s)=>Run(c,a=>s.UsersAsync(a,c.RequestAborted)));
+        identity.MapGet("/permissions", (HttpContext c, IWorkspaceAccess access) => Run(c, a => { a.RequireAny("system.users.manage", "system.roles.manage", "system.permissions.manage"); return Task.FromResult(PermissionCatalog.Modules); }));
+        identity.MapPut("/users/{id:guid}", (HttpContext c, IAccountAdministration s, Guid id, AccountUpdateRequest r) => Run(c, a => s.UpdateAsync(a, id, r, c.RequestAborted)));
+        identity.MapPut("/users/{id:guid}/permissions", (HttpContext c, IAccountAdministration s, Guid id, AssignPermissionsRequest r) => Run(c, a => s.AssignPermissionsAsync(a, id, r.Permissions, c.RequestAborted)));
         identity.MapPost("/users",(HttpContext c,IAccountAdministration s,AccountRequest r)=>Run(c,a=>s.CreateAsync(a,r,c.RequestAborted)));
         identity.MapDelete("/users/{id:guid}",(HttpContext c,IAccountAdministration s,Guid id)=>Run(c,a=>s.DisableAsync(a,id,c.RequestAborted)));
         identity.MapGet("/roles",(HttpContext c,IAccountAdministration s)=>Run(c,a=>s.RolesAsync(a,c.RequestAborted)));

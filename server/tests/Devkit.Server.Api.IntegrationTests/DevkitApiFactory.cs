@@ -18,7 +18,8 @@ internal sealed class DevkitApiFactory(
     bool registrationEnabled = true,
     bool failingCache = false,
     bool bootstrapEnabled = false,
-    bool builtInAdmin = false)
+    bool builtInAdmin = false,
+    Action<DevkitDbContext>? prepareDatabase = null)
     : WebApplicationFactory<Program>
 {
     public string DataRoot { get; } = Path.Combine(
@@ -71,6 +72,7 @@ internal sealed class DevkitApiFactory(
             using (var setupContext = new DevkitDbContext(testOptions))
             {
                 setupContext.Database.EnsureCreated();
+                prepareDatabase?.Invoke(setupContext);
             }
 
             services.AddDbContext<DevkitDbContext>((serviceProvider, options) =>

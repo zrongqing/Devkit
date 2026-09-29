@@ -2,6 +2,10 @@
 import { computed } from 'vue'
 import {
   DataAnalysis,
+  Reading,
+  User,
+  Menu,
+  Search,
   FolderOpened,
   HomeFilled,
   InfoFilled,
@@ -17,6 +21,10 @@ const props = defineProps<{
 const icon = computed(() => {
   const icons = {
     home: HomeFilled,
+    book: Reading,
+    users: User,
+    menu: Menu,
+    search: Search,
     system: DataAnalysis,
     monitor: Monitor,
     pulse: DataAnalysis,

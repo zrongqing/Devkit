@@ -9,17 +9,16 @@ import {
   type SearchHit,
   type History,
   type Attempt,
-  type Question,
   type Progress,
   type Citation,
 } from "../../api/examStudy";
 import { label, date, parse, useOperation } from "./shared";
 import CitationPanel from "./CitationPanel.vue";
-const props = defineProps<{ project: Project; bases: KnowledgeBase[] }>();
+const props = defineProps<{ project: Project; bases: KnowledgeBase[]; workspaceMode: "search" | "attempt" | "progress" }>();
 const route = useRoute();
 const router = useRouter();
 const { run, busy, error } = useOperation();
-const tab = ref("search");
+const tab = ref(props.workspaceMode);
 const query = ref("");
 const lastQuery = ref("");
 const mode = ref("keyword");
@@ -50,6 +49,7 @@ const progress = ref<Progress>({
   mistakes: [],
   answered: 0,
   correct: 0,
+  questionNames: {},
 });
 const questionNames = ref<Record<string, string>>({});
 const attemptDialog = ref(false);
@@ -217,8 +217,7 @@ function applyAttempt(value: Attempt, reset = false) {
 }
 async function loadProgress() {
   progress.value = await studyApi.progress(props.project.id);
-  const q = await studyApi.questions(undefined, true);
-  questionNames.value = Object.fromEntries(q.map((x) => [x.id, x.stem]));
+  questionNames.value = progress.value.questionNames;
 }
 async function start() {
   await run(async () => {
@@ -388,11 +387,14 @@ onMounted(() => {
     sessionStorage.getItem(`study-recent:${props.project.id}`) ?? "[]",
   );
   void run(async () => {
-    await loadProgress();
-    history.value = await studyApi.history(props.project.id);
-    capabilities.value = await studyApi.capabilities();
-    const id = String(route.query.attemptId ?? "");
-    if (id) await resume(id);
+    if (props.workspaceMode === "search") {
+      history.value = await studyApi.history(props.project.id);
+      capabilities.value = await studyApi.capabilities();
+    } else {
+      await loadProgress();
+      const id = String(route.query.attemptId ?? "");
+      if (id) await resume(id);
+    }
   });
   clock = setInterval(tick, 1000);
   window.addEventListener("keydown", keyboard);
@@ -432,7 +434,7 @@ onUnmounted(() => {
           if (name === 'progress') void run(loadProgress);
         }
       "
-      ><el-tab-pane label="快速查原文" name="search"
+      ><el-tab-pane v-if="workspaceMode === 'search'" label="快速查原文" name="search"
         ><div class="study-search">
           <h3>制度条款，随查随用</h3>
           <p>
@@ -548,7 +550,7 @@ onUnmounted(() => {
                 :citations="parse(h.citationsJson)"
               /></div></el-collapse-item></el-collapse
       ></el-tab-pane>
-      <el-tab-pane label="刷题与模拟考试" name="attempt"
+      <el-tab-pane v-if="workspaceMode !== 'search'" label="刷题与模拟考" name="attempt"
         ><div class="study-toolbar">
           <el-button
             type="primary"
@@ -660,7 +662,7 @@ onUnmounted(() => {
           v-else
           description="创建一轮练习，或从学习记录恢复未完成的考试"
       /></el-tab-pane>
-      <el-tab-pane label="错题与学习记录" name="progress"
+      <el-tab-pane v-if="workspaceMode !== 'search'" label="错题与学习记录" name="progress"
         ><div class="study-grid">
           <div class="study-card">
             <div class="study-muted">累计作答</div>

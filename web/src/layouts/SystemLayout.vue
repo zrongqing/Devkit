@@ -4,30 +4,42 @@ import { ElMessage } from "element-plus";
 import {
   ArrowLeft,
   Fold,
+  Expand,
+  Hide,
   Grid,
   Menu as MenuIcon,
   Refresh,
 } from "@element-plus/icons-vue";
 import { useRoute, useRouter } from "vue-router";
 import RecursiveMenuItem from "../components/navigation/RecursiveMenuItem.vue";
-import { resolvePageComponent } from "../router/pageRegistry";
+import PageAccessView from "../components/PageAccessView.vue";
 import { useNavigationStore } from "../stores/navigation";
 import { useTabsStore } from "../stores/tabs";
-import { session, saveSession, loadPermissions, permissionDenied, hasPermission } from "../api/session";
-import { routePermission } from "../router";
+import { session, saveSession, loadPermissions, permissionDenied } from "../api/session";
 import { logout } from "../api/auth";
 
 const route = useRoute();
 const router = useRouter();
 const navigation = useNavigationStore();
 const tabs = useTabsStore();
-const collapsed = ref(false);
+type NavigationMode = "expanded" | "icons" | "hidden";
+function restoreNavigation(): NavigationMode {
+  try { const value = localStorage.getItem("devkit.navigation-mode"); return value === "icons" || value === "hidden" ? value : "expanded"; }
+  catch { return "expanded"; }
+}
+const navigationMode = ref<NavigationMode>(restoreNavigation());
+const collapsed = computed(() => navigationMode.value === "icons" && !mobileMenuOpen.value);
+function setNavigationMode(mode: NavigationMode) {
+  navigationMode.value = mode;
+  mobileMenuOpen.value = false;
+  try { localStorage.setItem("devkit.navigation-mode", mode); } catch { /* Storage can be unavailable. */ }
+}
 const mobileMenuOpen = ref(false);
 const initialized = ref(false);
 const refreshingPermissions = ref(false);
 
 const openedDirectories = computed(() =>
-  navigation.items.filter((item) => !item.routeKey).map((item) => item.id),
+  navigation.items.filter((item) => item.type === "directory").map((item) => item.id),
 );
 
 onMounted(async () => {
@@ -69,8 +81,8 @@ async function refreshPermissionCache() {
   try {
     await loadPermissions(true);
     await navigation.load(true);
-    const required = routePermission(String(route.params.routeKey ?? ""));
-    if (required && !hasPermission(required)) await router.replace("/system/home");
+    const current = String(route.params.routeKey ?? "home");
+    if (current !== "home" && !navigation.findByRouteKey(current)) await router.replace("/system/home");
     ElMessage.success("权限已更新");
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : "刷新权限失败，请稍后重试");
@@ -92,13 +104,14 @@ watch(
   () => navigation.items,
   () => {
     if (!initialized.value) return;
-    for (const tab of [...tabs.tabs])
-      if (
-        tab.routeKey &&
-        tab.routeKey !== "home" &&
-        !navigation.findByRouteKey(tab.routeKey)
-      )
-        tabs.close(tab.id);
+    for (const tab of [...tabs.tabs]) {
+      const menu = navigation.findByRouteKey(tab.routeKey);
+      if (menu) tab.title = menu.title;
+      else if (tab.routeKey !== "home") tabs.close(tab.id);
+    }
+    const active = tabs.find(tabs.activeId);
+    if (active && !navigation.findByRouteKey(String(route.params.routeKey ?? "home")))
+      navigateTo(active.routeKey, true);
   },
 );
 watch(
@@ -115,6 +128,8 @@ function syncRoute(routeKey: string) {
   } else if (routeKey === "home") {
     tabs.open({
       id: "home",
+      menuCode: "home",
+      type: "module",
       parentId: null,
       title: "首页",
       routeKey: "home",
@@ -163,7 +178,7 @@ function navigateTo(routeKey: string, replace = false) {
   <div class="system-shell">
     <aside
       class="system-sidebar"
-      :class="{ 'is-collapsed': collapsed, 'is-mobile-open': mobileMenuOpen }"
+      :class="{ 'is-collapsed': collapsed, 'is-hidden': navigationMode === 'hidden' && !mobileMenuOpen, 'is-mobile-open': mobileMenuOpen }"
     >
       <div class="sidebar-brand">
         <span class="brand-icon"
@@ -200,13 +215,6 @@ function navigateTo(routeKey: string, replace = false) {
         </div>
       </el-scrollbar>
 
-      <button
-        class="sidebar-collapse"
-        type="button"
-        @click="collapsed = !collapsed"
-      >
-        <el-icon><Fold /></el-icon><span v-show="!collapsed">收起导航</span>
-      </button>
     </aside>
 
     <button
@@ -216,12 +224,16 @@ function navigateTo(routeKey: string, replace = false) {
       @click="mobileMenuOpen = false"
     />
 
+    <button v-if="navigationMode === 'hidden'" type="button" class="sidebar-restore" aria-label="展开导航" title="展开导航" @click="setNavigationMode('expanded')">
+      <el-icon><Expand /></el-icon>
+    </button>
     <section class="system-main">
       <header class="system-header">
         <div class="header-left">
           <el-button
             class="mobile-menu-button"
             circle
+            aria-label="展开导航"
             :icon="MenuIcon"
             @click="mobileMenuOpen = true"
           />
@@ -229,7 +241,17 @@ function navigateTo(routeKey: string, replace = false) {
             <strong>Devkit 工作台</strong><span>模块化业务开发框架</span>
           </div>
         </div>
-        <div>
+        <div class="header-actions">
+          <el-dropdown class="navigation-control" trigger="click" @command="setNavigationMode">
+            <el-button :icon="Fold" aria-label="导航显示方式">导航显示</el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="expanded" :icon="Expand" :disabled="navigationMode === 'expanded'">展开导航</el-dropdown-item>
+                <el-dropdown-item command="icons" :icon="Fold" :disabled="navigationMode === 'icons'">收起为图标</el-dropdown-item>
+                <el-dropdown-item command="hidden" :icon="Hide" :disabled="navigationMode === 'hidden'">完全隐藏</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <span v-if="session" class="session-username" style="margin-right: 12px">{{
             session.user.userName
           }}</span
@@ -265,8 +287,7 @@ function navigateTo(routeKey: string, replace = false) {
           :closable="tab.isClosable"
           lazy
         >
-          <component
-            :is="resolvePageComponent(tab.routeKey)"
+          <PageAccessView
             :route-key="tab.routeKey"
           />
         </el-tab-pane>

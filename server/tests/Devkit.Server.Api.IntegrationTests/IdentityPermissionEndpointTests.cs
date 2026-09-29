@@ -56,7 +56,7 @@ public sealed class IdentityPermissionEndpointTests
     }
 
     [Fact]
-    public async Task Menu_permission_is_required_and_grant_and_revocation_take_effect()
+    public async Task Menu_and_business_permissions_are_independent_and_revocation_takes_effect()
     {
         using var factory = new DevkitApiFactory(builtInAdmin: true); using var admin = factory.CreateClient(); await Login(admin);
         using var user = factory.CreateClient();
@@ -65,6 +65,7 @@ public sealed class IdentityPermissionEndpointTests
         await Problem(await user.GetAsync("/api/v1/exam-study/knowledge-bases"), HttpStatusCode.Forbidden, "forbidden");
         Assert.DoesNotContain("study-knowledge", (await Data<JsonElement>(await user.GetAsync("/api/v1/web/navigation/menus"))).ToString());
         var role = await Data<Guid>(await admin.PostAsJsonAsync("/api/v1/identity/roles", new RoleRequest("制度学习者", ["exam-study.access"])));
+        await Data<SuccessView>(await admin.PutAsJsonAsync($"/api/v1/identity/roles/{role}/menus", new { menuCodes = new[] { "knowledge.bases" } }));
         await Data<SuccessView>(await admin.PutAsJsonAsync($"/api/v1/identity/users/{registered.Id}/roles", new AssignRolesRequest([role])));
         await Problem(await user.GetAsync("/api/v1/exam-study/knowledge-bases"), HttpStatusCode.Unauthorized, "unauthorized");
         await Login(user, "learner", "StrongPassword123");
@@ -72,6 +73,8 @@ public sealed class IdentityPermissionEndpointTests
         await Base(user);
         await Data<Guid>(await admin.PutAsJsonAsync($"/api/v1/identity/roles/{role}", new RoleRequest("制度学习者", [])));
         await Problem(await user.GetAsync("/api/v1/exam-study/knowledge-bases"), HttpStatusCode.Forbidden, "forbidden");
+        Assert.Contains("study-knowledge", (await Data<JsonElement>(await user.GetAsync("/api/v1/web/navigation/menus"))).ToString());
+        await Data<SuccessView>(await admin.PutAsJsonAsync($"/api/v1/identity/roles/{role}/menus", new { menuCodes = Array.Empty<string>() }));
         Assert.DoesNotContain("study-knowledge", (await Data<JsonElement>(await user.GetAsync("/api/v1/web/navigation/menus"))).ToString());
     }
 

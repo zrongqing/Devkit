@@ -1,10 +1,14 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
+import { getPageDefinition } from '../router/pageRegistry'
+import { session } from '../api/session'
 import { getWebNavigationMenus } from '../api/navigation'
 import type { NavigationMenuNode, WebNavigationMenuItem } from '../types/navigation'
 
 export const fallbackHome: WebNavigationMenuItem = {
   id: 'home',
+  menuCode: 'home',
+  type: 'module',
   parentId: null,
   title: '首页',
   routeKey: 'home',
@@ -21,30 +25,42 @@ export const useNavigationStore = defineStore('navigation', () => {
 
   const nodes = computed(() => buildTree(items.value))
 
-  async function load(force = false) {
-    if ((loaded.value && !force) || loading.value) {
-      return
-    }
-
+  let generation = 0
+  let loadedUser: string | undefined
+  let pending: Promise<void> | undefined
+  async function load(force = false): Promise<void> {
+    const user = session.value?.user.id ?? ''
+    if (pending && !force) return pending
+    if (loaded.value && !force && loadedUser === user) return
+    const sequence = ++generation
     loading.value = true
     error.value = undefined
-    try {
-      const remoteItems = await getWebNavigationMenus()
-      const remoteHome = remoteItems.find((item) => item.id.toLowerCase() === 'home')
-      const normalizedHome = remoteHome
-        ? { ...remoteHome, id: 'home', routeKey: 'home', parentId: null, isClosable: false }
-        : fallbackHome
-      items.value = [
-        normalizedHome,
-        ...remoteItems.filter((item) => item.id.toLowerCase() !== 'home'),
-      ]
-      loaded.value = true
-    } catch (reason) {
-      items.value = [fallbackHome]
-      error.value = reason instanceof Error ? reason.message : '菜单加载失败，请稍后重试。'
-    } finally {
-      loading.value = false
-    }
+    const operation = (async () => {
+      try {
+        const remote = await getWebNavigationMenus()
+        if (sequence !== generation || user !== (session.value?.user.id ?? '')) return
+        let visible = remote.filter(item => item.type === 'directory' || getPageDefinition(item.routeKey)?.menuCode === item.menuCode)
+        let changed = true
+        while (changed) {
+          const next = visible.filter(item => (!item.parentId || visible.some(p => p.id === item.parentId))
+            && (item.type === 'module' || visible.some(child => child.parentId === item.id)))
+          changed = next.length !== visible.length
+          visible = next
+        }
+        items.value = visible.map(item => item.menuCode === 'home' ? { ...item, isClosable: false } : item)
+        loaded.value = true
+        loadedUser = user
+      } catch (reason) {
+        if (sequence !== generation) return
+        items.value = [fallbackHome]
+        loaded.value = false
+        error.value = reason instanceof Error ? reason.message : '菜单加载失败，请稍后重试。'
+      } finally {
+        if (sequence === generation) { loading.value = false; pending = undefined }
+      }
+    })()
+    pending = operation
+    await operation
   }
 
   function findById(id: string) {

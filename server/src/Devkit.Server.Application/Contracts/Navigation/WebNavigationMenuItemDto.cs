@@ -7,4 +7,6 @@ public sealed record WebNavigationMenuItemDto(
     string RouteKey,
     string? IconKey,
     int Order,
-    bool IsClosable);
+    bool IsClosable,
+    string MenuCode,
+    string Type);

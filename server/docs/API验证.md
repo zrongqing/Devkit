@@ -43,6 +43,7 @@ API 集成测试使用独立 SQLite 数据库和内存 / 故障缓存替身，�
 | `StudyEndpointTests.cs` | 资料版本与项目范围、查询后权限范围复核、旧题待复核、考试答案隐藏与快照判分、超时交卷、错题掌握、冲突与空值校验、模型失败、引用和生成任务防重、OpenAPI |
 | `FileStorageEndpointTests.cs` | DOCX 原件与文本提取、引用保留及清理限制、上传大小与内容校验、跨用户下载限制、迁移恢复和校验、独立清理、路径边界 |
 | `IdentityPermissionEndpointTests.cs` | 默认管理员、登录要求、菜单授权与撤销、数据隔离、防止越权授予管理员、最后管理员保护、改密使会话失效、空值校验 |
+| `WebMenuEndpointTests.cs` | 三级菜单、声明比较、幂等同步、配置保留、树校验、冲突与整批回滚、入口保护、用户角色菜单授权、越权及一次性迁移 |
 | `DevkitApiFactory.cs` | 隔离宿主、SQLite、文件目录及任务执行；不启动真实后台索引工作线程 |
 | `TestExternalServices.cs` | 受控的 Qdrant HTTP 和模型替身；仍执行生产索引代码的序列化与过滤逻辑 |
 

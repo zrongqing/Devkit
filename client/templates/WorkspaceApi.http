@@ -1,0 +1,139 @@
+# Desktop HTTP calling template. Set baseUrl from DEVKIT_API_BASE_URL and use a signed-in access token.
+# Success: { data, traceId }. Failure: ProblemDetails with code and traceId.
+# Placeholder IDs/tokens must be supplied by the caller; never commit real credentials.
+@baseUrl = http://localhost:12511
+@accessToken = REPLACE_WITH_ACCESS_TOKEN
+@userId = 00000000-0000-0000-0000-000000000000
+@roleId = 00000000-0000-0000-0000-000000000000
+@projectId = 00000000-0000-0000-0000-000000000000
+
+### Catalog: data = [{ key, name, group, routeKey }]. Requires any identity administration module.
+GET {{baseUrl}}/api/v1/identity/permissions
+Authorization: Bearer {{accessToken}}
+
+### Users: data = [{ id, userName, email, roles, permissions, effectivePermissions, menuCodes, effectiveMenuCodes }].
+# permissions is direct authorization; effectivePermissions includes expanded role grants.
+GET {{baseUrl}}/api/v1/identity/users
+Authorization: Bearer {{accessToken}}
+
+### Edit user basic information. Requires system.users.manage.
+PUT {{baseUrl}}/api/v1/identity/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "userName": "sample-user", "email": "sample-user@example.invalid" }
+
+### Replace direct user permissions. [] revokes direct grants only. Requires system.permissions.manage.
+PUT {{baseUrl}}/api/v1/identity/users/{{userId}}/permissions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "permissions": ["study.search", "study.practice"] }
+
+### User role assignment. Requires system.permissions.manage; invalidates the target's access token.
+PUT {{baseUrl}}/api/v1/identity/users/{{userId}}/roles
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "roleIds": ["{{roleId}}"] }
+
+### Role list, including business permissions and independent menuCodes.
+GET {{baseUrl}}/api/v1/identity/roles
+Authorization: Bearer {{accessToken}}
+
+### Replace role name and permissions. Requires system.roles.manage or system.permissions.manage.
+PUT {{baseUrl}}/api/v1/identity/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "name": "项目学习者", "permissions": ["study.search", "study.practice"] }
+
+### Effective permissions. data also includes menuCodes (direct + role grants); reload permissions and navigation after edits.
+GET {{baseUrl}}/api/v1/auth/permissions
+Authorization: Bearer {{accessToken}}
+
+### Project progress. Requires study.practice. Adds questionNames: { questionId: savedQuestionStem }.
+# Existing attempts, mistakes, answered and correct fields remain unchanged; answers are not exposed here.
+GET {{baseUrl}}/api/v1/exam-study/projects/{{projectId}}/progress
+Authorization: Bearer {{accessToken}}
+
+### Server process monitoring. Requires system.monitor.view.
+# data: info (existing SystemInfo), startedAtUtc, uptimeSeconds, workingSetBytes, managedMemoryBytes,
+# threadCount, processorCount, totalProcessorSeconds. CPU time is cumulative, not a percentage.
+GET {{baseUrl}}/api/v1/system/runtime
+Authorization: Bearer {{accessToken}}
+
+
+### Web navigation only; Desktop continues to use /api/v1/client/navigation/menus.
+# data = [{ id, menuCode, type: "module"|"directory", parentId, title, routeKey, iconKey, order, isClosable }].
+# Only enabled, accessible modules + their ancestors. Directory routeKey is empty.
+GET {{baseUrl}}/api/v1/web/navigation/menus
+Authorization: Bearer {{accessToken}}
+
+### Database menu configuration; also available to identity administrators for grant selection.
+# data = { version, menus: [{ menuCode, type, parentCode, title, routeKey, iconKey, order,
+# enabled, isPublic, isClosable, source, requiredPermissions, revision, lastDeclaration }] }.
+GET {{baseUrl}}/api/v1/web/menu-management/menus
+Authorization: Bearer {{accessToken}}
+
+### Compare the current frontend manifest. No writes. Requires system.menus.manage.
+# Send the complete manifest from the current Web build; component loaders must be excluded.
+# data = { version, items: [{ menuCode, status: new|synced|changed|missing|manual, local, current }] }.
+POST {{baseUrl}}/api/v1/web/menu-management/compare
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "menus": [
+  { "menuCode": "sample", "type": "directory", "parentCode": null, "title": "示例目录", "routeKey": null, "iconKey": "book", "order": 50, "requiredPermissions": [], "isClosable": true },
+  { "menuCode": "sample.page", "type": "module", "parentCode": "sample", "title": "示例页面", "routeKey": "sample-page", "iconKey": "book", "order": 1, "requiredPermissions": ["study.search"], "isClosable": true }
+] }
+
+### Synchronize selected declarations. Replace version with the value returned by compare.
+# Missing ancestors are included. Empty applyFields preserves backend display configuration.
+# To explicitly apply defaults use title / parentCode / iconKey / order.
+# 409 menu_conflict requires comparing again; no partial writes. Example routes must exist in Web to be shown.
+POST {{baseUrl}}/api/v1/web/menu-management/sync
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "version": 1, "menus": [
+  { "menuCode": "sample", "type": "directory", "parentCode": null, "title": "示例目录", "routeKey": null, "iconKey": "book", "order": 50, "requiredPermissions": [], "isClosable": true },
+  { "menuCode": "sample.page", "type": "module", "parentCode": "sample", "title": "示例页面", "routeKey": "sample-page", "iconKey": "book", "order": 1, "requiredPermissions": ["study.search"], "isClosable": true }
+], "items": [{ "menuCode": "sample.page", "applyFields": [] }] }
+
+### Create a directory. Requires system.menus.manage. Use latest tree version for every mutation.
+POST {{baseUrl}}/api/v1/web/menu-management/menus
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "version": 1, "menuCode": "manual.folder", "title": "自建目录", "parentCode": "system.management", "iconKey": "menu", "order": 98 }
+
+### Edit display configuration; code, type and route mapping are immutable.
+PUT {{baseUrl}}/api/v1/web/menu-management/menus/manual.folder
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "version": 2, "title": "自建目录", "parentCode": "system.management", "iconKey": "menu", "order": 98, "enabled": false }
+
+### Delete only an empty, unprotected directory; use the current version.
+DELETE {{baseUrl}}/api/v1/web/menu-management/menus/manual.folder?version=3
+Authorization: Bearer {{accessToken}}
+
+### Replace user DIRECT menu grants; business permissions and inherited grants are unchanged.
+# Requires system.permissions.manage. [] revokes all direct menu grants.
+PUT {{baseUrl}}/api/v1/identity/users/{{userId}}/menus
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "menuCodes": ["knowledge.search", "knowledge.practice.exam"] }
+
+### Replace role menu grants. Requires system.roles.manage or system.permissions.manage.
+# Only module codes; non-administrators cannot grant menus beyond their own scope.
+PUT {{baseUrl}}/api/v1/identity/roles/{{roleId}}/menus
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "menuCodes": ["knowledge.search"] }
+
+# MenuCode uses lowercase business segments separated only by dots (e.g. knowledge.search).
+# Keep routeKey independent (e.g. study-projects) to preserve existing links.

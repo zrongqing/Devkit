@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { session, saveSession } from "../../api/session";
+import { session, saveSession, hasPermission } from "../../api/session";
 import { identityApi } from "../../api/examStudy";
 import { useOperation } from "../../modules/exam-study/shared";
 
-const compactMode = ref(false);
-const notifications = ref(true);
 const currentPassword = ref("");
 const newPassword = ref("");
-const { run, busy } = useOperation();
+const { run, busy, error } = useOperation();
 const router = useRouter();
 async function changePassword() {
   await run(async () => {
@@ -24,24 +22,17 @@ async function changePassword() {
   <section class="page-shell">
     <div class="page-heading">
       <div>
-        <p class="page-kicker">系统</p>
-        <h2>设置</h2>
+        <p class="page-kicker">系统管理</p>
+        <h2>基础参数</h2>
       </div>
-      <p>用于展示后续模块可以采用的表单布局。</p>
+      <p>配置系统文件存储位置，维护当前账号的登录安全。</p>
     </div>
+    <el-alert v-if="error" :title="error" type="error" :closable="false" class="study-error" />
     <el-card shadow="never" class="settings-card">
-      <el-form label-position="top">
-        <el-form-item label="紧凑模式">
-          <el-switch v-model="compactMode" />
-          <span class="form-hint"
-            >缩小页面内容间距（演示设置，不会持久化）。</span
-          >
-        </el-form-item>
-        <el-form-item label="状态通知">
-          <el-switch v-model="notifications" />
-          <span class="form-hint">在重要任务完成时显示通知。</span>
-        </el-form-item>
-      </el-form>
+      <template #header>文件存储参数</template>
+      <p>维护文件保存位置，配置新存储目录并执行存量文件迁移。</p>
+      <el-button v-if="hasPermission('system.storage.manage')" type="primary" @click="router.push('/system/system-storage')">配置存储位置</el-button>
+      <p v-else class="study-muted">需要存储与迁移权限才能配置。</p>
     </el-card>
     <el-card v-if="session" shadow="never" style="margin-top: 20px"
       ><template #header>修改登录密码</template
