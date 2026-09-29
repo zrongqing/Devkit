@@ -1,0 +1,315 @@
+name: Release Devkit
+
+on:
+  push:
+    tags:
+      - "client-v*"
+      - "server-v*"
+      - "web-v*"
+      - "v*"
+
+permissions:
+  actions: read
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Resolve release scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      client: ${{ steps.release.outputs.client }}
+      server: ${{ steps.release.outputs.server }}
+      web: ${{ steps.release.outputs.web }}
+      server_image: ${{ steps.release.outputs.server_image }}
+      title: ${{ steps.release.outputs.title }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag and resolve components
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="$GITHUB_REF_NAME"
+          client=false
+          server=false
+          web=false
+
+          case "$tag" in
+            client-v*)
+              version="${tag#client-v}"
+              client=true
+              title="Devkit Client $version"
+              ;;
+            server-v*)
+              version="${tag#server-v}"
+              server=true
+              title="Devkit Server $version"
+              ;;
+            web-v*)
+              version="${tag#web-v}"
+              web=true
+              title="Devkit Web $version"
+              ;;
+            v*)
+              version="${tag#v}"
+              client=true
+              server=true
+              web=true
+              title="Devkit $version"
+              ;;
+            *)
+              echo "Unsupported release tag: $tag"
+              exit 1
+              ;;
+          esac
+
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$ ]]; then
+            echo "Release tag '$tag' must contain a semantic version such as 1.2.3 or 1.2.3-rc.1."
+            exit 1
+          fi
+
+          git fetch origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+            echo "Release tag '$tag' must point to a commit contained in main."
+            exit 1
+          }
+
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          {
+            echo "version=$version"
+            echo "client=$client"
+            echo "server=$server"
+            echo "web=$web"
+            echo "server_image=ghcr.io/$owner/devkit-server"
+            echo "title=$title"
+          } >> "$GITHUB_OUTPUT"
+
+  client:
+    name: Build and package Windows x64 client
+    if: needs.prepare.outputs.client == 'true'
+    needs: prepare
+    runs-on: windows-2025
+    timeout-minutes: 30
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Package client
+        shell: pwsh
+        run: |
+          ./client/DevkitPrism/packaging/Package-Devkit.ps1 `
+            -Version $env:RELEASE_VERSION
+
+          $assets = @(Get-ChildItem ./build/client/package -File |
+            Where-Object { $_.Name -match '\.(exe|sha256)$' })
+
+          if ($assets.Count -ne 2) {
+            throw "Expected an installer and checksum, found $($assets.Count) files."
+          }
+
+      - name: Upload client release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-client
+          path: |
+            build/client/package/*.exe
+            build/client/package/*.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  web:
+    name: Build and package static web files
+    if: needs.prepare.outputs.web == 'true'
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build web
+        working-directory: web
+        run: npm run build
+
+      - name: Package web files
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive="devkit-web-${RELEASE_VERSION}.tar.gz"
+          tar -czf "$archive" -C web/dist .
+          sha256sum "$archive" > "$archive.sha256"
+
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "checksum=$archive.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload web release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-web
+          path: |
+            ${{ steps.package.outputs.archive }}
+            ${{ steps.package.outputs.checksum }}
+          if-no-files-found: error
+          retention-days: 7
+
+  server:
+    name: Test and publish server image
+    if: needs.prepare.outputs.server == 'true'
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      SERVER_IMAGE: ${{ needs.prepare.outputs.server_image }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore server
+        run: dotnet restore server/Devkit.Server.slnx --nologo
+
+      - name: Build server
+        run: dotnet build server/Devkit.Server.slnx --configuration Release --no-restore --nologo -p:Version="$RELEASE_VERSION"
+
+      - name: Test server
+        run: dotnet test server/Devkit.Server.slnx --configuration Release --no-build --no-restore --nologo -p:Version="$RELEASE_VERSION"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Build and push image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: server/src/Devkit.Server.Api/Dockerfile
+          push: true
+          build-args: |
+            VERSION=${{ env.RELEASE_VERSION }}
+          tags: |
+            ${{ env.SERVER_IMAGE }}:${{ env.RELEASE_VERSION }}
+            ${{ env.SERVER_IMAGE }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.RELEASE_VERSION }}
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
+          provenance: true
+          sbom: true
+
+  publish-release:
+    name: Publish GitHub Release
+    if: >-
+      always() &&
+      needs.prepare.result == 'success' &&
+      (needs.client.result == 'success' || needs.client.result == 'skipped') &&
+      (needs.web.result == 'success' || needs.web.result == 'skipped') &&
+      (needs.server.result == 'success' || needs.server.result == 'skipped') &&
+      (needs.prepare.outputs.client == 'true' || needs.prepare.outputs.web == 'true')
+    needs:
+      - prepare
+      - client
+      - web
+      - server
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_TITLE: ${{ needs.prepare.outputs.title }}
+
+    steps:
+      - name: Download release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download "$GITHUB_RUN_ID" --pattern 'release-*' --dir release-assets
+
+      - name: Create or update GitHub Release
+        shell: bash
+        env:
+          INCLUDE_CLIENT: ${{ needs.prepare.outputs.client }}
+          INCLUDE_WEB: ${{ needs.prepare.outputs.web }}
+        run: |
+          set -euo pipefail
+
+          mapfile -d '' assets < <(find release-assets -type f \
+            \( -name '*.exe' -o -name '*.sha256' -o -name '*.tar.gz' \) \
+            -print0)
+
+          expected=0
+          [[ "$INCLUDE_CLIENT" == "true" ]] && expected=$((expected + 2))
+          [[ "$INCLUDE_WEB" == "true" ]] && expected=$((expected + 2))
+
+          if [[ "${#assets[@]}" -ne "$expected" ]]; then
+            echo "Expected $expected release assets, found ${#assets[@]}."
+            printf '%s\n' "${assets[@]}"
+            exit 1
+          fi
+
+          release_flags=()
+          if [[ "$RELEASE_VERSION" == *-* ]]; then
+            release_flags+=(--prerelease)
+          fi
+
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              "${assets[@]}" \
+              --verify-tag \
+              --generate-notes \
+              --title "$RELEASE_TITLE" \
+              "${release_flags[@]}"
+          fi
