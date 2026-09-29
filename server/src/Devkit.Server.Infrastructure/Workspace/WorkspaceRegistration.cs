@@ -1,4 +1,7 @@
 using Devkit.Server.Application.Workspace;
+using Devkit.Server.Application.Navigation;
+using Devkit.Server.Domain.Navigation;
+using Devkit.Server.Infrastructure.Navigation;
 using Devkit.Server.Domain.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +12,10 @@ public static class WorkspaceRegistration
 {
     public static IServiceCollection AddWorkspace(this IServiceCollection services,IConfiguration config)
     {
+        services.AddScoped<IWebMenuStore, WebMenuStore>();
+        services.AddScoped<IWebMenuDefaults, WebMenuDefaults>();
+        services.AddScoped<WebMenuService>();
+        services.AddHostedService<WebMenuBootstrapHostedService>();
         services.AddOptions<WorkspaceOptions>().Bind(config.GetSection("Workspace"));
         services.AddHttpClient();
         services.AddScoped<IWorkspaceStore,WorkspaceStore>();services.AddScoped<IWorkspaceAccess,WorkspaceAccess>();

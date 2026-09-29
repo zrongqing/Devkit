@@ -10,7 +10,7 @@ defineProps<{
 </script>
 
 <template>
-  <el-sub-menu v-if="item.children.length" :index="item.id">
+  <el-sub-menu v-if="item.type === 'directory'" :index="item.id">
     <template #title>
       <NavigationIcon :icon-key="item.iconKey" directory />
       <span>{{ item.title }}</span>

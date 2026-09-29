@@ -146,6 +146,7 @@ export interface Progress {
   mistakes: Mistake[];
   answered: number;
   correct: number;
+  questionNames: Record<string, string>;
 }
 export interface History extends Owned {
   query: string;
@@ -178,11 +179,17 @@ export interface Account {
   userName: string;
   email: string;
   roles: string[];
+  permissions: string[];
+  effectivePermissions: string[];
+  menuCodes: string[];
+  effectiveMenuCodes: string[];
 }
+export interface ModulePermission { key: string; name: string; group: string; routeKey: string }
 export interface Role {
   id: string;
   name: string;
   permissions: string[];
+  menuCodes: string[];
 }
 const base = "/api/v1/exam-study";
 const json = (body: unknown, method = "POST"): RequestInit => ({
@@ -374,6 +381,9 @@ export const fileApi = {
     request(`/api/v1/storage/migrations/${id}/cleanup`, { method: "POST" }),
 };
 export const identityApi = {
+  catalog: () => request<ModulePermission[]>("/api/v1/identity/permissions"),
+  update: (id: string, body: { userName: string; email: string }) => request(`/api/v1/identity/users/${id}`, json(body, "PUT")),
+  permissions: (id: string, permissions: string[]) => request(`/api/v1/identity/users/${id}/permissions`, json({ permissions }, "PUT")),
   users: () => request<Account[]>("/api/v1/identity/users"),
   roles: () => request<Role[]>("/api/v1/identity/roles"),
   create: (body: {

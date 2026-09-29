@@ -250,14 +250,14 @@ public sealed class StudyService(IWorkspaceStore store,IFileService files,IKnowl
     public async Task<ProgressView> ProgressAsync(Actor actor,Guid projectId,CancellationToken ct)
     {
         await GetAsync<StudyProject>(actor,projectId,ct);var attempts=await store.ListAsync<StudyAttempt>(x=>x.ProjectId==projectId,ct);var mistakes=await store.ListAsync<Mistake>(x=>x.ProjectId==projectId,ct);
-        return new ProgressView(attempts.OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new AttemptSummary(x.Id,x.Mode,x.Status,x.Score,x.PassScore,x.DeadlineUtc,x.CreatedAtUtc)).ToArray(),mistakes.Where(x=>x.WrongCount>0).ToArray(),mistakes.Sum(x=>x.AnswerCount),mistakes.Sum(x=>x.AnswerCount-x.WrongCount));
+        return new ProgressView(attempts.OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new AttemptSummary(x.Id,x.Mode,x.Status,x.Score,x.PassScore,x.DeadlineUtc,x.CreatedAtUtc)).ToArray(),mistakes.Where(x=>x.WrongCount>0).ToArray(),mistakes.Sum(x=>x.AnswerCount),mistakes.Sum(x=>x.AnswerCount-x.WrongCount), attempts.OrderByDescending(x=>x.CreatedAtUtc).SelectMany(x=>JsonData.Read<QuestionSnapshot[]>(x.QuestionsJson)).DistinctBy(x=>x.Id).ToDictionary(x=>x.Id,x=>x.Stem));
     }
     public async Task MasterAsync(Actor actor,Guid id,bool mastered,CancellationToken ct){var m=await GetAsync<Mistake>(actor,id,ct);m.Mastered=mastered;m.Revision++;await store.SaveAsync(ct);}
     public async Task<IReadOnlyList<WorkJob>> JobsAsync(Actor actor,CancellationToken ct)
-    {if(!actor.Administrator&&!actor.Permissions.Contains("exam-study.access")&&!actor.Permissions.Contains("system.storage.manage"))throw new BusinessException(403,"forbidden","没有任务权限。");return (await store.ListAsync<WorkJob>(x=>actor.Administrator || x.OwnerId==actor.Id,ct)).OrderByDescending(x=>x.CreatedAtUtc).Take(200).ToArray();}
+    {if(!actor.Administrator&&!actor.Has("study.jobs.view")&&!actor.Has("system.storage.manage"))throw new BusinessException(403,"forbidden","没有任务权限。");return (await store.ListAsync<WorkJob>(x=>actor.Administrator || x.OwnerId==actor.Id,ct)).OrderByDescending(x=>x.CreatedAtUtc).Take(200).ToArray();}
     public async Task RetryAsync(Actor actor,Guid id,CancellationToken ct)
     {
-        var job=await store.FindAsync<WorkJob>(id,ct)??throw new BusinessException(404,"not_found","任务不存在。");actor.Own(job.OwnerId);actor.Require(job.Kind is "migrate" or "cleanup"?"system.storage.manage":"exam-study.access");
+        var job=await store.FindAsync<WorkJob>(id,ct)??throw new BusinessException(404,"not_found","任务不存在。");actor.Own(job.OwnerId);actor.Require(job.Kind is "migrate" or "cleanup" ? "system.storage.manage" : job.Kind == "generate" ? "study.questions.manage" : "study.knowledge.manage");
         if(job.Status is "running" or "completed")throw new BusinessException(409,"job_busy","任务正在运行或已完成。");job.Status="queued";job.Attempts=0;job.RetryAfterUtc=null;job.Error="";job.Revision++;await store.SaveAsync(ct);
     }
 }

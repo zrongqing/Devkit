@@ -170,7 +170,7 @@ onUnmounted(() => clearInterval(timer));
   <main class="study-page">
     <header class="study-heading">
       <div>
-        <h2>知识库</h2>
+        <h2>知识库管理</h2>
         <p>按制度领域整理资料，让每次查询和每道题都有出处。</p>
       </div>
       <div class="study-actions">

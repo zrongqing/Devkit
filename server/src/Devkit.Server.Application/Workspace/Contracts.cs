@@ -17,11 +17,17 @@ public sealed class BusinessException(int status, string code, string message) :
     public string Code { get; } = code;
 }
 
-public sealed record Actor(Guid Id, bool Administrator, IReadOnlyList<string> Permissions)
+public sealed record Actor(Guid Id, bool Administrator, IReadOnlyList<string> Permissions, IReadOnlyList<string>? MenuCodes = null)
 {
     public void Require(string permission)
     {
-        if (!Administrator && !Permissions.Contains(permission)) throw new BusinessException(403, "forbidden", "没有此功能的权限。");
+        if (!Has(permission)) throw new BusinessException(403, "forbidden", "没有此功能的权限。");
+    }
+    public bool Has(string permission) => Administrator || PermissionCatalog.Expand(Permissions).Contains(permission)
+        || permission == "exam-study.access" && Permissions.Any(x => x.StartsWith("study.", StringComparison.Ordinal));
+    public void RequireAny(params string[] permissions)
+    {
+        if (!permissions.Any(Has)) throw new BusinessException(403, "forbidden", "没有此功能的权限。");
     }
     public void Own(Guid owner)
     {
@@ -31,8 +37,31 @@ public sealed record Actor(Guid Id, bool Administrator, IReadOnlyList<string> Pe
 
 public static class PermissionCatalog
 {
-    public static readonly string[] All = ["exam-study.access", "system.files.manage", "system.storage.manage", "system.identity.manage"];
+    public static readonly ModulePermission[] Modules = [
+        new("system.menus.manage", "菜单配置与同步", "系统管理", "system-menus"),
+        new("system.monitor.view", "运行状态", "系统监控", "system-status"),
+        new("study.projects.manage", "项目管理", "知识库", "study-project-management"),
+        new("study.knowledge.manage", "知识库管理", "知识库", "study-knowledge"),
+        new("study.search", "知识检索", "知识库", "study-projects"),
+        new("study.practice", "刷题与模拟考、错题与学习记录", "知识库 / 刷题", "study-practice"),
+        new("study.questions.manage", "题库管理", "知识库 / 刷题", "study-questions"),
+        new("study.jobs.view", "处理任务", "系统监控", "study-jobs"),
+        new("system.files.manage", "文件管理", "系统管理", "system-files"),
+        new("system.storage.manage", "存储与迁移", "系统管理", "system-storage"),
+        new("system.users.manage", "用户管理", "系统管理", "system-users"),
+        new("system.roles.manage", "角色管理", "系统管理", "system-roles"),
+        new("system.permissions.manage", "权限管理", "系统管理", "system-identity")
+    ];
+    public static readonly string[] All = ["exam-study.access", "system.identity.manage", .. Modules.Select(x => x.Key)];
+    public static string[] Expand(IEnumerable<string> permissions)
+    {
+        var result = permissions.ToHashSet(StringComparer.Ordinal);
+        if (result.Contains("exam-study.access")) result.UnionWith(Modules.Where(x => x.Key.StartsWith("study.")).Select(x => x.Key));
+        if (result.Contains("system.identity.manage")) result.UnionWith(["system.users.manage", "system.roles.manage", "system.permissions.manage"]);
+        return result.ToArray();
+    }
 }
+public sealed record ModulePermission(string Key, string Name, string Group, string RouteKey);
 
 public sealed record TextBlock(string Text, string Heading, string Location, int? Page);
 public sealed record ExtractedDocument(IReadOnlyList<TextBlock> Blocks, string Warning);
@@ -59,7 +88,7 @@ public sealed record MigrationRequest(Guid SourceLocationId, Guid TargetLocation
 public sealed record CapabilityView(bool ChatConfigured, bool EmbeddingConfigured, bool QdrantAvailable);
 public sealed record SourceDetailView(KnowledgeSource Source, IReadOnlyList<SourceVersion> Versions, IReadOnlyList<KnowledgeChunk> Chunks);
 public sealed record AttemptSummary(Guid Id, string Mode, string Status, decimal? Score, int PassScore, DateTime? DeadlineUtc, DateTime CreatedAtUtc);
-public sealed record ProgressView(IReadOnlyList<AttemptSummary> Attempts, IReadOnlyList<Mistake> Mistakes, int Answered, int Correct);
+public sealed record ProgressView(IReadOnlyList<AttemptSummary> Attempts, IReadOnlyList<Mistake> Mistakes, int Answered, int Correct, IReadOnlyDictionary<Guid, string> QuestionNames);
 public sealed record SuccessView(bool Ok = true);
 public sealed record JobCreatedView(Guid Id);
 

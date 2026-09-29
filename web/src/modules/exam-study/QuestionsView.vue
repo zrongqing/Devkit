@@ -171,7 +171,7 @@ onMounted(() => {
   <main class="study-page">
     <header class="study-heading">
       <div>
-        <h2>题库</h2>
+        <h2>题库管理</h2>
         <p>题目跟随知识库复用，审核后即可参与项目练习和模拟考试。</p>
       </div>
       <div class="study-actions">

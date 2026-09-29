@@ -53,7 +53,7 @@ public sealed class LocalFileService(DevkitDbContext db, IOptions<WorkspaceOptio
         using var uploadTimeout=CancellationTokenSource.CreateLinkedTokenSource(ct);
         uploadTimeout.CancelAfter(TimeSpan.FromMinutes(15));ct=uploadTimeout.Token;
         if(purpose is not ("exam-study" or "general")) throw new BusinessException(400,"invalid_purpose","未注册的上传用途。");
-        actor.Require(purpose=="exam-study" ? "exam-study.access":"system.files.manage");
+        actor.Require(purpose=="exam-study" ? "study.knowledge.manage":"system.files.manage");
         name=Path.GetFileName(name.Replace('\\','/'));
         if(string.IsNullOrWhiteSpace(name) || name.Length>250) throw new BusinessException(400,"invalid_file","文件名无效。");
         var extension=Path.GetExtension(name).ToLowerInvariant();

@@ -2,14 +2,14 @@
 
 ## HTTP 接口
 
-菜单接口首版公开访问，不要求 Bearer Token：
+导航端点允许匿名请求；Web 匿名仅返回公开模块，带 Bearer Token 时按独立菜单授权返回可访问模块及祖先目录：
 
 ```text
 GET /api/v1/web/navigation/menus
 GET /api/v1/client/navigation/menus
 ```
 
-Web 响应使用 `WebNavigationMenuItemDto`，目标字段为 `routeKey`；Client 响应使用 `ClientNavigationMenuItemDto`，目标字段为 `viewKey`。两个 DTO 独立定义，但首版共享以下字段：`id`、`parentId`、`title`、`iconKey`、`order`、`isClosable`。
+Web 响应使用 `WebNavigationMenuItemDto`，目标字段为 `routeKey`；Client 响应使用 `ClientNavigationMenuItemDto`，目标字段为 `viewKey`。两个 DTO 独立定义，共享以下字段：`id`、`parentId`、`title`、`iconKey`、`order`、`isClosable`。
 
 Web 示例：
 
@@ -18,6 +18,8 @@ Web 示例：
   "data": [
     {
       "id": "home",
+      "menuCode": "home",
+      "type": "module",
       "parentId": null,
       "title": "首页",
       "routeKey": "home",
@@ -30,7 +32,9 @@ Web 示例：
 }
 ```
 
-两个端点均由 `NavigationEndpoints` 暴露并调用同一个 `INavigationMenuService`。端点之间没有 HTTP 或 Handler 调用关系。
+两个端点均由 `NavigationEndpoints` 暴露。Web 使用数据库 `WebMenuService`，额外返回 `menuCode / type`，`id` 与 `menuCode` 一致；Client 继续使用 `INavigationMenuService` 和原配置。端点之间没有 HTTP 或 Handler 调用关系。
+
+Web 菜单配置、前端声明同步和独立菜单授权见 [菜单管理与同步](菜单管理与同步.md)。以下配置规则仍用于 Client，以及 Web 首次初始化的默认种子；Web 初始化后修改配置不会覆盖数据库菜单。
 
 ## appsettings 配置
 

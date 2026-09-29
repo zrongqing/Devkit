@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Devkit.Server.Application.Navigation;
 using Devkit.Server.Application.Workspace;
 using Devkit.Server.Domain.Identity;
 using Devkit.Server.Infrastructure.Persistence;
@@ -10,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Devkit.Server.Infrastructure.Workspace;
 
-public sealed class WorkspaceAccess(DevkitDbContext db, IHttpContextAccessor context) : IWorkspaceAccess
+public sealed class WorkspaceAccess(DevkitDbContext db, IHttpContextAccessor context, WebMenuService menus) : IWorkspaceAccess
 {
     private Actor? cached;
     public async Task<Actor> CurrentAsync(CancellationToken ct = default)
@@ -18,34 +19,48 @@ public sealed class WorkspaceAccess(DevkitDbContext db, IHttpContextAccessor con
         if (cached is not null) return cached;
         if (context.HttpContext?.User.Identity?.IsAuthenticated != true || !Guid.TryParse(context.HttpContext.User.FindFirstValue("sub"), out var id))
             throw new BusinessException(401, "unauthorized", "请先登录。");
-        var user = await db.Users.AsNoTracking().Include(x=>x.UserRoles).ThenInclude(x=>x.Role).ThenInclude(x=>x.RoleClaims).SingleOrDefaultAsync(x=>x.Id==id,ct)
+        var menuSnapshot = await menus.SnapshotAsync(ct);
+        var user = await db.Users.AsNoTracking().Include(x=>x.UserClaims).Include(x=>x.UserRoles).ThenInclude(x=>x.Role).ThenInclude(x=>x.RoleClaims).SingleOrDefaultAsync(x=>x.Id==id,ct)
             ?? throw new BusinessException(401,"unauthorized","账号已不可用。");
         var roles = user.UserRoles.Where(x=>!x.IsDeleted && !x.Role.IsDeleted).Select(x=>x.Role).ToArray();
         var admin = roles.Any(x=>x.Name=="Administrator");
-        return cached = new Actor(id, admin, admin ? PermissionCatalog.All : roles.SelectMany(x=>x.RoleClaims).Where(x=>!x.IsDeleted && x.ClaimType=="permission").Select(x=>x.ClaimValue).Distinct().ToArray());
+        return cached = new Actor(id, admin, admin ? PermissionCatalog.All : PermissionCatalog.Expand(roles.SelectMany(x=>x.RoleClaims).Where(x=>!x.IsDeleted && x.ClaimType=="permission").Select(x=>x.ClaimValue).Concat(user.UserClaims.Where(x=>!x.IsDeleted && x.ClaimType=="permission").Select(x=>x.ClaimValue))), admin ? menuSnapshot.Menus.Where(x=>x.Type=="module").Select(x=>x.MenuCode).ToArray() : roles.SelectMany(x=>x.RoleClaims).Where(x=>!x.IsDeleted && x.ClaimType==WebMenuService.ClaimType).Select(x=>x.ClaimValue).Concat(user.UserClaims.Where(x=>!x.IsDeleted && x.ClaimType==WebMenuService.ClaimType).Select(x=>x.ClaimValue)).Distinct().ToArray());
     }
 }
 
-internal sealed class AccountAdministration(DevkitDbContext db, UserProfileCache cache) : IAccountAdministration
+internal sealed class AccountAdministration(DevkitDbContext db, UserProfileCache cache, WebMenuService menus) : IAccountAdministration
 {
     public async Task<IReadOnlyList<AccountView>> UsersAsync(Actor actor, CancellationToken ct)
     {
-        actor.Require("system.identity.manage");
-        return (await db.Users.Include(x=>x.UserRoles).ThenInclude(x=>x.Role).OrderBy(x=>x.UserName).ToListAsync(ct)).Select(x=>new AccountView(x.Id,x.UserName,x.Email,x.UserRoles.Where(r=>!r.IsDeleted && !r.Role.IsDeleted).Select(r=>r.Role.Name).ToArray())).ToArray();
+        actor.RequireAny("system.users.manage", "system.permissions.manage");
+        var allMenus = (await menus.SnapshotAsync(ct)).Menus.Where(x=>x.Type=="module").Select(x=>x.MenuCode).ToArray();
+        var users = await db.Users.Include(x => x.UserClaims).Include(x => x.UserRoles).ThenInclude(x => x.Role).ThenInclude(x => x.RoleClaims).OrderBy(x => x.UserName).ToListAsync(ct);
+        return users.Select(user => {
+            var roles = user.UserRoles.Where(x => !x.IsDeleted && !x.Role.IsDeleted).Select(x => x.Role).ToArray();
+            var direct = user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue).Distinct().ToArray();
+            var effective = roles.Any(x => x.Name == "Administrator") ? PermissionCatalog.All : PermissionCatalog.Expand(direct.Concat(roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue)));
+            return new AccountView(user.Id, user.UserName, user.Email, roles.Select(x => x.Name).ToArray(), direct, effective,
+                user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x=>x.ClaimValue).Distinct().ToArray(),
+                roles.Any(x=>x.Name=="Administrator") ? allMenus : user.UserClaims.Where(x=>!x.IsDeleted && x.ClaimType==WebMenuService.ClaimType).Select(x=>x.ClaimValue).Concat(roles.SelectMany(x=>x.RoleClaims).Where(x=>!x.IsDeleted && x.ClaimType==WebMenuService.ClaimType).Select(x=>x.ClaimValue)).Distinct().ToArray());
+        }).ToArray();
     }
     public async Task<IReadOnlyList<RoleView>> RolesAsync(Actor actor, CancellationToken ct)
     {
-        actor.Require("system.identity.manage");
-        return (await db.Roles.Include(x=>x.RoleClaims).ToListAsync(ct)).Select(x=>new RoleView(x.Id,x.Name,x.Name=="Administrator" ? PermissionCatalog.All : x.RoleClaims.Where(c=>!c.IsDeleted && c.ClaimType=="permission").Select(c=>c.ClaimValue).ToArray())).ToArray();
+        actor.RequireAny("system.roles.manage", "system.users.manage", "system.permissions.manage");
+        var allMenus = (await menus.SnapshotAsync(ct)).Menus.Where(x=>x.Type=="module").Select(x=>x.MenuCode).ToArray();
+        return (await db.Roles.Include(x=>x.RoleClaims).ToListAsync(ct)).Select(x=>new RoleView(x.Id,x.Name,x.Name=="Administrator" ? PermissionCatalog.All : x.RoleClaims.Where(c=>!c.IsDeleted && c.ClaimType=="permission").Select(c=>c.ClaimValue).ToArray(), x.Name=="Administrator" ? allMenus : x.RoleClaims.Where(c=>!c.IsDeleted && c.ClaimType==WebMenuService.ClaimType).Select(c=>c.ClaimValue).Distinct().ToArray())).ToArray();
     }
     public async Task<Guid> CreateAsync(Actor actor, AccountRequest r, CancellationToken ct)
     {
-        actor.Require("system.identity.manage");
+        actor.Require("system.users.manage");
         if (string.IsNullOrWhiteSpace(r.UserName) || r.RoleIds is null || string.IsNullOrWhiteSpace(r.Password) || r.UserName.Trim().Length is <3 or >100 || !System.Net.Mail.MailAddress.TryCreate(r.Email,out _) || PasswordPolicy.Validate(r.Password) is not null)
             throw new BusinessException(400,"invalid_account","用户名至少 3 字；邮箱须有效；密码至少 12 位并包含大写、小写和数字。");
         var name=r.UserName.Trim().ToUpperInvariant(); var email=r.Email.Trim().ToUpperInvariant();
         if (await db.Users.IgnoreQueryFilters().AnyAsync(x=>x.NormalizedUserName==name || x.NormalizedEmail==email,ct)) throw new BusinessException(409,"account_exists","用户名或邮箱已存在。");
-        var roles=await db.Roles.Where(x=>r.RoleIds.Contains(x.Id)).ToListAsync(ct);
+        var roles=await db.Roles.Include(x=>x.RoleClaims).Where(x=>r.RoleIds.Contains(x.Id)).ToListAsync(ct);
+        if (roles.Count > 0) actor.Require("system.permissions.manage");
+        EnsureCanGrant(actor, roles.SelectMany(x=>x.RoleClaims).Where(x=>!x.IsDeleted && x.ClaimType=="permission").Select(x=>x.ClaimValue));
+        await menus.ValidateGrantsAsync(actor, roles.SelectMany(x=>x.RoleClaims).Where(x=>!x.IsDeleted && x.ClaimType==WebMenuService.ClaimType).Select(x=>x.ClaimValue).Distinct().ToArray(), ct);
         if(!actor.Administrator && roles.Any(x=>x.Name=="Administrator"))throw new BusinessException(403,"forbidden","只有管理员可以创建其他管理员。");
         if(roles.Count!=r.RoleIds.Distinct().Count()) throw new BusinessException(400,"invalid_role","角色不存在。");
         var user=new User {UserName=r.UserName.Trim(),NormalizedUserName=name,Email=r.Email.Trim(),NormalizedEmail=email};
@@ -56,26 +71,29 @@ internal sealed class AccountAdministration(DevkitDbContext db, UserProfileCache
     }
     public async Task<Guid> SaveRoleAsync(Actor actor, Guid? id, RoleRequest r, CancellationToken ct)
     {
-        actor.Require("system.identity.manage");
+        actor.RequireAny("system.roles.manage", "system.permissions.manage");
         if(string.IsNullOrWhiteSpace(r.Name) || r.Permissions is null || r.Name.Length>100 || r.Permissions.Except(PermissionCatalog.All).Any()) throw new BusinessException(400,"invalid_role","角色名称或权限无效。");
         var role=id.HasValue ? await db.Roles.Include(x=>x.RoleClaims).SingleOrDefaultAsync(x=>x.Id==id,ct) ?? throw new BusinessException(404,"not_found","角色不存在。") : new Role();
-        if(role.Name=="Administrator" || r.Name.Equals("Administrator",StringComparison.OrdinalIgnoreCase)) throw new BusinessException(409,"builtin_role","内置管理员角色拥有全部权限，不能编辑。");
+        if(role.Name=="Administrator" || r.Name.Trim().Equals("Administrator",StringComparison.OrdinalIgnoreCase)) throw new BusinessException(409,"builtin_role","内置管理员角色拥有全部权限，不能编辑。");
+        EnsureCanGrant(actor, r.Permissions.Concat(role.RoleClaims.Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue)));
         role.Name=r.Name.Trim(); role.NormalizedName=role.Name.ToUpperInvariant();
         if(await db.Roles.IgnoreQueryFilters().AnyAsync(x=>x.NormalizedName==role.NormalizedName && x.Id!=role.Id,ct)) throw new BusinessException(409,"role_exists","角色名已存在。");
         if(!id.HasValue) db.Roles.Add(role);
-        foreach(var claim in role.RoleClaims) claim.IsDeleted=true;
+        foreach(var claim in role.RoleClaims.Where(x=>x.ClaimType=="permission")) claim.IsDeleted=true;
         foreach(var p in r.Permissions.Distinct()) db.RoleClaims.Add(new RoleClaim{RoleId=role.Id,ClaimType="permission",ClaimValue=p});
         await db.SaveChangesAsync(ct); return role.Id;
     }
     public async Task AssignAsync(Actor actor, Guid userId, Guid[] roleIds, CancellationToken ct)
     {
-        actor.Require("system.identity.manage");
+        actor.Require("system.permissions.manage");
         if(roleIds is null)throw new BusinessException(400,"invalid_role","角色列表不能为 null。");
         await db.Database.CreateExecutionStrategy().ExecuteAsync(async()=>
         {
             await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable,ct);
             var user=await db.Users.SingleOrDefaultAsync(x=>x.Id==userId,ct) ?? throw new BusinessException(404,"not_found","账号不存在。");
-            var roles=await db.Roles.Where(x=>roleIds.Contains(x.Id)).ToListAsync(ct);
+            var roles=await db.Roles.Include(x=>x.RoleClaims).Where(x=>roleIds.Contains(x.Id)).ToListAsync(ct);
+            EnsureCanGrant(actor, roles.SelectMany(x=>x.RoleClaims).Where(x=>!x.IsDeleted && x.ClaimType=="permission").Select(x=>x.ClaimValue));
+        await menus.ValidateGrantsAsync(actor, roles.SelectMany(x=>x.RoleClaims).Where(x=>!x.IsDeleted && x.ClaimType==WebMenuService.ClaimType).Select(x=>x.ClaimValue).Distinct().ToArray(), ct);
             if(!actor.Administrator&&(roles.Any(x=>x.Name=="Administrator")||await db.UserRoles.AnyAsync(x=>x.UserId==userId&&x.Role.Name=="Administrator",ct)))throw new BusinessException(403,"forbidden","只有管理员可以修改管理员账号的角色。");
             if(roles.Count!=roleIds.Distinct().Count()) throw new BusinessException(400,"invalid_role","角色不存在。");
             if(!roles.Any(x=>x.Name=="Administrator")) await EnsureAnotherAdminAsync(userId,ct);
@@ -87,6 +105,69 @@ internal sealed class AccountAdministration(DevkitDbContext db, UserProfileCache
         });
         await cache.RemoveAsync(userId,ct);
     }
+    public async Task AssignMenusAsync(Actor actor, Guid id, string[] menuCodes, bool role, CancellationToken ct)
+    {
+        if (role) actor.RequireAny("system.roles.manage", "system.permissions.manage");
+        else actor.Require("system.permissions.manage");
+        await menus.ValidateGrantsAsync(actor, menuCodes, ct);
+        if (role)
+        {
+            var target = await db.Roles.Include(x=>x.RoleClaims).SingleOrDefaultAsync(x=>x.Id==id,ct)
+                ?? throw new BusinessException(404,"not_found","角色不存在。");
+            if (target.Name == "Administrator") throw new BusinessException(409,"builtin_role","内置管理员角色拥有全部菜单权限，不能编辑。");
+            var current = target.RoleClaims.Where(x=>!x.IsDeleted && x.ClaimType==WebMenuService.ClaimType).ToArray();
+            await menus.ValidateGrantsAsync(actor, current.Select(x=>x.ClaimValue).ToArray(),ct);
+            foreach (var claim in current) claim.IsDeleted = true;
+            foreach (var code in menuCodes.Distinct()) db.RoleClaims.Add(new RoleClaim { RoleId=id, ClaimType=WebMenuService.ClaimType, ClaimValue=code });
+        }
+        else
+        {
+            var target = await EditableUserAsync(actor,id,ct);
+            var current = target.UserClaims.Where(x=>!x.IsDeleted && x.ClaimType==WebMenuService.ClaimType).ToArray();
+            await menus.ValidateGrantsAsync(actor,current.Select(x=>x.ClaimValue).ToArray(),ct);
+            foreach (var claim in current) claim.IsDeleted = true;
+            foreach (var code in menuCodes.Distinct()) db.UserClaims.Add(new UserClaim { UserId=id, ClaimType=WebMenuService.ClaimType, ClaimValue=code });
+        }
+        await db.SaveChangesAsync(ct);
+        if (!role) await cache.RemoveAsync(id,ct);
+    }
+    private static void EnsureCanGrant(Actor actor, IEnumerable<string> permissions)
+    {
+        if (!actor.Administrator && PermissionCatalog.Expand(permissions).Any(p => !actor.Has(p)))
+            throw new BusinessException(403, "forbidden", "不能分配或修改超出自己权限范围的授权。");
+    }
+    private async Task<User> EditableUserAsync(Actor actor, Guid userId, CancellationToken ct)
+    {
+        var user = await db.Users.Include(x => x.UserClaims).SingleOrDefaultAsync(x => x.Id == userId, ct)
+            ?? throw new BusinessException(404, "not_found", "账号不存在。");
+        if (!actor.Administrator && await db.UserRoles.AnyAsync(x => x.UserId == userId && x.Role.Name == "Administrator", ct))
+            throw new BusinessException(403, "forbidden", "只有管理员可以修改管理员账号。");
+        return user;
+    }
+    public async Task UpdateAsync(Actor actor, Guid userId, AccountUpdateRequest r, CancellationToken ct)
+    {
+        actor.Require("system.users.manage");
+        if (string.IsNullOrWhiteSpace(r.UserName) || r.UserName.Trim().Length is < 3 or > 100 || !System.Net.Mail.MailAddress.TryCreate(r.Email, out _))
+            throw new BusinessException(400, "invalid_account", "用户名须为 3–100 字，邮箱须有效。");
+        var user = await EditableUserAsync(actor, userId, ct);
+        var name = r.UserName.Trim().ToUpperInvariant(); var email = r.Email.Trim().ToUpperInvariant();
+        if (await db.Users.IgnoreQueryFilters().AnyAsync(x => x.Id != userId && (x.NormalizedUserName == name || x.NormalizedEmail == email), ct))
+            throw new BusinessException(409, "account_exists", "用户名或邮箱已存在。");
+        user.UserName = r.UserName.Trim(); user.NormalizedUserName = name;
+        user.Email = r.Email.Trim(); user.NormalizedEmail = email;
+        await db.SaveChangesAsync(ct); await cache.RemoveAsync(userId, ct);
+    }
+    public async Task AssignPermissionsAsync(Actor actor, Guid userId, string[] permissions, CancellationToken ct)
+    {
+        actor.Require("system.permissions.manage");
+        if (permissions is null || permissions.Except(PermissionCatalog.All).Any())
+            throw new BusinessException(400, "invalid_permission", "权限列表包含无效权限。");
+        var user = await EditableUserAsync(actor, userId, ct);
+        EnsureCanGrant(actor, permissions.Concat(user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue)));
+        foreach (var claim in user.UserClaims.Where(x => x.ClaimType == "permission")) claim.IsDeleted = true;
+        foreach (var permission in permissions.Distinct()) db.UserClaims.Add(new UserClaim { UserId = userId, ClaimType = "permission", ClaimValue = permission });
+        await db.SaveChangesAsync(ct); await cache.RemoveAsync(userId, ct);
+    }
     private async Task EnsureAnotherAdminAsync(Guid userId,CancellationToken ct)
     {
         var adminIds=await db.UserRoles.Where(x=>x.Role.Name=="Administrator" && !x.Role.IsDeleted && !x.User.IsDeleted).Select(x=>x.UserId).ToListAsync(ct);
@@ -94,7 +175,7 @@ internal sealed class AccountAdministration(DevkitDbContext db, UserProfileCache
     }
     public async Task DisableAsync(Actor actor, Guid userId, CancellationToken ct)
     {
-        actor.Require("system.identity.manage");
+        actor.Require("system.users.manage");
         await db.Database.CreateExecutionStrategy().ExecuteAsync(async()=>
         {
             await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable,ct);

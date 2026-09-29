@@ -2,7 +2,9 @@ import { createRouter, createWebHashHistory } from "vue-router";
 import WelcomeView from "../views/WelcomeView.vue";
 import SystemLayout from "../layouts/SystemLayout.vue";
 import LoginView from "../views/LoginView.vue";
-import { session, loadPermissions, hasPermission } from "../api/session";
+import { getPageDefinition } from "./pageRegistry";
+import { useNavigationStore } from "../stores/navigation";
+import { session, loadPermissions } from "../api/session";
 
 export const router = createRouter({
   history: createWebHashHistory(),
@@ -31,28 +33,21 @@ export const router = createRouter({
 });
 
 export function routePermission(key: string): string | undefined {
-  if (key.startsWith("study-")) return "exam-study.access";
-  return (
-    {
-      "system-files": "system.files.manage",
-      "system-storage": "system.storage.manage",
-      "system-identity": "system.identity.manage",
-    } as Record<string, string>
-  )[key];
+  return getPageDefinition(key)?.requiredPermissions[0];
 }
 router.beforeEach(async (to) => {
-  const permission = routePermission(String(to.params.routeKey ?? ""));
-  if (!permission) return true;
-  if (!session.value)
-    return { path: "/login", query: { redirect: to.fullPath } };
-  try {
-    await loadPermissions();
-    return hasPermission(permission) ? true : "/system/home";
-  } catch {
-    return { path: "/login", query: { redirect: to.fullPath } };
+  if (to.name !== "system") return true;
+  const key = String(to.params.routeKey ?? "home");
+  if (!getPageDefinition(key)) return "/system/home";
+  const navigation = useNavigationStore();
+  if (session.value) {
+    try { await loadPermissions(); }
+    catch { return { path: "/login", query: { redirect: to.fullPath } }; }
   }
+  await navigation.load(true);
+  if (key === "home" || navigation.findByRouteKey(key)) return true;
+  return session.value ? "/system/home" : { path: "/login", query: { redirect: to.fullPath } };
 });
 window.addEventListener("devkit-session-expired", () => {
-  if (routePermission(String(router.currentRoute.value.params.routeKey ?? "")))
-    void router.replace("/login");
+  if (router.currentRoute.value.name === "system") void router.replace("/login");
 });

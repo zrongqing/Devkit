@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { canonicalMenuCode } from "./menuCodeCompatibility";
 import type { TokenPair } from "./types";
 
 const key = "devkit.session";
@@ -7,6 +8,7 @@ type PermissionSnapshot = {
   id: string;
   administrator: boolean;
   permissions: string[];
+  menuCodes: string[];
 };
 function restore(): TokenPair | null {
   try {
@@ -23,6 +25,8 @@ function restorePermissions(currentSession: TokenPair | null): PermissionSnapsho
     const value = JSON.parse(sessionStorage.getItem(permissionKey) ?? "null");
     return value?.id === currentSession.user.id &&
       typeof value.administrator === "boolean" &&
+      Array.isArray(value.menuCodes) &&
+      value.menuCodes.every((code: unknown) => typeof code === "string") &&
       Array.isArray(value.permissions) &&
       value.permissions.every((permission: unknown) => typeof permission === "string")
       ? value as PermissionSnapshot
@@ -131,3 +135,6 @@ export const hasPermission = (value: string) =>
   permissions.value?.administrator ||
   permissions.value?.permissions.includes(value) ||
   false;
+
+export const hasMenuGrant = (code: string) => permissions.value?.administrator ||
+  permissions.value?.menuCodes.some(grant => canonicalMenuCode(grant) === canonicalMenuCode(code)) || false;

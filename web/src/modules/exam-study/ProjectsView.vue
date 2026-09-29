@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   studyApi,
@@ -9,6 +9,11 @@ import {
 import { permissions, session } from "../../api/session";
 import { parse, useOperation } from "./shared";
 import ProjectWorkspace from "./ProjectWorkspace.vue";
+const props = defineProps<{ routeKey: string }>();
+const managing = computed(() => props.routeKey === "study-project-management");
+const workspaceMode = computed(() => props.routeKey === "study-progress" ? "progress" : props.routeKey === "study-practice" ? "attempt" : "search");
+const title = computed(() => managing.value ? "项目管理" : workspaceMode.value === "search" ? "知识检索" : workspaceMode.value === "attempt" ? "刷题与模拟考" : "错题与学习记录");
+const description = computed(() => managing.value ? "管理项目基本信息及关联知识库，统一维护项目资料范围。" : workspaceMode.value === "search" ? "选择项目，在关联知识库中快速定位原文和出处。" : "按项目开展制度学习、模拟考试和错题复习。");
 const route = useRoute();
 const router = useRouter();
 const { run, busy, error } = useOperation();
@@ -73,8 +78,8 @@ onMounted(() => {
   <main class="study-page">
     <header class="study-heading">
       <div>
-        <h2>备考项目 · 快速查询</h2>
-        <p>为每场考试关联资料，在同一范围内查询、练习和复习。</p>
+        <h2>{{ title }}</h2>
+        <p>{{ description }}</p>
       </div>
       <div class="study-actions">
         <el-switch
@@ -82,7 +87,7 @@ onMounted(() => {
           v-model="all"
           active-text="全部用户"
           @change="run(load)"
-        /><el-button type="primary" @click="edit()">新建项目</el-button>
+        /><el-button v-if="managing" type="primary" @click="edit()">新建项目</el-button>
       </div>
     </header>
     <el-alert
@@ -95,7 +100,7 @@ onMounted(() => {
     <div class="study-toolbar">
       <el-select
         :model-value="selected?.id ?? ''"
-        placeholder="选择备考项目"
+        placeholder="选择项目"
         style="min-width: 280px"
         @change="
           (id: string) => run(() => select(projects.find((x) => x.id === id)!))
@@ -105,27 +110,38 @@ onMounted(() => {
           :key="p.id"
           :value="p.id"
           :label="p.name" /></el-select
-      ><el-button v-if="selected" @click="edit(selected)"
+      ><el-button v-if="selected && managing" @click="edit(selected)"
         >项目设置 / 关联知识库</el-button
       ><el-button @click="run(load)">刷新</el-button>
     </div>
+    <div v-if="managing" class="study-card" v-loading="busy">
+      <el-table :data="projects" empty-text="暂无项目，点击新建项目开始配置">
+        <el-table-column prop="name" label="项目名称" min-width="160" />
+        <el-table-column prop="description" label="说明" min-width="200" />
+        <el-table-column label="关联知识库" min-width="200"><template #default="{ row }">
+          <el-tag v-for="base in bases.filter(b => parse<string[]>(row.knowledgeBaseIdsJson).includes(b.id))" :key="base.id" style="margin: 4px">{{ base.name }}</el-tag>
+        </template></el-table-column>
+        <el-table-column label="操作" width="160"><template #default="{ row }"><el-button link type="primary" @click="edit(row)">编辑 / 关联知识库</el-button></template></el-table-column>
+      </el-table>
+    </div>
     <ProjectWorkspace
       ref="workspace"
-      v-if="selected"
+      v-else-if="selected"
       :key="selected.id + ':' + selected.revision"
+      :workspace-mode="workspaceMode"
       :project="selected"
       :bases="bases"
     />
     <div v-else class="study-card study-empty" v-loading="busy">
-      <el-empty description="选择或创建项目，关联知识库后即可快速查询" />
+      <el-empty description="请选择项目；项目及关联资料可在项目管理中维护" />
     </div>
     <el-dialog
       v-model="dialog"
-      title="备考项目"
+      title="项目管理"
       width="min(620px,94vw)"
       append-to-body
       ><el-form label-position="top"
-        ><el-form-item label="考试 / 项目名称"
+        ><el-form-item label="项目名称"
           ><el-input v-model="form.name" maxlength="200" /></el-form-item
         ><el-form-item label="说明"
           ><el-input
