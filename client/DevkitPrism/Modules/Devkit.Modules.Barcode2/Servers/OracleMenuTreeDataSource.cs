@@ -22,10 +22,12 @@ public sealed class OracleMenuTreeDataSource : IMenuTreeDataSource
     {
         var connectionString = await _configuration.GetDatabaseConnectionStringAsync(
             environmentKey,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
         await using var context = new MyDbContext(connectionString);
 
-        var rows = await CreateQuery(context).ToListAsync(cancellationToken);
+        var rows = await CreateQuery(context)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
         var records = rows.Adapt<List<MenuTreeRecord>>(MenuTreeRecordMapping.Configuration);
 
         return MenuTreeBuilder.Build(records);

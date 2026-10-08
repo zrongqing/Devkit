@@ -42,7 +42,9 @@ public class Barcode2Module : IModule, IUnloadableModule
         containerRegistry.Register<IBarcode2ConnectionTester, Barcode2ConnectionTester>();
         containerRegistry.RegisterSingleton<IApiScanner, RoslynApiScanner>();
         containerRegistry.Register<IApiUpdateServer, ApiUpdateServer>();
-        containerRegistry.RegisterSingleton<IMenuTreeDataSource, OracleMenuTreeDataSource>();
+        containerRegistry.RegisterSingleton<OracleMenuTreeDataSource>();
+        containerRegistry.RegisterSingleton<IMenuTreeCache, LocalMenuTreeCache>();
+        containerRegistry.RegisterSingleton<IMenuTreeDataSource, CachedMenuTreeDataSource>();
         containerRegistry.RegisterSingleton<IWebPageLauncher, SystemWebPageLauncher>();
         containerRegistry.Register<WebappUpdateServer>();
     }

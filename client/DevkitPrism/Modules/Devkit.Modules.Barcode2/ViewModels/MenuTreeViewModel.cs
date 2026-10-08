@@ -17,6 +17,7 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
     private readonly IClientNotificationService _notifications;
     private readonly IWebPageLauncher _webPageLauncher;
     private IReadOnlyList<MenuTreeItem> _allItems = [];
+    private CancellationTokenSource? _backgroundRefreshCancellation;
 
     [ObservableProperty]
     private IReadOnlyList<Barcode2PageEnvironment> _environmentOptions = [];
@@ -74,7 +75,7 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
             return;
         }
 
-        await LoadMenuTreeAsync();
+        _ = LoadMenuTreeAsync(preferCachedData: true);
     }
 
     [RelayCommand]
@@ -86,6 +87,7 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
     [RelayCommand]
     private Task Reload()
     {
+        CancelBackgroundRefresh();
         return LoadMenuTreeAsync();
     }
 
@@ -141,7 +143,13 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
         OpenCommand.NotifyCanExecuteChanged();
     }
 
-    private Task LoadMenuTreeAsync()
+    protected override void OnDestroy()
+    {
+        CancelBackgroundRefresh();
+        base.OnDestroy();
+    }
+
+    private Task LoadMenuTreeAsync(bool preferCachedData = false)
     {
         return RunWithLoadingAsync(async cancellationToken =>
         {
@@ -152,17 +160,135 @@ public partial class MenuTreeViewModel : LoadingViewModelBase, IUsesPageLoading
 
             await SaveSelectedEnvironmentAsync(cancellationToken);
 
-            _allItems = await _menuTreeDataSource.GetMenuTreeAsync(
-                            SelectedEnvironment.Key,
+            var environmentKey = SelectedEnvironment.Key;
+            if (preferCachedData && _menuTreeDataSource is ICachedMenuTreeDataSource cachedDataSource)
+            {
+                var hasCachedData = await TryLoadCachedMenuTreeAsync(
+                    cachedDataSource,
+                    environmentKey,
+                    cancellationToken);
+                if (!hasCachedData)
+                {
+                    StartBackgroundRefresh(environmentKey);
+                }
+
+                return;
+            }
+
+            var items = await _menuTreeDataSource.GetMenuTreeAsync(
+                            environmentKey,
                             cancellationToken) ?? [];
             cancellationToken.ThrowIfCancellationRequested();
-            ApplyFilter();
+            ReplaceMenuTree(items);
 
-            if (_allItems.Count == 0)
+            if (items.Count == 0)
             {
                 ShowWarning("未找到 IS_DELETE = 0 的菜单数据。");
             }
         }, HandleOperationError);
+    }
+
+    private async Task<bool> TryLoadCachedMenuTreeAsync(
+        ICachedMenuTreeDataSource cachedDataSource,
+        string environmentKey,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var cachedItems = await cachedDataSource.GetCachedMenuTreeAsync(
+                                  environmentKey,
+                                  cancellationToken) ?? [];
+            cancellationToken.ThrowIfCancellationRequested();
+            if (cachedItems.Count == 0)
+            {
+                return false;
+            }
+
+            ReplaceMenuTree(cachedItems);
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            ShowWarning($"本地菜单缓存读取失败，将在后台获取最新数据：{exception.Message}");
+            return false;
+        }
+    }
+
+    private void StartBackgroundRefresh(string environmentKey)
+    {
+        CancelBackgroundRefresh();
+        var cancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            LifetimeCancellationToken);
+        _backgroundRefreshCancellation = cancellation;
+        _ = RefreshMenuTreeInBackgroundAsync(environmentKey, cancellation);
+    }
+
+    private async Task RefreshMenuTreeInBackgroundAsync(
+        string environmentKey,
+        CancellationTokenSource cancellation)
+    {
+        try
+        {
+            await PageLoading.RunAsync(
+                cancellationToken => RefreshMenuTreeAsync(environmentKey, cancellationToken),
+                cancellation.Token);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            // Closing the page or starting an explicit reload cancels the background refresh.
+        }
+        catch (Exception exception)
+        {
+            HandleOperationError(exception);
+        }
+        finally
+        {
+            if (ReferenceEquals(_backgroundRefreshCancellation, cancellation))
+            {
+                _backgroundRefreshCancellation = null;
+            }
+
+            cancellation.Dispose();
+        }
+    }
+
+    private async Task RefreshMenuTreeAsync(
+        string environmentKey,
+        CancellationToken cancellationToken)
+    {
+        var items = await _menuTreeDataSource.GetMenuTreeAsync(
+                        environmentKey,
+                        cancellationToken) ?? [];
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!string.Equals(
+                SelectedEnvironment?.Key,
+                environmentKey,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        ReplaceMenuTree(items);
+        if (items.Count == 0)
+        {
+            ShowWarning("未找到 IS_DELETE = 0 的菜单数据。");
+        }
+    }
+
+    private void CancelBackgroundRefresh()
+    {
+        var cancellation = Interlocked.Exchange(ref _backgroundRefreshCancellation, null);
+        cancellation?.Cancel();
+    }
+
+    private void ReplaceMenuTree(IReadOnlyList<MenuTreeItem> items)
+    {
+        _allItems = items;
+        ApplyFilter();
     }
 
     private void ApplyFilter()

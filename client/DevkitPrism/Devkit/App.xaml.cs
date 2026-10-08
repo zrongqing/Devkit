@@ -34,9 +34,16 @@ namespace Devkit;
 /// </summary>
 public partial class App : DevkitPrismApplication
 {
+    private const string SingleInstanceMutexName = @"Local\Devkit.Client.SingleInstance";
+    private const string SingleInstanceActivationEventName = @"Local\Devkit.Client.Activate";
+
     private readonly ILoggerFactory _loggerFactory;
     private readonly ClientCrashHandler _crashHandler;
     private readonly CancellationTokenSource _shutdownCancellation = new();
+    private Mutex? _singleInstanceMutex;
+    private EventWaitHandle? _singleInstanceActivationEvent;
+    private RegisteredWaitHandle? _singleInstanceActivationRegistration;
+    private bool _ownsSingleInstanceMutex;
 
     public App()
     {
@@ -61,6 +68,12 @@ public partial class App : DevkitPrismApplication
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        if (!TryAcquireSingleInstance())
+        {
+            Shutdown();
+            return;
+        }
+
         ConfigureServices(GetPrismServiceCollection());
         base.OnStartup(e);
     }
@@ -73,6 +86,14 @@ public partial class App : DevkitPrismApplication
         DispatcherUnhandledException -= _crashHandler.HandleDispatcherException;
         AppDomain.CurrentDomain.UnhandledException -= _crashHandler.HandleAppDomainException;
         TaskScheduler.UnobservedTaskException -= _crashHandler.HandleUnobservedTaskException;
+        _singleInstanceActivationRegistration?.Unregister(null);
+        _singleInstanceActivationEvent?.Dispose();
+        if (_ownsSingleInstanceMutex)
+        {
+            _singleInstanceMutex?.ReleaseMutex();
+        }
+
+        _singleInstanceMutex?.Dispose();
         _shutdownCancellation.Dispose();
         _loggerFactory.Dispose();
         base.OnExit(e);
@@ -183,6 +204,52 @@ public partial class App : DevkitPrismApplication
         }
 
         _ = LoadRemoteMenusAsync(_shutdownCancellation.Token);
+    }
+
+    private bool TryAcquireSingleInstance()
+    {
+        _singleInstanceMutex = new Mutex(
+            initiallyOwned: true,
+            SingleInstanceMutexName,
+            out var createdNew);
+        _singleInstanceActivationEvent = new EventWaitHandle(
+            initialState: false,
+            EventResetMode.AutoReset,
+            SingleInstanceActivationEventName);
+
+        if (!createdNew)
+        {
+            _singleInstanceActivationEvent.Set();
+            return false;
+        }
+
+        _ownsSingleInstanceMutex = true;
+        _singleInstanceActivationRegistration = ThreadPool.RegisterWaitForSingleObject(
+            _singleInstanceActivationEvent,
+            (_, _) => _ = Dispatcher.BeginInvoke(ActivateMainWindow),
+            state: null,
+            Timeout.Infinite,
+            executeOnlyOnce: false);
+        return true;
+    }
+
+    private void ActivateMainWindow()
+    {
+        if (MainWindow is not { } window)
+        {
+            return;
+        }
+
+        if (window.WindowState == WindowState.Minimized)
+        {
+            window.WindowState = WindowState.Normal;
+        }
+
+        window.Show();
+        window.Activate();
+        window.Topmost = true;
+        window.Topmost = false;
+        window.Focus();
     }
 
     private async Task LoadRemoteMenusAsync(CancellationToken cancellationToken)

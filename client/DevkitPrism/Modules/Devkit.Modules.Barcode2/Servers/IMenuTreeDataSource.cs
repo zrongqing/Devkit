@@ -12,3 +12,10 @@ public interface IMenuTreeDataSource
         string environmentKey,
         CancellationToken cancellationToken);
 }
+
+public interface ICachedMenuTreeDataSource : IMenuTreeDataSource
+{
+    Task<IReadOnlyList<MenuTreeItem>> GetCachedMenuTreeAsync(
+        string environmentKey,
+        CancellationToken cancellationToken);
+}
