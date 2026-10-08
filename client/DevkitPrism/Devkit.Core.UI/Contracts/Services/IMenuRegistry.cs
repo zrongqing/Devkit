@@ -14,6 +14,7 @@ public interface IMenuRegistry
     void RegisterRemote(MenuItemModel item);
     void RegisterRange(IEnumerable<MenuItemModel> items);
     void RegisterRemoteRange(IEnumerable<MenuItemModel> items);
+    void ReplaceRemoteRange(IEnumerable<MenuItemModel> items);
     void ScanFromAssembly(Assembly assembly, string? moduleId = null);
     IReadOnlyList<MenuItemModel> GetFlatMenus();
     MenuItemModel? Find(string id);
@@ -23,7 +24,8 @@ public interface IMenuRegistry
 public class MenuRegistry : IMenuRegistry
 {
     private readonly Dictionary<string, MenuItemModel> _items = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _remoteMenuIds = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, MenuItemModel> _localItems = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, MenuItemModel> _remoteItems = new(StringComparer.OrdinalIgnoreCase);
     private readonly IContainerProvider _container;
 
     public MenuRegistry(IContainerProvider container) => _container = container;
@@ -39,16 +41,18 @@ public class MenuRegistry : IMenuRegistry
         if (string.IsNullOrEmpty(item.Id))
             throw new InvalidOperationException("菜单项必须指定 Id");
 
-        if (!isRemote && _remoteMenuIds.Contains(item.Id))
-        {
-            return;
-        }
-
-        _items[item.Id] = item;
-
         if (isRemote)
         {
-            _remoteMenuIds.Add(item.Id);
+            _remoteItems[item.Id] = item;
+            _items[item.Id] = item;
+        }
+        else
+        {
+            _localItems[item.Id] = item;
+            if (!_remoteItems.ContainsKey(item.Id))
+            {
+                _items[item.Id] = item;
+            }
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
@@ -62,6 +66,39 @@ public class MenuRegistry : IMenuRegistry
     public void RegisterRemoteRange(IEnumerable<MenuItemModel> items)
     {
         foreach (var it in items) RegisterRemote(it);
+    }
+
+    public void ReplaceRemoteRange(IEnumerable<MenuItemModel> items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        var replacements = items.ToDictionary(
+            item => string.IsNullOrWhiteSpace(item.Id)
+                ? throw new InvalidOperationException("菜单项必须指定 Id")
+                : item.Id,
+            StringComparer.OrdinalIgnoreCase);
+        var previousRemoteIds = _remoteItems.Keys.ToArray();
+
+        _remoteItems.Clear();
+        foreach (var item in replacements.Values)
+        {
+            _remoteItems[item.Id] = item;
+            _items[item.Id] = item;
+        }
+
+        foreach (var id in previousRemoteIds.Except(replacements.Keys, StringComparer.OrdinalIgnoreCase))
+        {
+            if (_localItems.TryGetValue(id, out var localItem))
+            {
+                _items[id] = localItem;
+            }
+            else
+            {
+                _items.Remove(id);
+            }
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>扫描程序集中带 [MenuItem] 特性的 View 类型</summary>
@@ -88,14 +125,17 @@ public class MenuRegistry : IMenuRegistry
 
     public void UnregisterByModule(string moduleId)
     {
-        var ids = _items
+        var ids = _localItems
             .Where(pair => string.Equals(pair.Value.ModuleId, moduleId, StringComparison.OrdinalIgnoreCase))
             .Select(pair => pair.Key)
             .ToArray();
         foreach (var id in ids)
         {
-            _items.Remove(id);
-            _remoteMenuIds.Remove(id);
+            _localItems.Remove(id);
+            if (!_remoteItems.ContainsKey(id))
+            {
+                _items.Remove(id);
+            }
         }
 
         if (ids.Length > 0)

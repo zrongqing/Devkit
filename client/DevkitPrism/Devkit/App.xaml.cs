@@ -36,6 +36,7 @@ public partial class App : DevkitPrismApplication
 {
     private readonly ILoggerFactory _loggerFactory;
     private readonly ClientCrashHandler _crashHandler;
+    private readonly CancellationTokenSource _shutdownCancellation = new();
 
     public App()
     {
@@ -66,11 +67,13 @@ public partial class App : DevkitPrismApplication
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _shutdownCancellation.Cancel();
         GetService<DynamicModuleManager>()?.Shutdown();
         GetService<IClientNotificationService>()?.CloseAll();
         DispatcherUnhandledException -= _crashHandler.HandleDispatcherException;
         AppDomain.CurrentDomain.UnhandledException -= _crashHandler.HandleAppDomainException;
         TaskScheduler.UnobservedTaskException -= _crashHandler.HandleUnobservedTaskException;
+        _shutdownCancellation.Dispose();
         _loggerFactory.Dispose();
         base.OnExit(e);
     }
@@ -96,6 +99,7 @@ public partial class App : DevkitPrismApplication
         services.AddSingleton<DelayedLoadingState>();
         services.AddSingleton<IMenuRegistry, MenuRegistry>();
         services.AddSingleton<IRemoteMenuConfigurationClient, RemoteMenuConfigurationClient>();
+        services.AddSingleton<IRemoteMenuConfigurationCache, LocalRemoteMenuConfigurationCache>();
     }
 
     protected override Window CreateShell()
@@ -108,7 +112,9 @@ public partial class App : DevkitPrismApplication
 
         Container.Resolve<IWindowsToastRegistration>().EnsureRegistered();
 
-        return Container.Resolve<ShellWindow>();
+        var shell = Container.Resolve<ShellWindow>();
+        shell.ContentRendered += OnShellContentRendered;
+        return shell;
     }
 
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
@@ -167,20 +173,82 @@ public partial class App : DevkitPrismApplication
         //    AllowMultipleTabs = false
         //});
 
-        LoadRemoteMenus(menuRegistry);
     }
 
-    private void LoadRemoteMenus(IMenuRegistry menuRegistry)
+    private void OnShellContentRendered(object? sender, EventArgs eventArgs)
     {
+        if (sender is Window shell)
+        {
+            shell.ContentRendered -= OnShellContentRendered;
+        }
+
+        _ = LoadRemoteMenusAsync(_shutdownCancellation.Token);
+    }
+
+    private async Task LoadRemoteMenusAsync(CancellationToken cancellationToken)
+    {
+        var menuRegistry = Container.Resolve<IMenuRegistry>();
+        var menuCache = Container.Resolve<IRemoteMenuConfigurationCache>();
+        var logger = GetService<IClientLogger>();
+
         try
         {
-            var remoteMenuClient = Container.Resolve<IRemoteMenuConfigurationClient>();
-            var remoteMenus = remoteMenuClient.GetMenusAsync().GetAwaiter().GetResult();
-            menuRegistry.RegisterRemoteRange(remoteMenus);
+            var cachedMenus = await menuCache.ReadAsync(cancellationToken);
+            if (cachedMenus.Count > 0)
+            {
+                await Dispatcher.InvokeAsync(() => menuRegistry.ReplaceRemoteRange(cachedMenus));
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
         }
         catch (Exception exception)
         {
-            GetService<IClientLogger>()?.Warning(exception, "Remote menu configuration is unavailable.");
+            logger?.Warning(exception, "The cached menu configuration could not be loaded.");
+        }
+
+        IReadOnlyList<MenuItemModel> remoteMenus;
+        try
+        {
+            var remoteMenuClient = Container.Resolve<IRemoteMenuConfigurationClient>();
+            remoteMenus = await remoteMenuClient.GetMenusAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception exception)
+        {
+            logger?.Warning(exception, "Remote menu configuration is unavailable.");
+            return;
+        }
+
+        try
+        {
+            await Dispatcher.InvokeAsync(() => menuRegistry.ReplaceRemoteRange(remoteMenus));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception exception)
+        {
+            logger?.Warning(exception, "The remote menu configuration could not be applied.");
+            return;
+        }
+
+        try
+        {
+            await menuCache.WriteAsync(remoteMenus, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Application shutdown does not require the cache write to finish.
+        }
+        catch (Exception exception)
+        {
+            logger?.Warning(exception, "The remote menu configuration could not be cached.");
         }
     }
 }
