@@ -110,7 +110,8 @@ public sealed class CommonInfrastructureTests
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health")).StatusCode);
         Assert.Equal(0, factory.IdentityRequests);
         Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.GetAsync("/health/ready")).StatusCode);
-        Assert.Equal(1, factory.IdentityRequests);
+        Assert.Equal(2, factory.IdentityRequests); // Business and FileStorage independently check Identity.
+        Assert.Equal(1, factory.FileRequests);
     }
 
     [Fact]

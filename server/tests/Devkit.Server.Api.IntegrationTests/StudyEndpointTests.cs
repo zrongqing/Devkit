@@ -207,7 +207,14 @@ public sealed class StudyEndpointTests
         Assert.True(paths.GetProperty("/api/v1/exam-study/projects/{id}/search").GetProperty("post").TryGetProperty("requestBody", out _));
         Assert.True(paths.GetProperty("/api/v1/exam-study/knowledge-bases/{id}/sources").GetProperty("post").GetProperty("responses").TryGetProperty("202", out _));
         var schemas = doc.GetProperty("components").GetProperty("schemas");
-        foreach (var schema in new[] { "SearchRequest", "SearchResponse", "AttemptView", "SourceDetailView", "FileView", "LocationRequest" }) Assert.True(schemas.TryGetProperty(schema, out _), schema);
+        foreach (var schema in new[] { "SearchRequest", "SearchResponse", "AttemptView", "SourceDetailView" }) Assert.True(schemas.TryGetProperty(schema, out _), schema);
+        Assert.False(schemas.TryGetProperty("FileView", out _));
+        using var fileClient = factory.CreateFileClient();
+        var fileDocument = await fileClient.GetFromJsonAsync<JsonElement>("/openapi/v1.json");
+        var fileSchemas = fileDocument.GetProperty("components").GetProperty("schemas");
+        foreach (var schema in new[] { "FileView", "LocationRequest", "MigrationRequest", "StorageJob" })
+            Assert.True(fileSchemas.TryGetProperty(schema, out _), schema);
+        Assert.True(fileDocument.GetProperty("paths").GetProperty("/api/v1/storage/migrations").GetProperty("post").GetProperty("responses").TryGetProperty("202", out _));
         Assert.False(schemas.TryGetProperty("AccountRequest", out _));
         using var identityClient = factory.CreateIdentityClient();
         var identityDocument = await identityClient.GetFromJsonAsync<JsonElement>("/openapi/v1.json");

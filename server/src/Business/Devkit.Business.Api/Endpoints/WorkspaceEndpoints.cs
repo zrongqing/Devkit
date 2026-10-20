@@ -51,21 +51,7 @@ public sealed class WorkspaceEndpoints : IEndpointModule
         group.MapPost("/jobs/{id:guid}/retry",(HttpContext c,StudyService s,Guid id)=>Run(c,a=>s.RetryAsync(a,id,c.RequestAborted)));
         group.MapGet("/capabilities",(HttpContext c,IModelGateway m,IKnowledgeIndex i)=>Run(c,async a=>{a.Require("exam-study.access");return new CapabilityView(m.ChatConfigured,m.EmbeddingConfigured,await i.AvailableAsync(c.RequestAborted));}));
 
-        var file=endpoints.MapGroup("/api/v1/files").RequireAuthorization().WithTags("Files");
-        file.MapGet("/",(HttpContext c,IFileService s)=>Run(c,a=>s.ListAsync(a,c.RequestAborted)));
-        file.MapPost("/",async(HttpContext c,IFileService s,IFormFile file,string purpose="exam-study")=>
-        {await using var stream=file.OpenReadStream();return await Run(c,a=>s.UploadAsync(a,file.FileName,purpose,stream,c.RequestAborted));}).DisableAntiforgery().Produces<ApiResponse<FileView>>();
-        file.MapGet("/{id:guid}/content",async(HttpContext c,IFileService s,IWorkspaceAccess access,Guid id)=>
-        {var f=await s.OpenAsync(await access.CurrentAsync(c.RequestAborted),id,c.RequestAborted);c.Response.Headers.XContentTypeOptions="nosniff";return Results.Stream(f.Stream,f.ContentType,f.Name,enableRangeProcessing:true);});
-        file.MapDelete("/{id:guid}",(HttpContext c,IFileService s,Guid id)=>Run(c,a=>s.PurgeAsync(a,id,c.RequestAborted)));
-        file.MapGet("/{id:guid}/references",(HttpContext c,IFileService s,Guid id)=>Run(c,a=>s.ReferencesAsync(a,id,c.RequestAborted)));
 
-        var storage=endpoints.MapGroup("/api/v1/storage").RequireAuthorization().WithTags("Storage");
-        storage.MapGet("/locations",(HttpContext c,IFileService s)=>Run(c,a=>s.LocationsAsync(a,c.RequestAborted)));
-        storage.MapPost("/locations",(HttpContext c,IFileService s,LocationRequest r)=>Run(c,a=>s.AddLocationAsync(a,r,c.RequestAborted)));
-        storage.MapPost("/migrations",async(HttpContext c,IFileService s,IWorkspaceAccess access,MigrationRequest r)=>
-        {var id=await s.MigrateAsync(await access.CurrentAsync(c.RequestAborted),r,c.RequestAborted);return TypedResults.Accepted("/api/v1/exam-study/jobs",new ApiResponse<JobCreatedView>(new(id),c.TraceIdentifier));});
-        storage.MapPost("/migrations/{id:guid}/cleanup",(HttpContext c,IFileService s,Guid id)=>Run(c,a=>s.CleanupAsync(a,id,c.RequestAborted)));
 
 
     }

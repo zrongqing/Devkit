@@ -4,7 +4,6 @@ import { useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   fileApi,
-  studyApi,
   type Location,
   type Job,
 } from "../../api/examStudy";
@@ -22,7 +21,7 @@ const target = ref("");
 async function load() {
   [locations.value, jobs.value] = await Promise.all([
     fileApi.locations(),
-    studyApi.jobs(),
+    fileApi.jobs(),
   ]);
   jobs.value = jobs.value.filter((x) =>
     ["migrate", "cleanup"].includes(x.kind),
@@ -149,7 +148,7 @@ onUnmounted(() => clearInterval(timer));
               type="primary"
               @click="
                 run(async () => {
-                  await studyApi.retry(row.id);
+                  await fileApi.retry(row.id);
                   await load();
                 })
               "

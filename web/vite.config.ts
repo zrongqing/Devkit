@@ -33,6 +33,14 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_DEV_AUTH_TARGET || 'http://localhost:12512',
           changeOrigin: true,
         },
+        '/api/v1/files': {
+          target: env.VITE_DEV_FILE_TARGET || 'http://localhost:12513',
+          changeOrigin: true,
+        },
+        '/api/v1/storage': {
+          target: env.VITE_DEV_FILE_TARGET || 'http://localhost:12513',
+          changeOrigin: true,
+        },
         '/api': {
           target: env.VITE_DEV_API_TARGET || 'http://localhost:12511',
           changeOrigin: true,

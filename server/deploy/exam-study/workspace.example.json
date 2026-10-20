@@ -1,8 +1,5 @@
 {
   "Workspace": {
-    "DataRoot": "D:\\.server data\\devkit",
-    "MaximumUploadBytes": 20971520,
-    "MinimumFreeBytes": 104857600,
     "QdrantUrl": "http://localhost:6333",
     "QdrantApiKey": "",
     "Chat": {
@@ -17,5 +14,11 @@
       "ApiKey": "",
       "TimeoutSeconds": 90
     }
+  },
+  "FileService": {
+    "BaseUrl": "http://localhost:12513",
+    "RequireHttps": false,
+    "ClientName": "Business",
+    "ApiKey": ""
   }
 }

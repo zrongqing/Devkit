@@ -13,7 +13,6 @@ New-Item -ItemType Directory -Path $configDirectory -Force | Out-Null
 $configFile = Join-Path $configDirectory 'workspace.json'
 if (-not (Test-Path -LiteralPath $configFile)) {
     $sample = Get-Content -LiteralPath (Join-Path $serverRoot 'deploy\exam-study\workspace.example.json') -Raw | ConvertFrom-Json
-    $sample.Workspace.DataRoot = $DataRoot
     $sample | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $configFile -Encoding utf8
 }
 

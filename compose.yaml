@@ -8,6 +8,8 @@ services:
     depends_on:
       devkit-server:
         condition: service_healthy
+      devkit-files:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
       interval: 15s
@@ -48,13 +50,50 @@ services:
       Identity__BaseUrl: http://devkit-identity:8080
       # Plain HTTP is confined to this private Compose network; use HTTPS across hosts.
       Identity__RequireHttps: "false"
-      Workspace__DataRoot: /var/lib/devkit
       Workspace__QdrantUrl: http://qdrant:6333
+      FileService__BaseUrl: http://devkit-files:8080
+      FileService__RequireHttps: "false"
+      FileService__ApiKey: ${DEVKIT_FILE_SERVICE_API_KEY:-}
     depends_on:
       devkit-identity:
         condition: service_healthy
+      devkit-files:
+        condition: service_healthy
       qdrant:
         condition: service_started
+    volumes:
+      - type: bind
+        source: ${DEVKIT_JWT_PUBLIC_KEY_FILE:-D:/.server data/devkit/keys/business-public.pem}
+        target: /run/keys/business-public.pem
+        read_only: true
+        bind:
+          create_host_path: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  devkit-files:
+    image: ${DEVKIT_FILESTORAGE_IMAGE:-devkit-filestorage:local}
+    build:
+      context: .
+      dockerfile: server/src/FileStorage/Devkit.FileStorage.Api/Dockerfile
+      args:
+        VERSION: ${DEVKIT_FILESTORAGE_VERSION:-0.1.0}
+    ports:
+      - "127.0.0.1:${DEVKIT_FILESTORAGE_HOST_PORT:-8083}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__FileStorage: ${DEVKIT_FILESTORAGE_SQL_CONNECTION_STRING:-}
+      Jwt__Issuer: ${DEVKIT_JWT_ISSUER:-Devkit.Server}
+      Jwt__Audience: ${DEVKIT_JWT_AUDIENCE:-Devkit.Clients}
+      Jwt__ValidationPublicKeyPath: /run/keys/business-public.pem
+      Identity__BaseUrl: http://devkit-identity:8080
+      # Plain HTTP is confined to this private Compose network; use HTTPS across hosts.
+      Identity__RequireHttps: "false"
+      FileStorage__DataRoot: /var/lib/devkit
+      FileStorage__Clients__Business__ApiKey: ${DEVKIT_FILE_SERVICE_API_KEY:-}
+    depends_on:
+      devkit-identity:
+        condition: service_healthy
     volumes:
       - type: bind
         source: ${DEVKIT_DATA_ROOT:-D:/.server data/devkit}

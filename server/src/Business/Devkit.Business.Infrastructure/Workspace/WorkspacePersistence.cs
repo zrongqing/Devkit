@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
 using Devkit.Business.Domain.Abstractions;
 using Devkit.DomainCommons.Entities;
-using Devkit.Business.Domain.FileStorage;
 using Devkit.Business.Domain.Workspace;
 using Devkit.Business.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -52,7 +51,5 @@ internal sealed class AttemptMapping : IEntityTypeConfiguration<StudyAttempt> { 
 internal sealed class MistakeMapping : IEntityTypeConfiguration<Mistake> { public void Configure(EntityTypeBuilder<Mistake> b) { WorkspaceMapping.Base(b, "StudyMistakes"); b.HasIndex(x=>new{x.OwnerId,x.ProjectId,x.QuestionId}).IsUnique(); } }
 internal sealed class HistoryMapping : IEntityTypeConfiguration<QueryHistory> { public void Configure(EntityTypeBuilder<QueryHistory> b) { WorkspaceMapping.Base(b, "StudyQueryHistory"); b.HasIndex(x=>x.ProjectId); } }
 internal sealed class JobMapping : IEntityTypeConfiguration<WorkJob> { public void Configure(EntityTypeBuilder<WorkJob> b) { WorkspaceMapping.Base(b, "WorkspaceJobs"); b.Property(x=>x.Status).HasMaxLength(30); b.HasIndex(x=>new{x.Status,x.LeaseUntilUtc}); } }
-internal sealed class FileMapping : IEntityTypeConfiguration<StoredFile> { public void Configure(EntityTypeBuilder<StoredFile> b) { WorkspaceMapping.Base(b, "StoredFiles"); b.Property(x=>x.ObjectKey).HasMaxLength(200); b.Property(x=>x.Name).HasMaxLength(300); b.Property(x=>x.Status).HasMaxLength(30); b.HasIndex(x=>new{x.LocationId,x.Status}); b.HasOne<StorageLocation>().WithMany().HasForeignKey(x=>x.LocationId).OnDelete(DeleteBehavior.Restrict); } }
-internal sealed class ReferenceMapping : IEntityTypeConfiguration<FileReference> { public void Configure(EntityTypeBuilder<FileReference> b) { WorkspaceMapping.Base(b, "FileReferences"); b.HasIndex(x=>new{x.FileId,x.EntityId}); b.HasOne<StoredFile>().WithMany().HasForeignKey(x=>x.FileId).OnDelete(DeleteBehavior.Restrict); } }
-internal sealed class LocationMapping : IEntityTypeConfiguration<StorageLocation> { public void Configure(EntityTypeBuilder<StorageLocation> b) { WorkspaceMapping.Base(b, "StorageLocations"); b.Property(x=>x.RootPath).HasMaxLength(1000); b.HasIndex(x=>x.Writable).IsUnique().HasFilter("[Writable] = 1 AND [IsDeleted] = 0"); } }
-internal sealed class MigrationMapping : IEntityTypeConfiguration<FileMigrationItem> { public void Configure(EntityTypeBuilder<FileMigrationItem> b) { WorkspaceMapping.Base(b, "FileMigrationItems"); b.HasIndex(x=>new{x.JobId,x.FileId}).IsUnique(); } }
+
+internal sealed class FileReleaseMapping : IEntityTypeConfiguration<FileRelease> { public void Configure(EntityTypeBuilder<FileRelease> b) { WorkspaceMapping.Base(b, "FileReleaseOutbox"); b.HasIndex(x=>x.NotBeforeUtc); b.HasIndex(x=>new{x.EntityId,x.KeepIfVersionExists}); } }

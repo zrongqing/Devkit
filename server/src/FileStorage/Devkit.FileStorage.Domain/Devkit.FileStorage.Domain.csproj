@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../Commons/Devkit.DomainCommons/Devkit.DomainCommons.csproj" />
+  </ItemGroup>
+</Project>

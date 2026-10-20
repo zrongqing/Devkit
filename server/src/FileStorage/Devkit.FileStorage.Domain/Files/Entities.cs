@@ -1,7 +1,6 @@
-using Devkit.Business.Domain.Workspace;
 using Devkit.DomainCommons.Entities;
 
-namespace Devkit.Business.Domain.FileStorage;
+namespace Devkit.FileStorage.Domain.Files;
 
 public sealed class StoredFile : OwnedEntity
 {
@@ -38,4 +37,25 @@ public sealed class FileMigrationItem : AuditableEntity
     public Guid TargetLocationId { get; set; }
     public string Status { get; set; } = "pending";
     public string Error { get; set; } = "";
+}
+
+public abstract class OwnedEntity : AuditableEntity
+{
+    public Guid OwnerId { get; set; }
+    public int Revision { get; set; } = 1;
+}
+
+
+public sealed class StorageJob : OwnedEntity
+{
+    public string Kind { get; set; } = "migrate";
+    public Guid TargetId { get; set; }
+    public string PayloadJson { get; set; } = "{}";
+    public string Status { get; set; } = "queued";
+    public int Progress { get; set; }
+    public int Attempts { get; set; }
+    public string Error { get; set; } = "";
+    public DateTime? LeaseUntilUtc { get; set; }
+    public Guid? LeaseId { get; set; }
+    public DateTime? RetryAfterUtc { get; set; }
 }

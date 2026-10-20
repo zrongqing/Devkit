@@ -2,9 +2,6 @@ namespace Devkit.Business.Infrastructure.Workspace;
 
 public sealed class WorkspaceOptions
 {
-    public string DataRoot { get; set; } = OperatingSystem.IsWindows() ? @"D:\.server data\devkit" : "/var/lib/devkit";
-    public long MaximumUploadBytes { get; set; } = 20 * 1024 * 1024;
-    public long MinimumFreeBytes { get; set; } = 100 * 1024 * 1024;
     public string QdrantUrl { get; set; } = "http://localhost:6333";
     public string QdrantApiKey { get; set; } = "";
     public ModelOptions Chat { get; set; } = new();

@@ -1,7 +1,6 @@
 using Devkit.Commons.Serialization;
 using Devkit.Business.Domain.Abstractions;
 using Devkit.Business.Domain.Workspace;
-using Devkit.Business.Domain.FileStorage;
 
 namespace Devkit.Business.Application.Workspace;
 
@@ -31,17 +30,32 @@ public sealed class StudyService(IWorkspaceStore store,IFileService files,IKnowl
         if(r.Text is null)throw Invalid("正文不能为 null；上传文件时可传空字符串。");
         if(r.FileId is null && string.IsNullOrWhiteSpace(r.Text))throw Invalid("请选择文件或填写正文。");
         if(r.Text.Length>2_000_000)throw Invalid("正文过长，请拆分条目。");
-        return await store.TransactionAsync(async()=>
+        var source=id.HasValue?await GetAsync<KnowledgeSource>(actor,id.Value,ct):new KnowledgeSource{OwnerId=kb.OwnerId,KnowledgeBaseId=kb.Id};
+        if(source.KnowledgeBaseId!=kbId)throw Invalid("来源不属于当前知识库。");
+        if(id.HasValue)Revision(source,r.Revision);
+        var versionId=Guid.CreateVersion7();
+        WorkJob result;
+        try
         {
-            var source=id.HasValue?await GetAsync<KnowledgeSource>(actor,id.Value,ct):new KnowledgeSource{OwnerId=kb.OwnerId,KnowledgeBaseId=kb.Id};
-            if(source.KnowledgeBaseId!=kbId)throw Invalid("来源不属于当前知识库。");
-            if(id.HasValue){Revision(source,r.Revision);source.Revision++;await MarkStaleAsync(source.Id,ct);}else store.Add(source);
-            source.Title=r.Title.Trim();source.FileId=r.FileId;source.Text=r.Text;source.Kind=r.FileId.HasValue?"file":"manual";source.Status="queued";
-            var version=new SourceVersion{OwnerId=source.OwnerId,SourceId=source.Id,Revision=source.Revision,FileId=source.FileId,Title=source.Title,Text=source.Text};
-            store.Add(version);if(r.FileId.HasValue)await files.LinkAsync(actor,r.FileId.Value,version.Id,source.OwnerId,"exam-study",ct);
-            var job=new WorkJob{OwnerId=source.OwnerId,Kind="ingest",TargetId=version.Id};store.Add(job);return job;
-        },ct);
+            if(r.FileId.HasValue)await files.PrepareLinkAsync(actor,r.FileId.Value,versionId,source.OwnerId,ct);
+            result=await store.TransactionAsync(async()=>
+            {
+                if(id.HasValue){Revision(source,r.Revision);source.Revision++;await MarkStaleAsync(source.Id,ct);}else store.Add(source);
+                source.Title=r.Title.Trim();source.FileId=r.FileId;source.Text=r.Text;source.Kind=r.FileId.HasValue?"file":"manual";source.Status="queued";
+                var version=new SourceVersion{Id=versionId,OwnerId=source.OwnerId,SourceId=source.Id,Revision=source.Revision,FileId=source.FileId,Title=source.Title,Text=source.Text};
+                store.Add(version);
+                var job=new WorkJob{OwnerId=source.OwnerId,Kind="ingest",TargetId=version.Id};store.Add(job);return job;
+            },ct);
+        }
+        catch
+        {
+            if(r.FileId.HasValue)await files.CancelLinkAsync(versionId,CancellationToken.None);
+            throw;
+        }
+        if(r.FileId.HasValue)await files.CompleteLinkAsync(versionId,ct);
+        return result;
     }
+
     private async Task MarkStaleAsync(Guid sourceId,CancellationToken ct)
     {
         foreach(var q in await store.ListAsync<Question>(null,ct))
@@ -64,9 +78,15 @@ public sealed class StudyService(IWorkspaceStore store,IFileService files,IKnowl
         await store.TransactionAsync(async()=>
         {
             source.IsDeleted=true;source.Revision++;await MarkStaleAsync(id,ct);
-            foreach(var v in await store.ListAsync<SourceVersion>(x=>x.SourceId==id,ct))await files.UnlinkAsync(v.Id,ct);
+            foreach(var v in await store.ListAsync<SourceVersion>(x=>x.SourceId==id && x.FileId.HasValue,ct))
+                store.Add(new FileRelease{EntityId=v.Id,NotBeforeUtc=DateTime.UtcNow});
             store.Add(new WorkJob{OwnerId=source.OwnerId,Kind="remove-index",TargetId=id});return true;
         },ct);
+        foreach(var v in await store.ListAsync<SourceVersion>(x=>x.SourceId==id && x.FileId.HasValue,ct))
+        {
+            try {await files.ReleaseAsync(v.Id,ct);}
+            catch(BusinessException e) when(e.Status==503) { /* Durable release is retried by the worker. */ }
+        }
     }
     public async Task DeleteBaseAsync(Actor actor,Guid id,CancellationToken ct)
     {
@@ -255,10 +275,10 @@ public sealed class StudyService(IWorkspaceStore store,IFileService files,IKnowl
     }
     public async Task MasterAsync(Actor actor,Guid id,bool mastered,CancellationToken ct){var m=await GetAsync<Mistake>(actor,id,ct);m.Mastered=mastered;m.Revision++;await store.SaveAsync(ct);}
     public async Task<IReadOnlyList<WorkJob>> JobsAsync(Actor actor,CancellationToken ct)
-    {if(!actor.Administrator&&!actor.Has("study.jobs.view")&&!actor.Has("system.storage.manage"))throw new BusinessException(403,"forbidden","没有任务权限。");return (await store.ListAsync<WorkJob>(x=>actor.Administrator || x.OwnerId==actor.Id,ct)).OrderByDescending(x=>x.CreatedAtUtc).Take(200).ToArray();}
+    {if(!actor.Administrator&&!actor.Has("study.jobs.view"))throw new BusinessException(403,"forbidden","没有任务权限。");return (await store.ListAsync<WorkJob>(x=>(actor.Administrator || x.OwnerId==actor.Id) && x.Kind!="migrate" && x.Kind!="cleanup",ct)).OrderByDescending(x=>x.CreatedAtUtc).Take(200).ToArray();}
     public async Task RetryAsync(Actor actor,Guid id,CancellationToken ct)
     {
-        var job=await store.FindAsync<WorkJob>(id,ct)??throw new BusinessException(404,"not_found","任务不存在。");actor.Own(job.OwnerId);actor.Require(job.Kind is "migrate" or "cleanup" ? "system.storage.manage" : job.Kind == "generate" ? "study.questions.manage" : "study.knowledge.manage");
+        var job=await store.FindAsync<WorkJob>(id,ct)??throw new BusinessException(404,"not_found","任务不存在。");if(job.Kind is "migrate" or "cleanup")throw new BusinessException(404,"not_found","存储任务已迁入文件服务。");actor.Own(job.OwnerId);actor.Require(job.Kind == "generate" ? "study.questions.manage" : "study.knowledge.manage");
         if(job.Status is "running" or "completed")throw new BusinessException(409,"job_busy","任务正在运行或已完成。");job.Status="queued";job.Attempts=0;job.RetryAfterUtc=null;job.Error="";job.Revision++;await store.SaveAsync(ct);
     }
 }

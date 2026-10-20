@@ -10,9 +10,9 @@ namespace Devkit.Business.Infrastructure.Workspace;
 
 public sealed class DocumentProcessor(IFileService files) : IDocumentProcessor
 {
-    public async Task<ExtractedDocument> ExtractAsync(Guid fileId,CancellationToken ct)
+    public async Task<ExtractedDocument> ExtractAsync(Guid fileId,Guid entityId,CancellationToken ct)
     {
-        var file=await files.OpenInternalAsync(fileId,ct);await using var stream=file.Stream;
+        var file=await files.OpenInternalAsync(fileId,entityId,ct);await using var stream=file.Stream;
         var blocks=new List<TextBlock>();var warning="";
         if(Path.GetExtension(file.Name).Equals(".pdf",StringComparison.OrdinalIgnoreCase))
         {

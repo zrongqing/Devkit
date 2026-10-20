@@ -6,11 +6,15 @@ Minimal API 适合路由数量较少、希望把路由、授权、限流和 Open
 
 Minimal API 不包含 MVC Controller 的程序集发现机制。项目通过 `IEndpointModule` 和 `EndpointModuleExtensions` 提供等价的自动发现：新增模块只需实现接口，不需要修改 `Program.cs`。
 
+接口与发现扩展统一位于 `Devkit.AspNetCore.Endpoints`，响应信封位于 `Devkit.AspNetCore.Contracts`。两个 API 已通过全局 using 引用，业务专属 DTO 仍留在各自 `Api/Contracts`。
+
 ## 创建 endpoint 模块
 
 在 `src/Business/Devkit.Business.Api/Endpoints` 中创建一个公开、非抽象、非泛型类，并实现 `IEndpointModule`：
 
 ```csharp
+using Devkit.AspNetCore.Contracts;
+using Devkit.AspNetCore.Endpoints;
 using Devkit.Business.Api.Contracts;
 
 namespace Devkit.Business.Api.Endpoints;
@@ -55,26 +59,26 @@ public sealed class ExampleEndpoints : IEndpointModule
 
 ## 自动注册原理
 
-`Program.cs` 已配置以下两步：
+`Program.cs` 通过公共宿主扩展完成注册和映射：
 
 ```csharp
-builder.Services.AddEndpointModules(typeof(Program).Assembly);
+builder.Services.AddDevkitApi(builder.Configuration, typeof(Program).Assembly);
 ```
 
 启动时扫描指定程序集，将所有实现 `IEndpointModule` 的具体类注册到依赖注入容器。
 
 ```csharp
-app.MapEndpointModules();
+app.MapDevkitApi("Devkit Business API");
 ```
 
-应用构建后从容器取得所有模块，并逐一执行 `MapEndpoints`。因此新增 endpoint 模块后不需要再添加 `app.MapXxxEndpoints()`。
+上述扩展内部调用 `AddEndpointModules` 与 `MapEndpointModules`。应用构建后从容器取得所有模块，并逐一执行 `MapEndpoints`。因此新增 endpoint 模块后不需要再添加 `app.MapXxxEndpoints()`。
 
 模块以单例注册，只应负责声明路由。请求级服务应像示例一样通过 handler 参数注入，不要把 Scoped 服务注入模块构造函数。
 
-如果模块位于其他程序集，需要把该程序集也传给 `AddEndpointModules`：
+如果模块位于其他程序集，需要显式传入该程序集；不能传入另一上下文的 API 程序集：
 
 ```csharp
-builder.Services.AddEndpointModules(
+builder.Services.AddDevkitApi(builder.Configuration,
     typeof(Program).Assembly,
     typeof(ExternalEndpointMarker).Assembly);
 ```

@@ -9,10 +9,11 @@
 - 数据库与 ORM：EF Core 10.0.12；首版 provider 为 SQL Server，迁移独立保存在 Infrastructure。模型避免依赖 schema、sequence 和 rowversion，以便以后增加 MySQL、SQLite provider。
 - DTO 映射：Mapster 10.0.12，使用显式映射配置并在启动注册时编译验证。
 - 身份认证与授权：RS256 JWT Bearer（身份持私钥、业务仅持公钥）、短期 access token、数据库哈希保存且单次轮换的 refresh token、角色声明和认证版本失效机制。
-- 上下文：Identity、Business 各有独立 API / Infrastructure / Application / Domain、DbContext、SQL Server 迁移与镜像；上下文之间不直接引用实体或项目。通过版本化 HTTP 身份断言衔接业务权限，详见 [认证与业务分离部署](docs/认证与业务分离部署.md)。
+- 上下文：Identity、FileStorage、Business 各有独立 API / Infrastructure / Application / Domain、DbContext、SQL Server 迁移与镜像；上下文之间不直接引用实体或项目。通过版本化 HTTP 身份断言衔接业务权限，详见 [认证与业务分离部署](docs/认证与业务分离部署.md)。
+- 公共基础：`src/Commons` 中的 Commons、DomainCommons、Infrastructure、AspNetCore 四个项目统一序列化、审计与软删除、数据库注册、RSA/JWT 验证和 API 宿主能力；公共项目不引用业务上下文，详见 [公共基础模块](docs/公共基础模块.md)。
 - 缓存：Redis 8，通过 `IDistributedCache` 使用；缓存失败时业务回退 SQL Server，readiness 仍报告异常。
 - 后台作业：ASP.NET Core `BackgroundService` + `PeriodicTimer`；当前用于清理过期 refresh token。
-- 部署：Linux .NET 10 容器，Docker Compose 编排 Identity、Business 与身份 Redis；SQL Server 2022 使用外部实例。
+- 部署：Linux .NET 10 容器，Docker Compose 编排 Identity、FileStorage、Business 与身份 Redis；SQL Server 2022 使用外部实例。
 - OpenAPI：ASP.NET Core 内置 OpenAPI，文档地址 `/openapi/v1.json`；Swagger UI 页面地址 `/swagger`。
 - 模块通信：第一阶段使用 SQL Server 持久化命令缓冲、目标模块内严格顺序、处理租约和幂等键；高吞吐阶段是否切换 Kafka、RabbitMQ 或云消息服务由压测决定。
 - PLC、ERP 等外部集成：具体协议和适配器待定，按独立业务服务隔离。
@@ -22,3 +23,5 @@
 - Qdrant 固定使用 `v1.19.1`，采用服务端原生 BM25 多语言分词和可选稠密向量；通过 HttpClient 调用 REST API，避免引入另一套客户端版本依赖。参见 [Qdrant 全文检索](https://qdrant.tech/documentation/search/text-search/full-text-search/)。
 - 文件原件、临时目录、日志与备份默认统一放在 `D:\.server data\devkit`。生产密钥和本机模型配置通过外部配置文件或环境变量注入。
 - Web / Application / Domain / Infrastructure 各自交付；考试、文件存储、身份管理按命名空间隔离，客户端不在本次实施范围。
+
+- 文件核心服务：FileStorage 独立四层、数据库与镜像，业务通过版本化 HTTP 引用文件；存储迁移任务独立于备考任务，服务凭据限定模块，引用补偿采用本地持久化 outbox。详见 [文件服务独立部署](docs/文件服务独立部署.md)。

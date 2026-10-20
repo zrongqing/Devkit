@@ -85,7 +85,7 @@ jobs:
               esac
 
               case "$path" in
-                server/src/Identity/Devkit.Identity.Api/*|server/src/Business/Devkit.Business.Api/*)
+                server/src/Identity/Devkit.Identity.Api/*|server/src/Business/Devkit.Business.Api/*|server/src/FileStorage/Devkit.FileStorage.Api/*)
                   client=true
                   web=true
                   server=true
@@ -180,6 +180,9 @@ jobs:
 
       - name: Build business container
         run: docker build --file server/src/Business/Devkit.Business.Api/Dockerfile --tag devkit-business:ci .
+
+      - name: Build file storage container
+        run: docker build --file server/src/FileStorage/Devkit.FileStorage.Api/Dockerfile --tag devkit-filestorage:ci .
 
   required:
     name: Required status

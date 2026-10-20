@@ -3,11 +3,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
-using Devkit.Business.Application.Workspace;
-using Devkit.Business.Domain.FileStorage;
-using Devkit.Business.Domain.Workspace;
-using Devkit.Business.Infrastructure.Persistence;
-using Devkit.Business.Infrastructure.Workspace;
+using Devkit.FileStorage.Application.Files;
+using Devkit.FileStorage.Domain.Files;
+using WorkJob = Devkit.FileStorage.Domain.Files.StorageJob;
+using Devkit.FileStorage.Infrastructure.Persistence;
+using Devkit.FileStorage.Infrastructure.Files;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -69,7 +69,7 @@ public sealed class FileStorageEndpointTests
     {
         using var factory = new DevkitApiFactory(builtInAdmin: true); using var admin = factory.CreateClient(); await Login(admin); await factory.InitializeStorageAsync();
         await StudyUser(admin, "reader", "system.files.manage");
-        var options = factory.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<WorkspaceOptions>>().Value; options.MaximumUploadBytes = 16;
+        var options = factory.FileServices.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageOptions>>().Value; options.MaximumUploadBytes = 16;
         await Problem(await Upload(admin, "oversized.pdf", Encoding.UTF8.GetBytes("%PDF-" + new string('A', 32))), HttpStatusCode.RequestEntityTooLarge, "file_too_large");
         var file = await Data<FileView>(await Upload(admin, "original.pdf", Encoding.UTF8.GetBytes("%PDF-1.4\n")));
         using var reader = factory.CreateClient(); await Login(reader, "reader", "StrongPassword123");
@@ -89,14 +89,14 @@ public sealed class FileStorageEndpointTests
         await factory.RunJobAsync(job.Id); await factory.RunJobAsync(job.Id);
         Assert.Equal(bytes, await (await client.GetAsync($"/api/v1/files/{file.Id}/content")).Content.ReadAsByteArrayAsync());
         string key;
-        using (var scope = factory.Services.CreateScope())
+        using (var scope = factory.FileServices.CreateScope())
         {
-            var stored = await scope.ServiceProvider.GetRequiredService<BusinessDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id);
+            var stored = await scope.ServiceProvider.GetRequiredService<FileStorageDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id);
             Assert.Equal(target.Id, stored.LocationId); key = stored.ObjectKey;
         }
         var oldPath = Path.Combine(source.RootPath, key); Assert.True(File.Exists(oldPath));
         await Data<SuccessView>(await client.PostAsync($"/api/v1/storage/migrations/{job.Id}/cleanup", null));
-        var cleanup = (await Data<WorkJob[]>(await client.GetAsync("/api/v1/exam-study/jobs"))).Single(x => x.Kind == "cleanup");
+        var cleanup = (await Data<WorkJob[]>(await client.GetAsync("/api/v1/storage/jobs"))).Single(x => x.Kind == "cleanup");
         await Problem(await client.PostAsJsonAsync("/api/v1/storage/migrations", new MigrationRequest(target.Id, source.Id)), HttpStatusCode.Conflict, "migration_busy");
         await factory.RunJobAsync(cleanup.Id);
         Assert.False(File.Exists(oldPath)); Assert.Equal(bytes, File.ReadAllBytes(Path.Combine(target.RootPath, key)));
@@ -112,10 +112,10 @@ public sealed class FileStorageEndpointTests
         var target = await Data<StorageLocation>(await client.PostAsJsonAsync("/api/v1/storage/locations", new LocationRequest("新位置", Path.Combine(factory.DataRoot, "destination"))));
         var job = await Data<JobCreatedView>(await client.PostAsJsonAsync("/api/v1/storage/migrations", new MigrationRequest(source.Id, target.Id)), HttpStatusCode.Accepted);
         string path;
-        using (var scope = factory.Services.CreateScope()) path = Path.Combine(source.RootPath, (await scope.ServiceProvider.GetRequiredService<BusinessDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id)).ObjectKey);
+        using (var scope = factory.FileServices.CreateScope()) path = Path.Combine(source.RootPath, (await scope.ServiceProvider.GetRequiredService<FileStorageDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id)).ObjectKey);
         await File.WriteAllTextAsync(path, "tampered");
-        Assert.Equal("checksum_mismatch", (await Assert.ThrowsAsync<BusinessException>(() => factory.RunJobAsync(job.Id))).Code);
-        using (var scope = factory.Services.CreateScope()) Assert.Equal(source.Id, (await scope.ServiceProvider.GetRequiredService<BusinessDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id)).LocationId);
+        Assert.Equal("checksum_mismatch", (await Assert.ThrowsAsync<FileStorageException>(() => factory.RunJobAsync(job.Id))).Code);
+        using (var scope = factory.FileServices.CreateScope()) Assert.Equal(source.Id, (await scope.ServiceProvider.GetRequiredService<FileStorageDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id)).LocationId);
         await File.WriteAllBytesAsync(path, bytes); await factory.RunJobAsync(job.Id);
         Assert.Equal(bytes, await (await client.GetAsync($"/api/v1/files/{file.Id}/content")).Content.ReadAsByteArrayAsync());
     }

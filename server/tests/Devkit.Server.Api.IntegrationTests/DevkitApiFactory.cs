@@ -4,6 +4,8 @@ using Devkit.Business.Application.Workspace;
 using Devkit.Business.Infrastructure.Persistence;
 using Devkit.Business.Infrastructure.Workspace;
 using Devkit.Identity.Infrastructure.Persistence;
+using Devkit.FileStorage.Infrastructure.Persistence;
+using Devkit.FileStorage.Infrastructure.Files;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -17,12 +19,13 @@ using Microsoft.Extensions.Hosting;
 
 namespace Devkit.Server.Api.IntegrationTests;
 
-// Two actual application hosts, independent SQLite databases and an HTTP boundary.
+// Three actual application hosts, independent SQLite databases and an HTTP boundary.
 // The routing client represents the public gateway, not a combined application.
 internal sealed class DevkitApiFactory : IDisposable
 {
     private readonly IdentityHost identity;
     private readonly BusinessHost business;
+    private readonly FileStorageHost files;
     private readonly string testRoot;
     public string DataRoot { get; }
     public string PrivatePath => Path.Combine(DataRoot, "identity.pem");
@@ -32,6 +35,12 @@ internal sealed class DevkitApiFactory : IDisposable
     public TestExternalServices External { get; } = new();
     public TestModelGateway Model { get; } = new();
     public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? IdentityOverride { get; set; }
+    public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? FileOverride { get; set; }
+    public bool FailSourceCommit { get; set; }
+    public int FileRequests { get; private set; }
+    public const string FileClientKey = "isolated-file-service-key-for-tests-32bytes";
+    public string FileDatabasePath => Path.Combine(DataRoot, "files.db");
+    public IServiceProvider FileServices => files.Services;
     public int IdentityRequests { get; private set; }
     public IServiceProvider Services => business.Services;
     public IServiceProvider IdentityServices => identity.Services;
@@ -40,7 +49,8 @@ internal sealed class DevkitApiFactory : IDisposable
         bool bootstrapEnabled = false, bool builtInAdmin = false,
         Action<IdentityDbContext>? prepareDatabase = null,
         IReadOnlyDictionary<string, string?>? identityConfiguration = null,
-        IReadOnlyDictionary<string, string?>? businessConfiguration = null)
+        IReadOnlyDictionary<string, string?>? businessConfiguration = null,
+        IReadOnlyDictionary<string, string?>? fileConfiguration = null)
     {
         testRoot = Path.GetFullPath(Environment.GetEnvironmentVariable("DEVKIT_TEST_ROOT") ?? Path.GetTempPath());
         DataRoot = Path.Combine(testRoot, $"devkit-tests-{Guid.NewGuid():N}");
@@ -67,11 +77,22 @@ internal sealed class DevkitApiFactory : IDisposable
             ["Jwt:Issuer"] = "Devkit.Tests", ["Jwt:Audience"] = "Devkit.Tests.Client",
             ["Jwt:ValidationPublicKeyPath"] = PublicPath,
             ["Identity:BaseUrl"] = "http://identity.test", ["Identity:RequireHttps"] = "false",
-            ["Workspace:DataRoot"] = Path.Combine(DataRoot, "storage"), ["Workspace:MinimumFreeBytes"] = "0",
+            ["FileService:BaseUrl"] = "http://files.test", ["FileService:RequireHttps"] = "false",
+            ["FileService:ApiKey"] = FileClientKey,
             ["Workspace:QdrantUrl"] = "http://qdrant.test"
         };
         foreach (var pair in businessConfiguration ?? new Dictionary<string, string?>()) businessConfig[pair.Key] = pair.Value;
         business = new BusinessHost(this, businessConfig);
+        var fileConfig = new Dictionary<string,string?>
+        {
+            ["Jwt:Issuer"]="Devkit.Tests", ["Jwt:Audience"]="Devkit.Tests.Client",
+            ["Jwt:ValidationPublicKeyPath"]=PublicPath,
+            ["Identity:BaseUrl"]="http://identity.test", ["Identity:RequireHttps"]="false",
+            ["FileStorage:DataRoot"]=Path.Combine(DataRoot,"storage"), ["FileStorage:MinimumFreeBytes"]="0",
+            ["FileStorage:Clients:Business:ApiKey"]=FileClientKey
+        };
+        foreach(var pair in fileConfiguration??new Dictionary<string,string?>())fileConfig[pair.Key]=pair.Value;
+        files=new FileStorageHost(this,fileConfig);
     }
 
     public HttpClient CreateIdentityClient() => identity.CreateClient();
@@ -80,28 +101,31 @@ internal sealed class DevkitApiFactory : IDisposable
         _ = identity.Services; // Seed the independent identity database before accepting business traffic.
         return business.CreateClient();
     }
+    public HttpClient CreateFileClient() { _ = identity.Services; return files.CreateClient(); }
     public HttpClient CreateClient()
     {
         _ = identity.Services;
         _ = business.Services;
-        return new HttpClient(new GatewayHandler(identity.Server.CreateHandler(), business.Server.CreateHandler()))
+        return new HttpClient(new GatewayHandler(identity.Server.CreateHandler(), business.Server.CreateHandler(), files.Server.CreateHandler()))
         { BaseAddress = new Uri("http://localhost") };
     }
 
-    private sealed class GatewayHandler(HttpMessageHandler identity, HttpMessageHandler business) : HttpMessageHandler
+    private sealed class GatewayHandler(HttpMessageHandler identity, HttpMessageHandler business, HttpMessageHandler files) : HttpMessageHandler
     {
         private readonly HttpMessageInvoker identityInvoker = new(identity);
         private readonly HttpMessageInvoker businessInvoker = new(business);
+        private readonly HttpMessageInvoker fileInvoker = new(files);
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var path = request.RequestUri!.AbsolutePath;
             var isIdentity = path.StartsWith("/api/v1/auth/") || path.StartsWith("/api/v1/identity/")
                 || path.StartsWith("/api/v1/web/") || path.StartsWith("/api/v1/client/navigation/");
-            return (isIdentity ? identityInvoker : businessInvoker).SendAsync(request, ct);
+            var isFile = path.StartsWith("/api/v1/files") || path.StartsWith("/api/v1/storage") || path.StartsWith("/api/v1/internal/files");
+            return (isIdentity ? identityInvoker : isFile ? fileInvoker : businessInvoker).SendAsync(request, ct);
         }
         protected override void Dispose(bool disposing)
         {
-            if (disposing) { identityInvoker.Dispose(); businessInvoker.Dispose(); }
+            if (disposing) { identityInvoker.Dispose(); businessInvoker.Dispose(); fileInvoker.Dispose(); }
             base.Dispose(disposing);
         }
     }
@@ -116,11 +140,30 @@ internal sealed class DevkitApiFactory : IDisposable
             return await invoker.SendAsync(request, ct);
         }
     }
+    private sealed class FileBoundaryHandler(DevkitApiFactory owner) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
+        {
+            owner.FileRequests++;
+            if(owner.FileOverride is not null)return await owner.FileOverride(request,ct);
+            using var invoker=new HttpMessageInvoker(owner.files.Server.CreateHandler());
+            return await invoker.SendAsync(request,ct);
+        }
+    }
     private sealed class BoundaryClients(DevkitApiFactory owner) : IHttpClientFactory
     {
-        public HttpClient CreateClient(string name) => name == "identity"
-            ? new HttpClient(new IdentityBoundaryHandler(owner)) { BaseAddress = new Uri("http://identity.test"), Timeout = TimeSpan.FromSeconds(2) }
-            : owner.External.CreateClient(name);
+        public HttpClient CreateClient(string name)
+        {
+            if(name=="identity")return new HttpClient(new IdentityBoundaryHandler(owner)){BaseAddress=new Uri("http://identity.test"),Timeout=TimeSpan.FromSeconds(2)};
+            if(name=="files")
+            {
+                var options=owner.business.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileServiceOptions>>().Value;
+                var client=new HttpClient(new FileBoundaryHandler(owner)){BaseAddress=new Uri("http://files.test"),Timeout=TimeSpan.FromSeconds(2)};
+                client.DefaultRequestHeaders.Add("X-File-Service",options.ClientName);
+                client.DefaultRequestHeaders.Add("X-File-Key",options.ApiKey);return client;
+            }
+            return owner.External.CreateClient(name);
+        }
     }
 
     private sealed class IdentityHost(DevkitApiFactory owner, Dictionary<string, string?> config, bool failingCache,
@@ -172,28 +215,70 @@ internal sealed class DevkitApiFactory : IDisposable
                 services.AddDbContext<BusinessDbContext>((provider, options) =>
                 {
                     options.UseSqlite($"Data Source={owner.BusinessDatabasePath};Pooling=False");
+                    options.AddInterceptors(new SourceCommitFailure(owner));
                     options.AddInterceptors(provider.GetRequiredService<Devkit.Infrastructure.Persistence.AuditingSaveChangesInterceptor>());
                 });
             });
         }
     }
 
+    private sealed class SourceCommitFailure(DevkitApiFactory owner) : Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor
+    {
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> SavingChangesAsync(
+            Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result,CancellationToken cancellationToken=default)
+        {
+            if(owner.FailSourceCommit && eventData.Context!.ChangeTracker.Entries<Devkit.Business.Domain.Workspace.SourceVersion>().Any(x=>x.State==EntityState.Added))
+                throw new InvalidOperationException("Isolated source commit failure");
+            return base.SavingChangesAsync(eventData,result,cancellationToken);
+        }
+    }
+    private sealed class FileStorageHost(DevkitApiFactory owner, Dictionary<string,string?> config)
+        : WebApplicationFactory<Devkit.FileStorage.Api.Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseEnvironment("Testing");
+            builder.ConfigureAppConfiguration((_,c)=>c.AddInMemoryCollection(config));
+            builder.ConfigureServices(services=>
+            {
+                services.AddDataProtection().UseEphemeralDataProtectionProvider();
+                foreach(var hosted in services.Where(d=>d.ServiceType==typeof(IHostedService)&&d.ImplementationType==typeof(FileStorageWorker)).ToArray())services.Remove(hosted);
+                services.RemoveAll<IHttpClientFactory>();services.AddSingleton<IHttpClientFactory>(new BoundaryClients(owner));
+                services.RemoveAll<DbContextOptions<FileStorageDbContext>>();services.RemoveAll<FileStorageDbContext>();
+                services.RemoveAll<IDbContextOptionsConfiguration<FileStorageDbContext>>();
+                using(var setup=new FileStorageDbContext(new DbContextOptionsBuilder<FileStorageDbContext>().UseSqlite($"Data Source={owner.FileDatabasePath};Pooling=False").Options))setup.Database.EnsureCreated();
+                services.AddDbContext<FileStorageDbContext>((provider,options)=>
+                {
+                    options.UseSqlite($"Data Source={owner.FileDatabasePath};Pooling=False");
+                    options.AddInterceptors(provider.GetRequiredService<Devkit.Infrastructure.Persistence.AuditingSaveChangesInterceptor>());
+                });
+            });
+        }
+    }
     public async Task RunJobAsync(Guid jobId)
     {
-        using var scope = Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<BusinessDbContext>();
-        var job = await db.Set<Devkit.Business.Domain.Workspace.WorkJob>().SingleAsync(x => x.Id == jobId);
-        await scope.ServiceProvider.GetRequiredService<WorkspaceJobHandler>().RunAsync(job, CancellationToken.None);
-        job.Status = "completed"; job.Progress = 100; await db.SaveChangesAsync();
+        using var scope=Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<BusinessDbContext>();
+        var job=await db.Set<Devkit.Business.Domain.Workspace.WorkJob>().SingleOrDefaultAsync(x=>x.Id==jobId);
+        if(job is not null)
+        {
+            await scope.ServiceProvider.GetRequiredService<WorkspaceJobHandler>().RunAsync(job,CancellationToken.None);
+            job.Status="completed";job.Progress=100;await db.SaveChangesAsync();return;
+        }
+        using var fileScope=FileServices.CreateScope();var fileDb=fileScope.ServiceProvider.GetRequiredService<FileStorageDbContext>();
+        var fileJob=await fileDb.Set<Devkit.FileStorage.Domain.Files.StorageJob>().SingleAsync(x=>x.Id==jobId);
+        await fileScope.ServiceProvider.GetRequiredService<StorageJobHandler>().RunAsync(fileJob,CancellationToken.None);
+        fileJob.Status="completed";fileJob.Progress=100;await fileDb.SaveChangesAsync();
     }
     public async Task InitializeStorageAsync()
     {
-        using var scope = Services.CreateScope();
+        using var scope=FileServices.CreateScope();
         await scope.ServiceProvider.GetRequiredService<LocalFileService>().EnsureDefaultAsync(CancellationToken.None);
     }
+
     public void Dispose()
     {
-        business.Dispose(); identity.Dispose(); External.Dispose();
+        business.Dispose(); files.Dispose(); identity.Dispose(); External.Dispose();
         var resolved = Path.GetFullPath(DataRoot);
         if (!resolved.StartsWith(testRoot.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
             || !Path.GetFileName(resolved).StartsWith("devkit-tests-", StringComparison.Ordinal))

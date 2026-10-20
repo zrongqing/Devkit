@@ -16,21 +16,6 @@ public sealed class WorkspaceWorker(IServiceScopeFactory scopes,ILogger<Workspac
     {
         while(!stoppingToken.IsCancellationRequested)
         {
-            try
-            {
-                using var scope=scopes.CreateScope();
-                await scope.ServiceProvider.GetRequiredService<LocalFileService>().EnsureDefaultAsync(stoppingToken);
-                break;
-            }
-            catch(OperationCanceledException)when(stoppingToken.IsCancellationRequested){break;}
-            catch(Exception e)
-            {
-                logger.LogWarning("Workspace initialization pending: {Type}",e.GetType().Name);
-                await Task.Delay(TimeSpan.FromSeconds(2),stoppingToken);
-            }
-        }
-        while(!stoppingToken.IsCancellationRequested)
-        {
             try { await TickAsync(stoppingToken); }
             catch(OperationCanceledException)when(stoppingToken.IsCancellationRequested){break;}
             catch(Exception e){logger.LogWarning("Workspace worker cycle failed: {Type}",e.GetType().Name);}
@@ -40,14 +25,14 @@ public sealed class WorkspaceWorker(IServiceScopeFactory scopes,ILogger<Workspac
     private async Task TickAsync(CancellationToken ct)
     {
         using var scope=scopes.CreateScope();var db=scope.ServiceProvider.GetRequiredService<BusinessDbContext>();var now=DateTime.UtcNow;
-        // Recover uploads whose process terminated. Completed originals remain on disk for administrator recovery.
-        await db.Set<Domain.FileStorage.StoredFile>().Where(x=>x.Status=="uploading"&&x.CreatedAtUtc<now.AddHours(-2)).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"failed"),ct);
+        try {await scope.ServiceProvider.GetRequiredService<RemoteFileService>().ReconcileAsync(ct);}
+        catch(BusinessException e) when(e.Status==503){logger.LogWarning("File reference release pending: {Code}",e.Code);}
         foreach(var attempt in await db.Set<StudyAttempt>().AsNoTracking().Where(x=>x.Status=="active"&&x.DeadlineUtc<=now).Take(20).ToListAsync(ct))
         {
             using var attemptScope=scopes.CreateScope();
             await attemptScope.ServiceProvider.GetRequiredService<StudyService>().SubmitAsync(new Actor(attempt.OwnerId,true,PermissionCatalog.All),attempt.Id,ct);
         }
-        var job=await db.Set<WorkJob>().AsNoTracking().Where(x=>(x.Status=="queued"&&(!x.RetryAfterUtc.HasValue||x.RetryAfterUtc<=now)) || (x.Status=="running"&&x.LeaseUntilUtc<now)).OrderBy(x=>x.CreatedAtUtc).FirstOrDefaultAsync(ct);
+        var job=await db.Set<WorkJob>().AsNoTracking().Where(x=>x.Kind!="migrate"&&x.Kind!="cleanup").Where(x=>(x.Status=="queued"&&(!x.RetryAfterUtc.HasValue||x.RetryAfterUtc<=now)) || (x.Status=="running"&&x.LeaseUntilUtc<now)).OrderBy(x=>x.CreatedAtUtc).FirstOrDefaultAsync(ct);
         if(job is null)return;
         var lease=Guid.NewGuid();
         var claimed=await db.Set<WorkJob>().Where(x=>x.Id==job.Id&&((x.Status=="queued"&&(!x.RetryAfterUtc.HasValue||x.RetryAfterUtc<=now))||(x.Status=="running"&&x.LeaseUntilUtc<now))).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"running").SetProperty(x=>x.LeaseId,lease).SetProperty(x=>x.LeaseUntilUtc,now.AddMinutes(2)).SetProperty(x=>x.Attempts,x=>x.Attempts+1).SetProperty(x=>x.Error,""),ct);
@@ -92,7 +77,7 @@ public sealed class WorkspaceWorker(IServiceScopeFactory scopes,ILogger<Workspac
     }
 }
 
-public sealed class WorkspaceJobHandler(BusinessDbContext db,IDocumentProcessor processor,QdrantKnowledgeIndex index,IModelGateway models,StudyService study,LocalFileService files)
+public sealed class WorkspaceJobHandler(BusinessDbContext db,IDocumentProcessor processor,QdrantKnowledgeIndex index,IModelGateway models,StudyService study)
 {
     public async Task RunAsync(WorkJob job,CancellationToken ct)
     {
@@ -101,8 +86,6 @@ public sealed class WorkspaceJobHandler(BusinessDbContext db,IDocumentProcessor 
             case "ingest":await IngestAsync(job,ct);break;
             case "dense":await DenseAsync(job,ct);break;
             case "generate":await GenerateAsync(job,ct);break;
-            case "migrate":await files.ProcessMigrationAsync(job,ct);break;
-            case "cleanup":await files.ProcessCleanupAsync(job.TargetId,ct);break;
             case "remove-index":await index.DeleteAsync(job.TargetId,ct);break;
             default:throw new BusinessException(400,"invalid_job","未知任务类型。");
         }
@@ -115,7 +98,7 @@ public sealed class WorkspaceJobHandler(BusinessDbContext db,IDocumentProcessor 
         var existing=await db.Set<KnowledgeChunk>().Where(x=>x.VersionId==version.Id && x.Ordinal<100000).ToListAsync(ct);
         if(existing.Count==0)
         {
-            ExtractedDocument extracted=version.FileId.HasValue&&string.IsNullOrWhiteSpace(version.Text)?await processor.ExtractAsync(version.FileId.Value,ct):new ExtractedDocument(version.Text.Split('\n',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries).Select((t,i)=>new TextBlock(t,version.Title,$"{(version.FileId.HasValue?"人工校正文":"手动条目")} / 段落 {i+1}",null)).ToArray(),"");
+            ExtractedDocument extracted=version.FileId.HasValue&&string.IsNullOrWhiteSpace(version.Text)?await processor.ExtractAsync(version.FileId.Value,version.Id,ct):new ExtractedDocument(version.Text.Split('\n',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries).Select((t,i)=>new TextBlock(t,version.Title,$"{(version.FileId.HasValue?"人工校正文":"手动条目")} / 段落 {i+1}",null)).ToArray(),"");
             version.Text=string.Join("\n",extracted.Blocks.Select(x=>x.Text));version.BlocksJson=JsonData.Write(extracted.Blocks);source.Warning=extracted.Warning;
             existing=processor.Split(extracted.Blocks).Select((x,i)=>new KnowledgeChunk{OwnerId=source.OwnerId,KnowledgeBaseId=source.KnowledgeBaseId,SourceId=source.Id,VersionId=version.Id,Revision=version.Revision,Ordinal=i,Text=x.Text,Heading=x.Heading,Location=x.Location,Page=x.Page}).ToList();
             if(existing.Count==0)throw new BusinessException(400,"empty_text","没有可建立索引的文字。");

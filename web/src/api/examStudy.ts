@@ -334,6 +334,8 @@ export const studyApi = {
     }>(`${base}/capabilities`),
 };
 export const fileApi = {
+  jobs: () => request<Job[]>("/api/v1/storage/jobs"),
+  retry: (id: string) => request(`/api/v1/storage/jobs/${id}/retry`, { method: "POST" }),
   async upload(file: File, purpose = "exam-study") {
     const body = new FormData();
     body.append("file", file);

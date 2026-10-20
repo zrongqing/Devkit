@@ -1,5 +1,4 @@
 using Devkit.Commons.Exceptions;
-using Devkit.Business.Domain.FileStorage;
 using Devkit.Business.Domain.Workspace;
 
 namespace Devkit.Business.Application.Workspace;
@@ -64,11 +63,7 @@ public sealed record AnswerRequest(string[] Answers, int Revision);
 public sealed record QuestionSnapshot(Guid Id, int Revision, string Type, string Stem, QuestionOption[] Options, string[] Answers, string Explanation, Citation[] Citations);
 public sealed record AttemptQuestion(Guid Id, string Type, string Stem, QuestionOption[] Options, string[] Selected, bool Answered, string[]? Answers, string? Explanation, Citation[]? Citations, bool? Correct);
 public sealed record AttemptView(Guid Id, Guid ProjectId, string Mode, string Status, int Revision, DateTime? DeadlineUtc, DateTime ServerTimeUtc, decimal? Score, int PassScore, IReadOnlyList<AttemptQuestion> Questions);
-public sealed record FileView(Guid Id, string Name, string ContentType, long Length, string Sha256, string Purpose, Guid OwnerId, string Status, int ReferenceCount, DateTime CreatedAtUtc);
 public sealed record OpenedFile(Stream Stream, string Name, string ContentType);
-public sealed record StorageView(Guid Id, string Name, string RootPath, bool Writable, long? AvailableBytes, long FileCount, long TotalBytes);
-public sealed record LocationRequest(string Name, string RootPath);
-public sealed record MigrationRequest(Guid SourceLocationId, Guid TargetLocationId);
 public sealed record CapabilityView(bool ChatConfigured, bool EmbeddingConfigured, bool QdrantAvailable);
 public sealed record SourceDetailView(KnowledgeSource Source, IReadOnlyList<SourceVersion> Versions, IReadOnlyList<KnowledgeChunk> Chunks);
 public sealed record AttemptSummary(Guid Id, string Mode, string Status, decimal? Score, int PassScore, DateTime? DeadlineUtc, DateTime CreatedAtUtc);
@@ -79,22 +74,15 @@ public sealed record JobCreatedView(Guid Id);
 public interface IWorkspaceAccess { Task<Actor> CurrentAsync(CancellationToken ct = default); }
 public interface IFileService
 {
-    Task<FileView> UploadAsync(Actor actor, string name, string purpose, Stream stream, CancellationToken ct);
-    Task<IReadOnlyList<FileView>> ListAsync(Actor actor, CancellationToken ct);
-    Task<OpenedFile> OpenAsync(Actor actor, Guid id, CancellationToken ct);
-    Task<OpenedFile> OpenInternalAsync(Guid id, CancellationToken ct);
-    Task LinkAsync(Actor actor, Guid id, Guid entityId, Guid referenceOwnerId, string module, CancellationToken ct);
-    Task<IReadOnlyList<FileReference>> ReferencesAsync(Actor actor, Guid id, CancellationToken ct);
-    Task UnlinkAsync(Guid entityId, CancellationToken ct);
-    Task PurgeAsync(Actor actor, Guid id, CancellationToken ct);
-    Task<IReadOnlyList<StorageView>> LocationsAsync(Actor actor, CancellationToken ct);
-    Task<StorageLocation> AddLocationAsync(Actor actor, LocationRequest request, CancellationToken ct);
-    Task<Guid> MigrateAsync(Actor actor, MigrationRequest request, CancellationToken ct);
-    Task CleanupAsync(Actor actor, Guid jobId, CancellationToken ct);
+    Task PrepareLinkAsync(Actor actor, Guid id, Guid entityId, Guid ownerId, CancellationToken ct);
+    Task CompleteLinkAsync(Guid entityId, CancellationToken ct);
+    Task CancelLinkAsync(Guid entityId, CancellationToken ct);
+    Task ReleaseAsync(Guid entityId, CancellationToken ct);
+    Task<OpenedFile> OpenInternalAsync(Guid id, Guid entityId, CancellationToken ct);
 }
 public interface IDocumentProcessor
 {
-    Task<ExtractedDocument> ExtractAsync(Guid fileId, CancellationToken ct);
+    Task<ExtractedDocument> ExtractAsync(Guid fileId, Guid entityId, CancellationToken ct);
     IReadOnlyList<TextBlock> Split(IReadOnlyList<TextBlock> blocks);
 }
 public interface IKnowledgeIndex

@@ -17,6 +17,12 @@
     <Project Path="src/Business/Devkit.Business.Infrastructure/Devkit.Business.Infrastructure.csproj" />
     <Project Path="src/Business/Devkit.Business.Api/Devkit.Business.Api.csproj" />
   </Folder>
+  <Folder Name="/src/FileStorage/">
+    <Project Path="src/FileStorage/Devkit.FileStorage.Domain/Devkit.FileStorage.Domain.csproj" />
+    <Project Path="src/FileStorage/Devkit.FileStorage.Application/Devkit.FileStorage.Application.csproj" />
+    <Project Path="src/FileStorage/Devkit.FileStorage.Infrastructure/Devkit.FileStorage.Infrastructure.csproj" />
+    <Project Path="src/FileStorage/Devkit.FileStorage.Api/Devkit.FileStorage.Api.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Devkit.Server.Application.Tests/Devkit.Server.Application.Tests.csproj" />
     <Project Path="tests/Devkit.Server.Api.IntegrationTests/Devkit.Server.Api.IntegrationTests.csproj" />

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('Identity', 'Business')][string]$Context,
+    [Parameter(Mandatory)][ValidateSet('Identity', 'Business', 'FileStorage')][string]$Context,
     [string]$ConnectionString = '',
     [switch]$SeedBootstrapAccount,
     [string]$BootstrapUserName = $env:BootstrapAccount__UserName,

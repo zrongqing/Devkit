@@ -13,7 +13,8 @@ public static class WorkspaceRegistration
         services.AddHttpClient();
         services.AddScoped<IWorkspaceStore,WorkspaceStore>();
         services.AddScoped<StudyService>();
-        services.AddScoped<LocalFileService>();services.AddScoped<IFileService>(x=>x.GetRequiredService<LocalFileService>());
+        services.AddScoped<RemoteFileService>();services.AddScoped<IFileService>(x=>x.GetRequiredService<RemoteFileService>());
+        services.AddFileServiceClient(config);
         services.AddScoped<IDocumentProcessor,DocumentProcessor>();services.AddScoped<IModelGateway,ModelGateway>();
         services.AddScoped<QdrantKnowledgeIndex>();services.AddScoped<IKnowledgeIndex>(x=>x.GetRequiredService<QdrantKnowledgeIndex>());
         services.AddScoped<WorkspaceJobHandler>();services.AddHostedService<WorkspaceWorker>();

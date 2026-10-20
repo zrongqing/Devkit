@@ -34,13 +34,14 @@
 dotnet test server/Devkit.Server.slnx -m:1
 ```
 
-API 集成测试使用独立 SQLite 数据库和内存 / 故障缓存替身，覆盖注册开关、管理员引导、登录锁定、DTO 敏感字段、refresh 轮换与重放、注销、审计 / 软删除和 Redis 降级。
+API 集成测试使用 Identity、FileStorage、Business 三个独立宿主与 SQLite 数据库和内存 / 故障缓存替身，覆盖注册开关、管理员引导、登录锁定、DTO 敏感字段、refresh 轮换与重放、注销、审计 / 软删除和 Redis 降级。
 
 备考、文件和权限模块的用例位于 `server/tests/Devkit.Server.Api.IntegrationTests`：
 
 | 文件 | 验证行为 |
 | --- | --- |
 | `StudyEndpointTests.cs` | 资料版本与项目范围、查询后权限范围复核、旧题待复核、考试答案隐藏与快照判分、超时交卷、错题掌握、冲突与空值校验、模型失败、引用和生成任务防重、OpenAPI |
+| `FileStorageSeparationTests.cs` | 三宿主/数据库/程序集边界、文件独立 OpenAPI、服务凭据与模块引用约束、身份撤销、远程故障、业务提交失败补偿与删除 outbox 恢复 |
 | `FileStorageEndpointTests.cs` | DOCX 原件与文本提取、引用保留及清理限制、上传大小与内容校验、跨用户下载限制、迁移恢复和校验、独立清理、路径边界 |
 | `IdentityPermissionEndpointTests.cs` | 默认管理员、登录要求、菜单授权与撤销、数据隔离、防止越权授予管理员、最后管理员保护、改密使会话失效、空值校验 |
 | `WebMenuEndpointTests.cs` | 三级菜单、声明比较、幂等同步、配置保留、树校验、冲突与整批回滚、入口保护、用户角色菜单授权、越权及一次性迁移 |

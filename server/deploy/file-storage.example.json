@@ -1,0 +1,20 @@
+{
+  "FileStorage": {
+    "DataRoot": "D:\\.server data\\devkit",
+    "MaximumUploadBytes": 20971520,
+    "MinimumFreeBytes": 104857600,
+    "Clients": {
+      "Business": {
+        "Module": "exam-study",
+        "ApiKey": ""
+      }
+    }
+  },
+  "Jwt": {
+    "ValidationPublicKeyPath": ""
+  },
+  "Identity": {
+    "BaseUrl": "http://localhost:12512",
+    "RequireHttps": false
+  }
+}
