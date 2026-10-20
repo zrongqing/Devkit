@@ -1,4 +1,6 @@
-namespace Devkit.Identity.Api.Endpoints;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+namespace Devkit.AspNetCore.Endpoints;
 
 /// <summary>
 /// Defines a discoverable Minimal API endpoint module.

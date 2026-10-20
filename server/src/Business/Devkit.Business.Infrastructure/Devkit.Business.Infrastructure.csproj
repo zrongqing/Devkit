@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../../Commons/Devkit.Infrastructure/Devkit.Infrastructure.csproj" />
     <ProjectReference Include="../Devkit.Business.Application/Devkit.Business.Application.csproj" />
   </ItemGroup>
   <ItemGroup><FrameworkReference Include="Microsoft.AspNetCore.App" /></ItemGroup>

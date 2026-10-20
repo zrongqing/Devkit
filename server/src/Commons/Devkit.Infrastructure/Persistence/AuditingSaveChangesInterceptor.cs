@@ -1,10 +1,10 @@
 using System.Security.Claims;
-using Devkit.Business.Domain.Common;
+using Devkit.DomainCommons.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
-namespace Devkit.Business.Infrastructure.Persistence;
+namespace Devkit.Infrastructure.Persistence;
 
 public sealed class AuditingSaveChangesInterceptor(TimeProvider timeProvider, IHttpContextAccessor httpContextAccessor)
     : SaveChangesInterceptor

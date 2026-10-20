@@ -1,4 +1,4 @@
-using Devkit.Identity.Domain.Common;
+using Devkit.DomainCommons.Entities;
 
 namespace Devkit.Identity.Domain.Navigation;
 

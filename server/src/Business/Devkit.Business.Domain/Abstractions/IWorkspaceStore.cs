@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using Devkit.Business.Domain.Common;
+using Devkit.DomainCommons.Entities;
 
 namespace Devkit.Business.Domain.Abstractions;
 

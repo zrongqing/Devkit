@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 using Devkit.Business.Domain.Abstractions;
-using Devkit.Business.Domain.Common;
+using Devkit.DomainCommons.Entities;
 using Devkit.Business.Domain.FileStorage;
 using Devkit.Business.Domain.Workspace;
 using Devkit.Business.Infrastructure.Persistence;

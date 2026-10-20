@@ -1,3 +1,4 @@
+using Devkit.Infrastructure.Persistence;
 using Devkit.Business.Application.Workspace;
 using Devkit.Business.Infrastructure.Identity;
 using Devkit.Business.Application.Abstractions;
@@ -55,14 +56,7 @@ public static class DependencyInjection
                 options.MaximumPayloadBytes);
         });
 
-        services.AddScoped<AuditingSaveChangesInterceptor>();
-        services.AddDbContext<BusinessDbContext>((serviceProvider, options) =>
-        {
-            var connectionString = configuration.GetConnectionString("Business")
-                ?? throw new InvalidOperationException("ConnectionStrings:Business is required");
-            options.UseSqlServer(connectionString, sqlServer => sqlServer.EnableRetryOnFailure());
-            options.AddInterceptors(serviceProvider.GetRequiredService<AuditingSaveChangesInterceptor>());
-        });
+        services.AddDevkitSqlServer<BusinessDbContext>(configuration, "Business");
 
         services.AddScoped<IModuleRuntimeStore, SqlModuleRuntimeStore>();
         services.AddScoped<IModuleRuntimeService, ModuleRuntimeService>();
@@ -80,7 +74,6 @@ public static class DependencyInjection
         services.AddScoped<IWorkspaceAccess, RemoteWorkspaceAccess>();
 
         services.AddHealthChecks()
-            .AddCheck<SqlServerHealthCheck>("sql-server", tags: ["ready"])
             .AddCheck<IdentityServiceHealthCheck>("identity", tags: ["ready"]);
         return services;
     }

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup><UserSecretsId>Devkit.Identity.Api</UserSecretsId></PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Commons/Devkit.AspNetCore/Devkit.AspNetCore.csproj" />
     <ProjectReference Include="../Devkit.Identity.Infrastructure/Devkit.Identity.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>

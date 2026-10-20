@@ -1,21 +1,10 @@
-using System.Text.Json;
+using Devkit.Commons.Exceptions;
 using Devkit.Business.Domain.FileStorage;
 using Devkit.Business.Domain.Workspace;
 
 namespace Devkit.Business.Application.Workspace;
 
-public static class JsonData
-{
-    public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
-    public static T Read<T>(string value) => JsonSerializer.Deserialize<T>(value, Options)!;
-    public static string Write<T>(T value) => JsonSerializer.Serialize(value, Options);
-}
-
-public sealed class BusinessException(int status, string code, string message) : Exception(message)
-{
-    public int Status { get; } = status;
-    public string Code { get; } = code;
-}
+public sealed class BusinessException(int status, string code, string message) : ServiceException(status, code, message) { }
 
 public sealed record Actor(Guid Id, bool Administrator, IReadOnlyList<string> Permissions, IReadOnlyList<string>? MenuCodes = null)
 {

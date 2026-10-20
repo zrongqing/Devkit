@@ -1,3 +1,4 @@
+using Devkit.Commons.Serialization;
 using System.Text.RegularExpressions;
 using Devkit.Identity.Application.Authorization;
 using Devkit.Identity.Domain.Navigation;

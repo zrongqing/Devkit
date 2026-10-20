@@ -1,4 +1,4 @@
-namespace Devkit.Business.Domain.Common;
+namespace Devkit.DomainCommons.Entities;
 
 public abstract class AuditableEntity
 {

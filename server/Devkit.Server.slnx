@@ -1,4 +1,10 @@
 <Solution>
+  <Folder Name="/src/Commons/">
+    <Project Path="src/Commons/Devkit.Commons/Devkit.Commons.csproj" />
+    <Project Path="src/Commons/Devkit.DomainCommons/Devkit.DomainCommons.csproj" />
+    <Project Path="src/Commons/Devkit.Infrastructure/Devkit.Infrastructure.csproj" />
+    <Project Path="src/Commons/Devkit.AspNetCore/Devkit.AspNetCore.csproj" />
+  </Folder>
   <Folder Name="/src/Identity/">
     <Project Path="src/Identity/Devkit.Identity.Domain/Devkit.Identity.Domain.csproj" />
     <Project Path="src/Identity/Devkit.Identity.Application/Devkit.Identity.Application.csproj" />

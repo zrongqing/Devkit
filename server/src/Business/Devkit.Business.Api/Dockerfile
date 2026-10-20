@@ -7,8 +7,13 @@ COPY server/src/Business/Devkit.Business.Domain/Devkit.Business.Domain.csproj se
 COPY server/src/Business/Devkit.Business.Application/Devkit.Business.Application.csproj server/src/Business/Devkit.Business.Application/
 COPY server/src/Business/Devkit.Business.Infrastructure/Devkit.Business.Infrastructure.csproj server/src/Business/Devkit.Business.Infrastructure/
 COPY server/src/Business/Devkit.Business.Api/Devkit.Business.Api.csproj server/src/Business/Devkit.Business.Api/
+COPY server/src/Commons/Devkit.Commons/Devkit.Commons.csproj server/src/Commons/Devkit.Commons/
+COPY server/src/Commons/Devkit.DomainCommons/Devkit.DomainCommons.csproj server/src/Commons/Devkit.DomainCommons/
+COPY server/src/Commons/Devkit.Infrastructure/Devkit.Infrastructure.csproj server/src/Commons/Devkit.Infrastructure/
+COPY server/src/Commons/Devkit.AspNetCore/Devkit.AspNetCore.csproj server/src/Commons/Devkit.AspNetCore/
 RUN dotnet restore server/src/Business/Devkit.Business.Api/Devkit.Business.Api.csproj --nologo
 COPY server/src/Business/ server/src/Business/
+COPY server/src/Commons/ server/src/Commons/
 ARG VERSION=0.1.0
 RUN dotnet publish server/src/Business/Devkit.Business.Api/Devkit.Business.Api.csproj --configuration Release --no-restore --nologo --output /app/publish -p:Version=$VERSION
 

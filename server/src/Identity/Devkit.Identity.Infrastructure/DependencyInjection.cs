@@ -1,3 +1,4 @@
+using Devkit.Infrastructure.Persistence;
 using Devkit.Identity.Application.Authorization;
 using Devkit.Identity.Application.Administration;
 using Devkit.Identity.Application.Navigation;
@@ -67,17 +68,11 @@ public static class DependencyInjection
                 "Navigation configuration must define valid Web and Client menu trees")
             .ValidateOnStart();
         services.AddSingleton<INavigationMenuService, NavigationMenuService>();
-        services.AddScoped<AuditingSaveChangesInterceptor>();
-        services.AddDbContext<IdentityDbContext>((serviceProvider, options) =>
+        services.AddDevkitSqlServer<IdentityDbContext>(configuration, "Identity", options =>
         {
-            var connectionString = configuration.GetConnectionString("Identity")
-                ?? throw new InvalidOperationException("ConnectionStrings:Identity is required");
-            options.UseSqlServer(connectionString, sqlServer => sqlServer.EnableRetryOnFailure());
-            var bootstrapAccount = configuration
-                .GetSection(BootstrapAccountOptions.SectionName)
-                .Get<BootstrapAccountOptions>() ?? new BootstrapAccountOptions();
-            options.UseIdentityDataSeeding(bootstrapAccount);
-            options.AddInterceptors(serviceProvider.GetRequiredService<AuditingSaveChangesInterceptor>());
+            var bootstrap = configuration.GetSection(BootstrapAccountOptions.SectionName).Get<BootstrapAccountOptions>()
+                ?? new BootstrapAccountOptions();
+            options.UseIdentityDataSeeding(bootstrap);
         });
 
         services.AddStackExchangeRedisCache(options =>
@@ -111,7 +106,6 @@ public static class DependencyInjection
         services.AddHostedService<WebMenuBootstrapHostedService>();
 
         services.AddHealthChecks()
-            .AddCheck<SqlServerHealthCheck>("sql-server", tags: ["ready"])
             .AddCheck<RedisHealthCheck>("redis", tags: ["ready"]);
         return services;
     }

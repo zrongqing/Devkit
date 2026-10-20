@@ -1,4 +1,4 @@
-using Devkit.Business.Domain.Common;
+using Devkit.DomainCommons.Entities;
 
 namespace Devkit.Business.Domain.Workspace;
 

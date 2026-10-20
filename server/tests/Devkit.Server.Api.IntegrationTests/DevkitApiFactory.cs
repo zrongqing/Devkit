@@ -142,7 +142,7 @@ internal sealed class DevkitApiFactory : IDisposable
                 services.AddDbContext<IdentityDbContext>((provider, options) =>
                 {
                     options.UseSqlite($"Data Source={owner.IdentityDatabasePath};Pooling=False");
-                    options.AddInterceptors(provider.GetRequiredService<Devkit.Identity.Infrastructure.Persistence.AuditingSaveChangesInterceptor>());
+                    options.AddInterceptors(provider.GetRequiredService<Devkit.Infrastructure.Persistence.AuditingSaveChangesInterceptor>());
                 });
                 services.RemoveAll<IDistributedCache>();
                 if (failingCache) services.AddSingleton<IDistributedCache, ThrowingDistributedCache>();
@@ -172,7 +172,7 @@ internal sealed class DevkitApiFactory : IDisposable
                 services.AddDbContext<BusinessDbContext>((provider, options) =>
                 {
                     options.UseSqlite($"Data Source={owner.BusinessDatabasePath};Pooling=False");
-                    options.AddInterceptors(provider.GetRequiredService<Devkit.Business.Infrastructure.Persistence.AuditingSaveChangesInterceptor>());
+                    options.AddInterceptors(provider.GetRequiredService<Devkit.Infrastructure.Persistence.AuditingSaveChangesInterceptor>());
                 });
             });
         }

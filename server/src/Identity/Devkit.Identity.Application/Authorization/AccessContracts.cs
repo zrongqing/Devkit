@@ -1,19 +1,8 @@
-using System.Text.Json;
+using Devkit.Commons.Exceptions;
 
 namespace Devkit.Identity.Application.Authorization;
 
-public static class JsonData
-{
-    public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
-    public static T Read<T>(string value) => JsonSerializer.Deserialize<T>(value, Options)!;
-    public static string Write<T>(T value) => JsonSerializer.Serialize(value, Options);
-}
-
-public sealed class IdentityException(int status, string code, string message) : Exception(message)
-{
-    public int Status { get; } = status;
-    public string Code { get; } = code;
-}
+public sealed class IdentityException(int status, string code, string message) : ServiceException(status, code, message) { }
 
 public sealed record AuthorizationSubject(Guid Id, bool Administrator, IReadOnlyList<string> Permissions, IReadOnlyList<string>? MenuCodes = null)
 {

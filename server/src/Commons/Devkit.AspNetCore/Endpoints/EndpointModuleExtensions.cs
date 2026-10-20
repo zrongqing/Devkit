@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Devkit.Business.Api.Endpoints;
+namespace Devkit.AspNetCore.Endpoints;
 
 public static class EndpointModuleExtensions
 {
