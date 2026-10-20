@@ -79,13 +79,13 @@ jobs:
                 web/*)
                   web=true
                   ;;
-                server/*|compose.yaml|.dockerignore)
+                server/*|compose*.yaml|.dockerignore)
                   server=true
                   ;;
               esac
 
               case "$path" in
-                server/src/Devkit.Server.Api/Contracts/*|server/src/Devkit.Server.Api/Endpoints/*|server/src/Devkit.Server.Api/Program.cs)
+                server/src/Identity/Devkit.Identity.Api/*|server/src/Business/Devkit.Business.Api/*)
                   client=true
                   web=true
                   server=true
@@ -175,8 +175,11 @@ jobs:
       - name: Test server
         run: dotnet test server/Devkit.Server.slnx --configuration Release --no-build --no-restore --nologo
 
-      - name: Build server container
-        run: docker build --file server/src/Devkit.Server.Api/Dockerfile --tag devkit-server:ci .
+      - name: Build identity container
+        run: docker build --file server/src/Identity/Devkit.Identity.Api/Dockerfile --tag devkit-identity:ci .
+
+      - name: Build business container
+        run: docker build --file server/src/Business/Devkit.Business.Api/Dockerfile --tag devkit-business:ci .
 
   required:
     name: Required status

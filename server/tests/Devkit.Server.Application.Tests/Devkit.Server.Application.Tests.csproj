@@ -8,6 +8,6 @@
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <ProjectReference Include="..\..\src\Devkit.Server.Infrastructure\Devkit.Server.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Business/Devkit.Business.Infrastructure/Devkit.Business.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

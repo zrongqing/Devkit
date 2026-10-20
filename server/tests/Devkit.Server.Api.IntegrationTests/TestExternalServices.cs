@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Devkit.Server.Application.Workspace;
+using Devkit.Business.Application.Workspace;
 
 namespace Devkit.Server.Api.IntegrationTests;
 

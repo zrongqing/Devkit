@@ -8,12 +8,12 @@ Minimal API 不包含 MVC Controller 的程序集发现机制。项目通过 `IE
 
 ## 创建 endpoint 模块
 
-在 `src/Devkit.Server.Api/Endpoints` 中创建一个公开、非抽象、非泛型类，并实现 `IEndpointModule`：
+在 `src/Business/Devkit.Business.Api/Endpoints` 中创建一个公开、非抽象、非泛型类，并实现 `IEndpointModule`：
 
 ```csharp
-using Devkit.Server.Api.Contracts;
+using Devkit.Business.Api.Contracts;
 
-namespace Devkit.Server.Api.Endpoints;
+namespace Devkit.Business.Api.Endpoints;
 
 public sealed class ExampleEndpoints : IEndpointModule
 {

@@ -12,7 +12,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Devkit.Server.Api\Devkit.Server.Api.csproj" />
-    <ProjectReference Include="..\..\src\Devkit.Server.Infrastructure\Devkit.Server.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Identity/Devkit.Identity.Api/Devkit.Identity.Api.csproj" />
+    <ProjectReference Include="../../src/Business/Devkit.Business.Api/Devkit.Business.Api.csproj" />
   </ItemGroup>
 </Project>

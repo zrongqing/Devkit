@@ -1,6 +1,5 @@
 import type { ApiResponse, TokenPair, UserProfile } from './types'
-
-const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:12511').replace(/\/$/, '')
+import { endpoint } from './endpoints'
 
 export async function register(
   userName: string,
@@ -56,7 +55,7 @@ function bearer(accessToken: string): HeadersInit {
 }
 
 async function send<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(`${baseUrl}${path}`, withJsonHeaders(init))
+  const response = await fetch(endpoint(path), withJsonHeaders(init))
   if (!response.ok) {
     throw new Error(`Authentication request failed (${response.status})`)
   }
@@ -66,7 +65,7 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
 }
 
 async function sendWithoutBody(path: string, init: RequestInit): Promise<void> {
-  const response = await fetch(`${baseUrl}${path}`, withJsonHeaders(init))
+  const response = await fetch(endpoint(path), withJsonHeaders(init))
   if (!response.ok) {
     throw new Error(`Authentication request failed (${response.status})`)
   }

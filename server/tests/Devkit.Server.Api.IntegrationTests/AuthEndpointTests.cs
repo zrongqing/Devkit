@@ -2,8 +2,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Devkit.Server.Application.Contracts.Auth;
-using Devkit.Server.Infrastructure.Persistence;
+using Devkit.Identity.Application.Contracts.Auth;
+using Devkit.Identity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -70,8 +70,8 @@ public sealed class AuthEndpointTests
         Assert.Equal(HttpStatusCode.NoContent, logoutAll.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
 
-        using var scope = factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<DevkitDbContext>();
+        using var scope = factory.IdentityServices.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         var user = await dbContext.Users.SingleAsync(item => item.Id == registered.Id);
         Assert.NotEqual(default, user.CreatedAtUtc);
         Assert.Equal(user.Id, user.CreatedBy);
@@ -163,7 +163,7 @@ public sealed class AuthEndpointTests
     public async Task OpenApi_contains_versioned_authentication_contracts()
     {
         using var factory = new DevkitApiFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateIdentityClient();
         var document = await client.GetFromJsonAsync<JsonElement>("/openapi/v1.json", JsonOptions);
         var paths = document.GetProperty("paths");
         Assert.True(paths.TryGetProperty("/api/v1/auth/login", out _));

@@ -7,7 +7,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $serverRoot = Split-Path -Parent $PSScriptRoot
-$project = Join-Path $serverRoot 'src\Devkit.Server.Api\Devkit.Server.Api.csproj'
+$project = Join-Path $serverRoot 'src\Business\Devkit.Business.Api\Devkit.Business.Api.csproj'
 $configDirectory = Join-Path $DataRoot 'config'
 New-Item -ItemType Directory -Path $configDirectory -Force | Out-Null
 $configFile = Join-Path $configDirectory 'workspace.json'
@@ -17,7 +17,7 @@ if (-not (Test-Path -LiteralPath $configFile)) {
     $sample | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $configFile -Encoding utf8
 }
 
-$env:DEVKIT_CONFIG_FILE = $configFile
+$env:DEVKIT_BUSINESS_CONFIG_FILE = $configFile
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
 $env:ASPNETCORE_URLS = $Url
 $runArguments = @('run', '--project', $project, '--no-launch-profile')

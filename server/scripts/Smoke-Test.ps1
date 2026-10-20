@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$BaseUrl = 'http://localhost:8080',
+    [string]$BaseUrl = 'http://localhost:8081',
     [string]$RedisContainer = ''
 )
 

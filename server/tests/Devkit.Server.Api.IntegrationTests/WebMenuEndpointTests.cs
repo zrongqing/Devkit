@@ -1,11 +1,12 @@
 using System.Net;
+using Devkit.Identity.Application.Administration;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Devkit.Server.Application.Navigation;
-using Devkit.Server.Application.Workspace;
-using Devkit.Server.Domain.Identity;
-using Devkit.Server.Infrastructure.Persistence;
-using Devkit.Server.Domain.Navigation;
+using Devkit.Identity.Application.Navigation;
+using Devkit.Business.Application.Workspace;
+using Devkit.Identity.Domain.Identity;
+using Devkit.Identity.Infrastructure.Persistence;
+using Devkit.Identity.Domain.Navigation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -37,9 +38,9 @@ public sealed class WebMenuEndpointTests
         var comparison=await Compare(admin,Manifest(tree));
         Assert.All(comparison.Items,x=>Assert.Equal("synced",x.Status));
         Assert.Equal(tree.Version,(await Tree(admin)).Version); // comparison is read-only
-        using (var scope=factory.Services.CreateScope())
+        using (var scope=factory.IdentityServices.CreateScope())
         {
-            var db=scope.ServiceProvider.GetRequiredService<DevkitDbContext>();
+            var db=scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
             var saved=await db.Set<WebMenu>().SingleAsync(x=>x.MenuCode=="knowledge.search");
             saved.DeclarationJson=JsonSerializer.Serialize(JsonData.Read<MenuDeclaration>(saved.DeclarationJson!), new JsonSerializerOptions(JsonData.Options){WriteIndented=true});
             await db.SaveChangesAsync();
@@ -48,7 +49,8 @@ public sealed class WebMenuEndpointTests
         using var anonymous=factory.CreateClient();
         var visible=await Data<JsonElement>(await anonymous.GetAsync("/api/v1/web/navigation/menus"));
         Assert.Contains("home",visible.ToString());Assert.DoesNotContain("knowledge",visible.ToString());
-        var doc=await admin.GetFromJsonAsync<JsonElement>("/openapi/v1.json");
+        using var documentClient = factory.CreateIdentityClient();
+        var doc=await documentClient.GetFromJsonAsync<JsonElement>("/openapi/v1.json");
         Assert.True(doc.GetProperty("paths").TryGetProperty(Root+"/sync",out _));
         Assert.True(doc.GetProperty("paths").TryGetProperty("/api/v1/identity/users/{id}/menus",out _));
     }
@@ -151,7 +153,7 @@ public sealed class WebMenuEndpointTests
         Assert.Contains("knowledge.search",(await Data<Actor>(await user.GetAsync("/api/v1/auth/permissions"))).MenuCodes!); // business edits preserve menu claims
         await Data<SuccessView>(await admin.PutAsJsonAsync($"/api/v1/identity/roles/{role}/menus",new MenuGrantRequest([])));
         Assert.DoesNotContain("knowledge.search",(await Data<JsonElement>(await user.GetAsync("/api/v1/web/navigation/menus"))).ToString());
-        await Data<Devkit.Server.Domain.Workspace.StudyProject[]>(await user.GetAsync("/api/v1/exam-study/projects")); // revoking menus does not revoke APIs
+        await Data<Devkit.Business.Domain.Workspace.StudyProject[]>(await user.GetAsync("/api/v1/exam-study/projects")); // revoking menus does not revoke APIs
         var view=(await Data<AccountView[]>(await admin.GetAsync("/api/v1/identity/users"))).Single(x=>x.Id==id);Assert.Empty(view.MenuCodes);Assert.Empty(view.EffectiveMenuCodes);
     }
 
@@ -193,7 +195,7 @@ public sealed class WebMenuEndpointTests
         Assert.Contains("knowledge.search",role.MenuCodes);Assert.Contains("knowledge.practice.progress",role.MenuCodes);Assert.DoesNotContain("system.menus",role.MenuCodes);
         var user=(await Data<AccountView[]>(await admin.GetAsync("/api/v1/identity/users"))).Single(x=>x.Id==legacyUser);Assert.Equal(["system.files"],user.MenuCodes);
         await Data<SuccessView>(await admin.PutAsJsonAsync($"/api/v1/identity/roles/{legacyRole}/menus",new MenuGrantRequest([])));
-        using (var scope=factory.Services.CreateScope()) await scope.ServiceProvider.GetRequiredService<WebMenuService>().SnapshotAsync(default);
+        using (var scope=factory.IdentityServices.CreateScope()) await scope.ServiceProvider.GetRequiredService<WebMenuService>().SnapshotAsync(default);
         role=(await Data<RoleView[]>(await admin.GetAsync("/api/v1/identity/roles"))).Single(x=>x.Id==legacyRole);Assert.Empty(role.MenuCodes);
         var fresh=await Data<Guid>(await admin.PostAsJsonAsync("/api/v1/identity/roles",new RoleRequest("新角色",["exam-study.access"])));
         Assert.Empty((await Data<RoleView[]>(await admin.GetAsync("/api/v1/identity/roles"))).Single(x=>x.Id==fresh).MenuCodes);

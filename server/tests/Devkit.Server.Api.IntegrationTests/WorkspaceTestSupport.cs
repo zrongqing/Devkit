@@ -1,10 +1,11 @@
+using Devkit.Identity.Application.Administration;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Devkit.Server.Application.Contracts.Auth;
-using Devkit.Server.Application.Workspace;
-using Devkit.Server.Domain.Workspace;
+using Devkit.Identity.Application.Contracts.Auth;
+using Devkit.Business.Application.Workspace;
+using Devkit.Business.Domain.Workspace;
 using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -41,7 +42,7 @@ internal static class WorkspaceTestSupport
         var job = await Data<WorkJob>(await client.PostAsJsonAsync($"/api/v1/exam-study/knowledge-bases/{kb}/sources", new SourceRequest("请假制度", fileId, text)), HttpStatusCode.Accepted);
         await factory.RunJobAsync(job.Id);
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<Devkit.Server.Infrastructure.Persistence.DevkitDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<Devkit.Business.Infrastructure.Persistence.BusinessDbContext>();
         var version = await db.Set<SourceVersion>().FindAsync(job.TargetId);
         return await Data<SourceDetailView>(await client.GetAsync($"/api/v1/exam-study/sources/{version!.SourceId}"));
     }

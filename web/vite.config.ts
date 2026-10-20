@@ -17,6 +17,22 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       open: env.VITE_DEV_OPEN === 'false' ? false : env.VITE_DEV_OPEN || '/',
       proxy: {
+        '/api/v1/auth': {
+          target: env.VITE_DEV_AUTH_TARGET || 'http://localhost:12512',
+          changeOrigin: true,
+        },
+        '/api/v1/identity': {
+          target: env.VITE_DEV_AUTH_TARGET || 'http://localhost:12512',
+          changeOrigin: true,
+        },
+        '/api/v1/web': {
+          target: env.VITE_DEV_AUTH_TARGET || 'http://localhost:12512',
+          changeOrigin: true,
+        },
+        '/api/v1/client/navigation': {
+          target: env.VITE_DEV_AUTH_TARGET || 'http://localhost:12512',
+          changeOrigin: true,
+        },
         '/api': {
           target: env.VITE_DEV_API_TARGET || 'http://localhost:12511',
           changeOrigin: true,

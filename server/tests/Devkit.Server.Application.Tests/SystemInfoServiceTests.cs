@@ -1,7 +1,7 @@
-using Devkit.Server.Infrastructure.SystemInfo;
+using Devkit.Business.Infrastructure.SystemInfo;
 using Xunit;
 
-namespace Devkit.Server.Application.Tests;
+namespace Devkit.Business.Application.Tests;
 
 public sealed class SystemInfoServiceTests
 {

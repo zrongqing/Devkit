@@ -3,11 +3,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
-using Devkit.Server.Application.Workspace;
-using Devkit.Server.Domain.FileStorage;
-using Devkit.Server.Domain.Workspace;
-using Devkit.Server.Infrastructure.Persistence;
-using Devkit.Server.Infrastructure.Workspace;
+using Devkit.Business.Application.Workspace;
+using Devkit.Business.Domain.FileStorage;
+using Devkit.Business.Domain.Workspace;
+using Devkit.Business.Infrastructure.Persistence;
+using Devkit.Business.Infrastructure.Workspace;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -91,7 +91,7 @@ public sealed class FileStorageEndpointTests
         string key;
         using (var scope = factory.Services.CreateScope())
         {
-            var stored = await scope.ServiceProvider.GetRequiredService<DevkitDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id);
+            var stored = await scope.ServiceProvider.GetRequiredService<BusinessDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id);
             Assert.Equal(target.Id, stored.LocationId); key = stored.ObjectKey;
         }
         var oldPath = Path.Combine(source.RootPath, key); Assert.True(File.Exists(oldPath));
@@ -112,10 +112,10 @@ public sealed class FileStorageEndpointTests
         var target = await Data<StorageLocation>(await client.PostAsJsonAsync("/api/v1/storage/locations", new LocationRequest("新位置", Path.Combine(factory.DataRoot, "destination"))));
         var job = await Data<JobCreatedView>(await client.PostAsJsonAsync("/api/v1/storage/migrations", new MigrationRequest(source.Id, target.Id)), HttpStatusCode.Accepted);
         string path;
-        using (var scope = factory.Services.CreateScope()) path = Path.Combine(source.RootPath, (await scope.ServiceProvider.GetRequiredService<DevkitDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id)).ObjectKey);
+        using (var scope = factory.Services.CreateScope()) path = Path.Combine(source.RootPath, (await scope.ServiceProvider.GetRequiredService<BusinessDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id)).ObjectKey);
         await File.WriteAllTextAsync(path, "tampered");
         Assert.Equal("checksum_mismatch", (await Assert.ThrowsAsync<BusinessException>(() => factory.RunJobAsync(job.Id))).Code);
-        using (var scope = factory.Services.CreateScope()) Assert.Equal(source.Id, (await scope.ServiceProvider.GetRequiredService<DevkitDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id)).LocationId);
+        using (var scope = factory.Services.CreateScope()) Assert.Equal(source.Id, (await scope.ServiceProvider.GetRequiredService<BusinessDbContext>().Set<StoredFile>().SingleAsync(x => x.Id == file.Id)).LocationId);
         await File.WriteAllBytesAsync(path, bytes); await factory.RunJobAsync(job.Id);
         Assert.Equal(bytes, await (await client.GetAsync($"/api/v1/files/{file.Id}/content")).Content.ReadAsByteArrayAsync());
     }

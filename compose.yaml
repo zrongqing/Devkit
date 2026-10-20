@@ -31,24 +31,62 @@ services:
           nocopy: true
 
   devkit-server:
-    image: ${DEVKIT_SERVER_IMAGE:-devkit-server:local}
+    image: ${DEVKIT_BUSINESS_IMAGE:-devkit-business:local}
     build:
       context: .
-      dockerfile: server/src/Devkit.Server.Api/Dockerfile
+      dockerfile: server/src/Business/Devkit.Business.Api/Dockerfile
       args:
-        VERSION: ${DEVKIT_SERVER_VERSION:-0.1.0}
+        VERSION: ${DEVKIT_BUSINESS_VERSION:-0.1.0}
     ports:
       - "127.0.0.1:${DEVKIT_SERVER_HOST_PORT:-8080}:8080"
     environment:
-      ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Default: ${DEVKIT_SQL_CONNECTION_STRING:-}
+      ConnectionStrings__Business: ${DEVKIT_BUSINESS_SQL_CONNECTION_STRING:-}
       Jwt__Issuer: ${DEVKIT_JWT_ISSUER:-Devkit.Server}
       Jwt__Audience: ${DEVKIT_JWT_AUDIENCE:-Devkit.Clients}
-      Jwt__SigningKey: ${DEVKIT_JWT_SIGNING_KEY:-}
-      Redis__ConnectionString: redis:6379,abortConnect=false
+      Jwt__ValidationPublicKeyPath: /run/keys/business-public.pem
+      Identity__BaseUrl: http://devkit-identity:8080
+      # Plain HTTP is confined to this private Compose network; use HTTPS across hosts.
+      Identity__RequireHttps: "false"
       Workspace__DataRoot: /var/lib/devkit
       Workspace__QdrantUrl: http://qdrant:6333
+    depends_on:
+      devkit-identity:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    volumes:
+      - type: bind
+        source: ${DEVKIT_DATA_ROOT:-D:/.server data/devkit}
+        target: /var/lib/devkit
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${DEVKIT_JWT_PUBLIC_KEY_FILE:-D:/.server data/devkit/keys/business-public.pem}
+        target: /run/keys/business-public.pem
+        read_only: true
+        bind:
+          create_host_path: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  devkit-identity:
+    image: ${DEVKIT_IDENTITY_IMAGE:-devkit-identity:local}
+    build:
+      context: .
+      dockerfile: server/src/Identity/Devkit.Identity.Api/Dockerfile
+      args:
+        VERSION: ${DEVKIT_IDENTITY_VERSION:-0.1.0}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${DEVKIT_IDENTITY_HOST_PORT:-8082}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Identity: ${DEVKIT_IDENTITY_SQL_CONNECTION_STRING:-}
+      Jwt__Issuer: ${DEVKIT_JWT_ISSUER:-Devkit.Server}
+      Jwt__Audience: ${DEVKIT_JWT_AUDIENCE:-Devkit.Clients}
+      Jwt__SigningPrivateKeyPath: /run/keys/identity-private.pem
+      Redis__ConnectionString: redis:6379,abortConnect=false
       Registration__Enabled: ${DEVKIT_REGISTRATION_ENABLED:-false}
       BootstrapAccount__Enabled: ${DEVKIT_BOOTSTRAP_ENABLED:-false}
       BootstrapAccount__UserName: ${DEVKIT_BOOTSTRAP_USER_NAME:-}
@@ -57,12 +95,11 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      qdrant:
-        condition: service_started
     volumes:
       - type: bind
-        source: ${DEVKIT_DATA_ROOT:-D:/.server data/devkit}
-        target: /var/lib/devkit
+        source: ${DEVKIT_JWT_PRIVATE_KEY_FILE:-D:/.server data/devkit/keys/identity-private.pem}
+        target: /run/keys/identity-private.pem
+        read_only: true
         bind:
           create_host_path: false
     extra_hosts:

@@ -5,6 +5,8 @@ on:
     tags:
       - "client-v*"
       - "server-v*"
+      - "identity-v*"
+      - "business-v*"
       - "web-v*"
       - "v*"
 
@@ -27,7 +29,7 @@ jobs:
       client: ${{ steps.release.outputs.client }}
       server: ${{ steps.release.outputs.server }}
       web: ${{ steps.release.outputs.web }}
-      server_image: ${{ steps.release.outputs.server_image }}
+      server_contexts: ${{ steps.release.outputs.server_contexts }}
       title: ${{ steps.release.outputs.title }}
 
     steps:
@@ -46,6 +48,7 @@ jobs:
           client=false
           server=false
           web=false
+          server_contexts='[]'
 
           case "$tag" in
             client-v*)
@@ -53,9 +56,22 @@ jobs:
               client=true
               title="Devkit Client $version"
               ;;
+            identity-v*)
+              version="${tag#identity-v}"
+              server=true
+              server_contexts='["Identity"]'
+              title="Devkit Identity $version"
+              ;;
+            business-v*)
+              version="${tag#business-v}"
+              server=true
+              server_contexts='["Business"]'
+              title="Devkit Business $version"
+              ;;
             server-v*)
               version="${tag#server-v}"
               server=true
+              server_contexts='["Identity","Business"]'
               title="Devkit Server $version"
               ;;
             web-v*)
@@ -68,6 +84,7 @@ jobs:
               client=true
               server=true
               web=true
+              server_contexts='["Identity","Business"]'
               title="Devkit $version"
               ;;
             *)
@@ -87,13 +104,12 @@ jobs:
             exit 1
           }
 
-          owner="${GITHUB_REPOSITORY_OWNER,,}"
           {
             echo "version=$version"
             echo "client=$client"
             echo "server=$server"
             echo "web=$web"
-            echo "server_image=ghcr.io/$owner/devkit-server"
+            echo "server_contexts=$server_contexts"
             echo "title=$title"
           } >> "$GITHUB_OUTPUT"
 
@@ -195,9 +211,11 @@ jobs:
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      matrix:
+        context: ${{ fromJSON(needs.prepare.outputs.server_contexts) }}
     env:
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
-      SERVER_IMAGE: ${{ needs.prepare.outputs.server_image }}
 
     steps:
       - name: Check out repository
@@ -227,11 +245,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
+      - name: Resolve independent image name
+        shell: bash
+        run: echo "SERVER_IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/devkit-${CONTEXT,,}" >> "$GITHUB_ENV"
+        env:
+          CONTEXT: ${{ matrix.context }}
+
       - name: Build and push image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
-          file: server/src/Devkit.Server.Api/Dockerfile
+          file: server/src/${{ matrix.context }}/Devkit.${{ matrix.context }}.Api/Dockerfile
           push: true
           build-args: |
             VERSION=${{ env.RELEASE_VERSION }}
@@ -242,8 +266,8 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ env.RELEASE_VERSION }}
-          cache-from: type=gha,scope=server
-          cache-to: type=gha,mode=max,scope=server
+          cache-from: type=gha,scope=server-${{ matrix.context }}
+          cache-to: type=gha,mode=max,scope=server-${{ matrix.context }}
           provenance: true
           sbom: true
 

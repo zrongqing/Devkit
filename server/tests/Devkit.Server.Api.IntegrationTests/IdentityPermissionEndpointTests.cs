@@ -1,9 +1,10 @@
+using Devkit.Identity.Application.Administration;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Devkit.Server.Application.Contracts.Auth;
-using Devkit.Server.Application.Workspace;
-using Devkit.Server.Domain.Workspace;
+using Devkit.Identity.Application.Contracts.Auth;
+using Devkit.Business.Application.Workspace;
+using Devkit.Business.Domain.Workspace;
 using Xunit;
 using static Devkit.Server.Api.IntegrationTests.WorkspaceTestSupport;
 
@@ -48,7 +49,7 @@ public sealed class IdentityPermissionEndpointTests
     {
         using var factory = new DevkitApiFactory(builtInAdmin: true); using var client = factory.CreateClient();
         var pair = await Login(client); var actor = await Data<Actor>(await client.GetAsync("/api/v1/auth/permissions"));
-        Assert.True(actor.Administrator); Assert.Equal(PermissionCatalog.All.Order(), actor.Permissions.Order());
+        Assert.True(actor.Administrator); Assert.Equal(Devkit.Identity.Application.Authorization.PermissionCatalog.All.Order(), actor.Permissions.Order());
         var menus = await Data<JsonElement>(await client.GetAsync("/api/v1/web/navigation/menus"));
         Assert.Contains("study-knowledge", menus.ToString()); Assert.Contains("system-storage", menus.ToString());
         await Problem(await client.DeleteAsync($"/api/v1/identity/users/{pair.User.Id}"), HttpStatusCode.Conflict, "last_administrator");

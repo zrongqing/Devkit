@@ -6,13 +6,13 @@ Controller 适合 Action 数量较多、依赖 MVC Filter、复杂模型绑定�
 
 ## 创建 Controller
 
-在 `src/Devkit.Server.Api/Controllers` 中创建公开、非抽象的 Controller：
+在 `src/Business/Devkit.Business.Api/Controllers` 中创建公开、非抽象的 Controller：
 
 ```csharp
-using Devkit.Server.Api.Contracts;
+using Devkit.Business.Api.Contracts;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Devkit.Server.Api.Controllers;
+namespace Devkit.Business.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/examples")]

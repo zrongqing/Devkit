@@ -1,6 +1,8 @@
 import { ref } from "vue";
 import { canonicalMenuCode } from "./menuCodeCompatibility";
 import type { TokenPair } from "./types";
+import { endpoint } from "./endpoints";
+export { apiBase } from "./endpoints";
 
 const key = "devkit.session";
 const permissionKey = "devkit.permissions";
@@ -50,15 +52,12 @@ export function saveSession(value: TokenPair | null) {
   if (value) sessionStorage.setItem(key, JSON.stringify(value));
   else sessionStorage.removeItem(key);
 }
-export const apiBase = (
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:12511"
-).replace(/\/$/, "");
 let refreshing: Promise<boolean> | undefined;
 async function renew() {
   if (!refreshing)
     refreshing = (async () => {
       if (!session.value) return false;
-      const response = await fetch(`${apiBase}/api/v1/auth/refresh`, {
+      const response = await fetch(endpoint('/api/v1/auth/refresh'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken: session.value.refreshToken }),
@@ -86,7 +85,7 @@ export async function authorizedFetch(
     headers.set("Authorization", `Bearer ${session.value.accessToken}`);
   if (init.body && !(init.body instanceof FormData))
     headers.set("Content-Type", "application/json");
-  const response = await fetch(`${apiBase}${path}`, { ...init, headers });
+  const response = await fetch(endpoint(path), { ...init, headers });
   if (response.status === 401 && retry && session.value && (await renew()))
     return authorizedFetch(path, init, false);
   if (response.status === 401) {

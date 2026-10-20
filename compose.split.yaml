@@ -1,0 +1,2 @@
+# Compatibility overlay. compose.yaml now deploys two independent services by default.
+services: {}

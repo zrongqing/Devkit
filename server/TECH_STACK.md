@@ -8,10 +8,11 @@
 - 分层：`Api -> Infrastructure -> Application -> Domain`；Domain 不依赖持久化、缓存或 HTTP 框架。
 - 数据库与 ORM：EF Core 10.0.12；首版 provider 为 SQL Server，迁移独立保存在 Infrastructure。模型避免依赖 schema、sequence 和 rowversion，以便以后增加 MySQL、SQLite provider。
 - DTO 映射：Mapster 10.0.12，使用显式映射配置并在启动注册时编译验证。
-- 身份认证与授权：标准 JWT Bearer、短期 access token、数据库哈希保存且单次轮换的 refresh token、角色声明和认证版本失效机制。
+- 身份认证与授权：RS256 JWT Bearer（身份持私钥、业务仅持公钥）、短期 access token、数据库哈希保存且单次轮换的 refresh token、角色声明和认证版本失效机制。
+- 上下文：Identity、Business 各有独立 API / Infrastructure / Application / Domain、DbContext、SQL Server 迁移与镜像；上下文之间不直接引用实体或项目。通过版本化 HTTP 身份断言衔接业务权限，详见 [认证与业务分离部署](docs/认证与业务分离部署.md)。
 - 缓存：Redis 8，通过 `IDistributedCache` 使用；缓存失败时业务回退 SQL Server，readiness 仍报告异常。
 - 后台作业：ASP.NET Core `BackgroundService` + `PeriodicTimer`；当前用于清理过期 refresh token。
-- 部署：Linux .NET 10 容器，Docker Compose 编排 API 与 Redis；SQL Server 2022 使用外部实例。
+- 部署：Linux .NET 10 容器，Docker Compose 编排 Identity、Business 与身份 Redis；SQL Server 2022 使用外部实例。
 - OpenAPI：ASP.NET Core 内置 OpenAPI，文档地址 `/openapi/v1.json`；Swagger UI 页面地址 `/swagger`。
 - 模块通信：第一阶段使用 SQL Server 持久化命令缓冲、目标模块内严格顺序、处理租约和幂等键；高吞吐阶段是否切换 Kafka、RabbitMQ 或云消息服务由压测决定。
 - PLC、ERP 等外部集成：具体协议和适配器待定，按独立业务服务隔离。

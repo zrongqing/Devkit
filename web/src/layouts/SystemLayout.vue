@@ -51,7 +51,7 @@ onMounted(async () => {
       saveSession(null);
     }
   }
-  await navigation.load(true);
+  await navigation.load();
   const home = navigation.findByRouteKey("home");
   if (home) {
     tabs.open(home);
@@ -204,7 +204,7 @@ function navigateTo(routeKey: string, replace = false) {
             :item="item"
           />
         </el-menu>
-        <div v-if="navigation.loading" class="menu-state">
+        <div v-if="navigation.loading && !navigation.loaded" class="menu-state">
           <el-skeleton :rows="3" animated />
         </div>
         <div v-else-if="navigation.error" class="menu-error">

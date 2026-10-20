@@ -1,8 +1,9 @@
+using Devkit.Identity.Application.Administration;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Devkit.Server.Application.Workspace;
-using Devkit.Server.Domain.Workspace;
+using Devkit.Business.Application.Workspace;
+using Devkit.Business.Domain.Workspace;
 using Xunit;
 using static Devkit.Server.Api.IntegrationTests.WorkspaceTestSupport;
 
@@ -21,7 +22,7 @@ public sealed class ModulePermissionEndpointTests
         await Login(user, "monitor", "StrongPassword123");
         await Problem(await user.GetAsync("/api/v1/system/runtime"), HttpStatusCode.Forbidden, "forbidden");
         await Data<SuccessView>(await admin.PutAsJsonAsync($"/api/v1/identity/users/{id}/permissions", new AssignPermissionsRequest(["system.monitor.view"])));
-        var runtime = await Data<Devkit.Server.Application.Contracts.SystemRuntimeResponse>(await user.GetAsync("/api/v1/system/runtime"));
+        var runtime = await Data<Devkit.Business.Application.Contracts.SystemRuntimeResponse>(await user.GetAsync("/api/v1/system/runtime"));
         Assert.True(runtime.UptimeSeconds >= 0); Assert.True(runtime.WorkingSetBytes > 0);
         Assert.True(runtime.ThreadCount > 0); Assert.True(runtime.ProcessorCount > 0);
         Assert.True(runtime.StartedAtUtc <= runtime.Info.ServerTime);
@@ -144,7 +145,8 @@ public sealed class ModulePermissionEndpointTests
         Assert.Equal("knowledge", entries["knowledge.projects"].GetProperty("parentId").GetString());
         Assert.Equal("题库管理", entries["knowledge.practice.questions"].GetProperty("title").GetString());
         Assert.Contains("system-users", menus.ToString()); Assert.Contains("study-progress", menus.ToString());
-        var document = await admin.GetFromJsonAsync<JsonElement>("/openapi/v1.json");
+        using var identityDocumentClient = factory.CreateIdentityClient();
+        var document = await identityDocumentClient.GetFromJsonAsync<JsonElement>("/openapi/v1.json");
         Assert.True(document.GetProperty("paths").TryGetProperty("/api/v1/identity/users/{id}/permissions", out _));
         Assert.True(document.GetProperty("paths").TryGetProperty("/api/v1/identity/permissions", out _));
     }

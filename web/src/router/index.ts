@@ -44,7 +44,7 @@ router.beforeEach(async (to) => {
     try { await loadPermissions(); }
     catch { return { path: "/login", query: { redirect: to.fullPath } }; }
   }
-  await navigation.load(true);
+  await navigation.load();
   if (key === "home" || navigation.findByRouteKey(key)) return true;
   return session.value ? "/system/home" : { path: "/login", query: { redirect: to.fullPath } };
 });

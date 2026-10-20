@@ -1,8 +1,10 @@
+> 当前身份上下文已独立；账号、认证及导航菜单由 Identity 服务持有。本文中的核心服务现在指 Business 业务控制面，详见 [认证与业务分离部署](认证与业务分离部署.md)。
+
 # MES 模块化服务与可靠消息框架
 
 ## 1. 目标与结论
 
-Devkit 服务端以 `Devkit.Server.Api` 作为稳定运行的核心服务，身份、模块控制面、契约入口和可靠命令暂存属于核心能力。生产执行、工艺、质量、设备、物料、仓储、追溯、报工和 ERP/PLC 集成等业务能力应根据边界拆成独立进程或容器。
+Devkit 服务端以 `Devkit.Business.Api` 作为稳定运行的核心服务，模块控制面、业务契约入口和可靠命令暂存属于业务控制面的核心能力。生产执行、工艺、质量、设备、物料、仓储、追溯、报工和 ERP/PLC 集成等业务能力应根据边界拆成独立进程或容器。
 
 业务模块不是动态加载到核心进程中的 DLL。模块由 Docker Compose、Kubernetes、Windows Service、systemd 或其他进程编排器独立启动、停止和重启。因此，单个业务模块的上下线不要求重启核心服务，也不会把模块自身的内存泄漏、线程阻塞或依赖故障传播到核心进程。
 
@@ -222,10 +224,10 @@ X-Devkit-Module-Key: <secret>
 
 ```powershell
 dotnet user-secrets set "ModuleControl:Enabled" "true" `
-  --project server/src/Devkit.Server.Api/Devkit.Server.Api.csproj
+  --project server/src/Business/Devkit.Business.Api/Devkit.Business.Api.csproj
 
 dotnet user-secrets set "ModuleControl:ApiKey" "replace-with-at-least-32-random-bytes" `
-  --project server/src/Devkit.Server.Api/Devkit.Server.Api.csproj
+  --project server/src/Business/Devkit.Business.Api/Devkit.Business.Api.csproj
 ```
 
 生产环境使用密钥管理系统或环境变量 `ModuleControl__ApiKey`，不得写入仓库。第一阶段共享密钥适合受控内网接入；正式跨节点生产部署应升级到每模块独立身份的 mTLS 或 OAuth2 client credentials，并按 `ModuleKey` 授权，不能把共享密钥作为最终安全方案。
@@ -233,7 +235,7 @@ dotnet user-secrets set "ModuleControl:ApiKey" "replace-with-at-least-32-random-
 数据库迁移文件为 `ModuleControlPlane`。部署前按既有流程运行：
 
 ```powershell
-server/scripts/Update-Database.ps1 `
+server/scripts/Update-Database.ps1 -Context Business `
   -ConnectionString "<production connection string>"
 ```
 
@@ -244,20 +246,20 @@ API 启动过程不会自动迁移数据库。
 核心框架代码按现有四层维护：
 
 ```text
-Devkit.Server.Domain/
+Devkit.Business.Domain/
   Modules/                         模块实例、命令、状态实体
   Abstractions/IModuleRuntimeStore 持久化边界
 
-Devkit.Server.Application/
+Devkit.Business.Application/
   Modules/ModuleRuntimeService     注册、校验、状态和命令用例
   Contracts/Modules/               与 HTTP 无关的应用 DTO
 
-Devkit.Server.Infrastructure/
+Devkit.Business.Infrastructure/
   Modules/SqlModuleRuntimeStore    SQL Server 实现
   Persistence/                     EF 映射、DbSet 和 migration
   Configuration/                   模块控制配置
 
-Devkit.Server.Api/
+Devkit.Business.Api/
   Endpoints/ModuleControlEndpoints 内部版本化 API
   Contracts/ModuleControlContracts HTTP 请求契约
 ```

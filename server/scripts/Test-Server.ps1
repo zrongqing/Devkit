@@ -14,9 +14,8 @@ $previousTestRoot = $env:DEVKIT_TEST_ROOT
 $env:DEVKIT_TEST_ROOT = $testRoot
 Push-Location $repositoryRoot
 try {
-    # The repository uses a shared server output folder. Sequential project execution
-    # prevents a running testhost from locking dependencies needed by another project.
-    $arguments = @('test', 'server/Devkit.Server.slnx', '-m:1', "-p:BaseOutputPath=$outputRoot",
+    # Keep all test artifacts outside business storage, with a separate output per project.
+    $arguments = @('test', 'server/Devkit.Server.slnx', '-m:1', "-p:UseArtifactsOutput=true", "-p:ArtifactsPath=$outputRoot",
         '--results-directory', $resultRoot, '--logger', 'trx;LogFilePrefix=server', '--verbosity', 'minimal')
     if ($Filter) { $arguments += @('--filter', $Filter) }
     & dotnet @arguments

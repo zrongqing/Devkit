@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Devkit.Server.Application.Workspace;
-using Devkit.Server.Domain.Workspace;
-using Devkit.Server.Infrastructure.Persistence;
+using Devkit.Business.Application.Workspace;
+using Devkit.Business.Domain.Workspace;
+using Devkit.Business.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -46,7 +46,7 @@ public sealed class StudyEndpointTests
         var kb = await Base(client); await Source(factory, client, kb.Id); var project = await Project(client, kb.Id);
         factory.External.AfterQuery = async () =>
         {
-            using var scope = factory.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<DevkitDbContext>();
+            using var scope = factory.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<BusinessDbContext>();
             await db.Set<StudyProject>().Where(x => x.Id == project.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.KnowledgeBaseIdsJson, "[]"));
         };
         var result = await Data<SearchResponse>(await client.PostAsJsonAsync($"/api/v1/exam-study/projects/{project.Id}/search", new SearchRequest("请假")));
@@ -96,7 +96,7 @@ public sealed class StudyEndpointTests
         var kb = await Base(client); var q = await ApprovedQuestion(client, kb.Id); var project = await Project(client, kb.Id);
         var a = await Data<AttemptView>(await client.PostAsJsonAsync($"/api/v1/exam-study/projects/{project.Id}/attempts", new AttemptRequest(Count: 1)));
         using (var scope = factory.Services.CreateScope())
-            await scope.ServiceProvider.GetRequiredService<DevkitDbContext>().Set<StudyAttempt>().Where(x => x.Id == a.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.DeadlineUtc, DateTime.UtcNow.AddMinutes(-1)));
+            await scope.ServiceProvider.GetRequiredService<BusinessDbContext>().Set<StudyAttempt>().Where(x => x.Id == a.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.DeadlineUtc, DateTime.UtcNow.AddMinutes(-1)));
         var result = await Data<AttemptView>(await client.PutAsJsonAsync($"/api/v1/exam-study/attempts/{a.Id}/answers/{q.Id}", new AnswerRequest(["A"], a.Revision)));
         Assert.Equal("submitted", result.Status); Assert.Equal(0m, result.Score); Assert.Empty(result.Questions[0].Selected);
     }
@@ -206,6 +206,10 @@ public sealed class StudyEndpointTests
         Assert.True(paths.GetProperty("/api/v1/exam-study/projects/{id}/search").GetProperty("post").TryGetProperty("requestBody", out _));
         Assert.True(paths.GetProperty("/api/v1/exam-study/knowledge-bases/{id}/sources").GetProperty("post").GetProperty("responses").TryGetProperty("202", out _));
         var schemas = doc.GetProperty("components").GetProperty("schemas");
-        foreach (var schema in new[] { "SearchRequest", "SearchResponse", "AttemptView", "SourceDetailView", "FileView", "LocationRequest", "AccountRequest" }) Assert.True(schemas.TryGetProperty(schema, out _), schema);
+        foreach (var schema in new[] { "SearchRequest", "SearchResponse", "AttemptView", "SourceDetailView", "FileView", "LocationRequest" }) Assert.True(schemas.TryGetProperty(schema, out _), schema);
+        Assert.False(schemas.TryGetProperty("AccountRequest", out _));
+        using var identityClient = factory.CreateIdentityClient();
+        var identityDocument = await identityClient.GetFromJsonAsync<JsonElement>("/openapi/v1.json");
+        Assert.True(identityDocument.GetProperty("components").GetProperty("schemas").TryGetProperty("AccountRequest", out _));
     }
 }
