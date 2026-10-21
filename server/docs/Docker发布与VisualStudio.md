@@ -49,12 +49,10 @@ dotnet user-secrets set 'Jwt:ValidationPublicKeyPath' 'D:/.server data/devkit/ke
 
 ```dotenv
 VITE_API_BASE_URL=/
-VITE_DEV_API_TARGET=http://localhost:12511
-VITE_DEV_AUTH_TARGET=http://localhost:12512
-VITE_DEV_FILE_TARGET=http://localhost:12513
+VITE_DEV_API_TARGET=http://localhost:8081
 ```
 
-Vite 将认证、身份管理和导航菜单转发到 Identity，文件与存储转发到 FileStorage，其余业务接口转发到 Business。若联调容器实例，将业务、认证、文件目标分别改为 8080、8082、8083，修改后重启 Vite。
+Vite 将全部 API 转发到 Nginx 的 8081 端口，由 Nginx 分发三个服务。`Start-Development.ps1 -DependenciesOnly` 使用 `compose.development.yaml` 启动同一 devkit 分组内的 Nginx、Redis、Qdrant，Nginx 转发到宿主机 F5 的 12512、12513、12511 端口。先执行 Web 构建以生成静态入口；API 尚未启动时相关请求返回 502。完整 Compose 部署直接使用 `compose.yaml`，Nginx 转发到容器内的三个 API，前端地址不变。
 
 ## Docker Compose 发布
 
@@ -65,8 +63,8 @@ dotnet build server/Devkit.Server.slnx
 dotnet test server/Devkit.Server.slnx
 npm --prefix web ci
 npm --prefix web run build
-docker compose --profile web config --quiet
-docker compose --profile web up -d --build
+docker compose config --quiet
+docker compose up -d --build
 docker compose ps
 ```
 
@@ -104,3 +102,5 @@ docker compose down
 ```
 
 普通更新不要使用 `down --volumes`，该选项会删除命名卷中的持久化数据。Identity 的 readiness 检查数据库和 Redis；FileStorage 的 readiness 检查文件数据库与身份服务；Business 的 readiness 检查业务数据库、身份服务与文件服务依赖。API 不会自动执行数据库迁移。
+
+Nginx 现在默认启用，Compose 项目固定命名为 `devkit`。配置以官方模板机制注入上游地址，Docker DNS 在请求时解析，因此 API 容器尚未启动或重建更换 IP 时无需手动改网关。Redis、Qdrant 默认使用 `latest`，可通过 `DEVKIT_REDIS_IMAGE`、`DEVKIT_QDRANT_IMAGE` 覆盖；标签不会自动更新运行容器，需要显式 pull 和 up。详见 [统一网关与 Docker 维护](统一网关与Docker维护.md)。

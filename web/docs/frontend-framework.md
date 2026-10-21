@@ -8,7 +8,7 @@ npm install
 npm run dev
 ```
 
-默认开发接口地址为 `http://localhost:12511`。服务端 Development 配置允许来自 `localhost:5173` 和 `127.0.0.1:5173` 的请求；如端口或域名不同，请同步调整 Web 环境变量和服务端 CORS 白名单。
+默认开发 API 统一入口为 Nginx `http://localhost:8081`，Vite 只需设置 `VITE_DEV_API_TARGET`。VS 模式先运行 `server/scripts/Start-Development.ps1 -DependenciesOnly`，再启动各 API。服务端 Development 配置允许来自 `localhost:5173` 和 `127.0.0.1:5173` 的请求；如端口或域名不同，请同步调整 Web 环境变量和服务端 CORS 白名单。
 
 生产构建使用：
 

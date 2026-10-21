@@ -37,3 +37,5 @@ Visual Studio 调试后端、Web 联调及 Docker Compose 发布步骤见 [Docke
 - [Desktop 菜单接入](client/docs/navigation-client.md)
 
 独立文件服务的配置、引用一致性和旧数据迁移见 [文件服务独立部署](server/docs/文件服务独立部署.md)。
+
+前端统一 API 入口为 Nginx `http://localhost:8081`；VS 调试运行 `Start-Development.ps1 -DependenciesOnly` 即可在 `devkit` 分组启动网关、Redis 与 Qdrant。模式切换与镜像维护见 [统一网关与 Docker 维护](server/docs/统一网关与Docker维护.md)。

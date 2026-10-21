@@ -1,2 +1,2 @@
-# Compatibility overlay. compose.yaml now deploys two independent services by default.
+# Compatibility overlay. compose.yaml deploys three independent APIs and their gateway by default.
 services: {}

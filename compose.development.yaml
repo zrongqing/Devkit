@@ -1,0 +1,8 @@
+# VS Project / dotnet run APIs live on the host; infrastructure and gateway stay in devkit.
+# docker compose -f compose.yaml -f compose.development.yaml up -d nginx redis qdrant
+services:
+  nginx:
+    environment:
+      DEVKIT_IDENTITY_UPSTREAM: host.docker.internal:12512
+      DEVKIT_BUSINESS_UPSTREAM: host.docker.internal:12511
+      DEVKIT_FILESTORAGE_UPSTREAM: host.docker.internal:12513

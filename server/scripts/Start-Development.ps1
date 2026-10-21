@@ -10,7 +10,10 @@ $environmentFile = Join-Path $repositoryRoot '.env'
 Push-Location $repositoryRoot
 try {
     if ($DependenciesOnly) {
-        docker compose up --detach redis qdrant
+        if (-not (Test-Path -LiteralPath (Join-Path $repositoryRoot 'web/dist/index.html'))) {
+            throw 'Build web first: npm --prefix web ci; npm --prefix web run build.'
+        }
+        docker compose -f compose.yaml -f compose.development.yaml up --detach nginx redis qdrant
     }
     else {
         if (-not (Test-Path -LiteralPath $environmentFile)) {

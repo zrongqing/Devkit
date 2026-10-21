@@ -4,6 +4,7 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_DEV_')
   const port = Number.parseInt(env.VITE_DEV_PORT || '5173', 10)
+  const apiTarget = env.VITE_DEV_API_TARGET || 'http://localhost:8081'
 
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error('VITE_DEV_PORT 必须是 1 到 65535 之间的整数')
@@ -18,31 +19,31 @@ export default defineConfig(({ mode }) => {
       open: env.VITE_DEV_OPEN === 'false' ? false : env.VITE_DEV_OPEN || '/',
       proxy: {
         '/api/v1/auth': {
-          target: env.VITE_DEV_AUTH_TARGET || 'http://localhost:12512',
+          target: env.VITE_DEV_AUTH_TARGET || apiTarget,
           changeOrigin: true,
         },
         '/api/v1/identity': {
-          target: env.VITE_DEV_AUTH_TARGET || 'http://localhost:12512',
+          target: env.VITE_DEV_AUTH_TARGET || apiTarget,
           changeOrigin: true,
         },
         '/api/v1/web': {
-          target: env.VITE_DEV_AUTH_TARGET || 'http://localhost:12512',
+          target: env.VITE_DEV_AUTH_TARGET || apiTarget,
           changeOrigin: true,
         },
         '/api/v1/client/navigation': {
-          target: env.VITE_DEV_AUTH_TARGET || 'http://localhost:12512',
+          target: env.VITE_DEV_AUTH_TARGET || apiTarget,
           changeOrigin: true,
         },
         '/api/v1/files': {
-          target: env.VITE_DEV_FILE_TARGET || 'http://localhost:12513',
+          target: env.VITE_DEV_FILE_TARGET || apiTarget,
           changeOrigin: true,
         },
         '/api/v1/storage': {
-          target: env.VITE_DEV_FILE_TARGET || 'http://localhost:12513',
+          target: env.VITE_DEV_FILE_TARGET || apiTarget,
           changeOrigin: true,
         },
         '/api': {
-          target: env.VITE_DEV_API_TARGET || 'http://localhost:12511',
+          target: apiTarget,
           changeOrigin: true,
         },
       },
