@@ -1,3 +1,4 @@
+using Devkit.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -7,8 +8,7 @@ public sealed class FileStorageDbContextFactory : IDesignTimeDbContextFactory<Fi
 {
     public FileStorageDbContext CreateDbContext(string[] args)
     {
-        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__FileStorage")
-            ?? "Server=localhost;Database=DevkitFileStorage;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True";
+        var connectionString = DatabaseConfiguration.GetDesignTimeConnectionString(args);
         var optionsBuilder = new DbContextOptionsBuilder<FileStorageDbContext>()
             .UseSqlServer(connectionString, sqlServer => sqlServer.EnableRetryOnFailure());
         return new FileStorageDbContext(optionsBuilder.Options);

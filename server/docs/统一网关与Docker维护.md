@@ -32,7 +32,7 @@ Vite 将所有 API 送到 Nginx，由网关选择后端。`VITE_DEV_AUTH_TARGET`
 
 ## 完整容器部署
 
-补齐 `.env`、三个数据库及服务密钥后，从仓库根目录执行：
+补齐 `.env`、共享 `Devkit` 数据库配置及服务密钥后，从仓库根目录执行：
 
 ```powershell
 docker compose config --quiet

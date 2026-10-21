@@ -1,0 +1,5 @@
+{
+  "ConnectionStrings": {
+    "Devkit": "Server=localhost;Database=Devkit;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True"
+  }
+}

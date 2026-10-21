@@ -1,16 +1,22 @@
 # Docker 发布与 Visual Studio
 
-服务端现在是 Identity、FileStorage、Business 三个独立宿主、三个数据库、三个镜像。架构、旧库升级和故障语义见 [认证与业务分离部署](认证与业务分离部署.md)。
+服务端现在是 Identity、FileStorage、Business 三个独立宿主、一个共用的 `Devkit` 数据库、三个镜像。架构、旧库升级和故障语义见 [认证与业务分离部署](认证与业务分离部署.md)。
 
 ## 前置条件
 
 - 支持 .NET 10 的 Visual Studio 2026、ASP.NET 和 Web 开发及容器工具组件；Docker Desktop 使用 Linux containers。
 - 本机 .NET SDK 满足仓库 `global.json`。SQL Server 开启 TCP/IP；Linux 容器连接 Windows 主机时使用 `host.docker.internal,1433` 和 SQL 登录。
-- 本地调试与容器使用不同数据库/数据根目录，避免混用 Windows 与 Linux 存储路径。
+- 本地开发与生产使用独立环境；三个服务在同一环境内共用 `Devkit`，数据根目录按环境配置，避免混用 Windows 与 Linux 存储路径。
 
 ## 初次准备
 
-在仓库外生成 RSA 密钥，例如使用已有 OpenSSL（仅首次生成，不要覆盖正在使用的密钥）：
+本机 Development 调试无需手动生成 JWT 密钥：当对应密钥路径未配置时，三个服务会自动在当前用户的本地应用数据目录 `Devkit/development/jwt` 下创建并复用同一对 3072 位 RSA 密钥。Windows 默认目录为 `%LOCALAPPDATA%/Devkit/development/jwt`，私钥文件为 `identity-private.pem`，公钥文件为 `validation-public.pem`。任意服务均可先启动，同时启动也会协调初始化；Identity 用私钥签发，Business 与 FileStorage 用公钥验签。重启不会更换密钥。
+
+如需隔离不同开发环境，可在三个项目中配置相同的 `Jwt:DevelopmentKeyDirectory`（建议绝对路径）。已显式设置的 `Jwt:SigningPrivateKeyPath` / `Jwt:ValidationPublicKeyPath` 优先，不会被自动生成逻辑覆盖，即使文件缺失也会报错。使用自定义私钥时，另两个服务仍需显式配置与其配对的公钥；不要混用手动密钥与自动生成密钥。
+
+自动生成只在 Development 生效。生产、Staging 和默认 Compose 部署仍需显式配置密钥。已有文件损坏、公私钥不匹配或仅剩公钥时会报错，不会静默换钥；仅公钥缺失时可从已有私钥恢复。要重置开发密钥，先停止三个服务，再删除这一对文件；重置后已有访问令牌将无法通过验签。
+
+需要手动配置或部署时，在仓库外生成 RSA 密钥，例如使用已有 OpenSSL（仅首次生成，不要覆盖正在使用的密钥）：
 
 ```powershell
 New-Item -ItemType Directory -Force 'D:/.server data/devkit/keys'
@@ -18,20 +24,20 @@ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out 'D:/.server da
 openssl pkey -in 'D:/.server data/devkit/keys/identity-private.pem' -pubout -out 'D:/.server data/devkit/keys/business-public.pem'
 ```
 
-限制私钥文件权限。仓库根目录首次从 `.env.example` 复制 `.env`，不要覆盖已有本机配置，填写三个数据库连接串、公钥/私钥路径及文件服务随机密钥。`.env` 不会被本机 F5 自动读取；它供 Compose 使用。
+限制私钥文件权限。仓库根目录首次从 `.env.example` 复制 `.env`，不要覆盖已有本机配置，填写统一数据库配置文件路径 `DEVKIT_DATABASE_CONFIG_FILE`、公钥/私钥路径及文件服务随机密钥。先从 `server/database.json` 复制一份到仓库外，再在该文件中填写一个共享 `Devkit` 数据库连接串，见 [数据库与认证](数据库与认证.md)。`.env` 不会被本机 F5 自动读取；它供 Compose 使用。
 
 ## VS 本机断点调试
 
 1. 打开 `server/Devkit.Server.slnx`，解决方案配置启动项目，将 `Devkit.Identity.Api`、`Devkit.FileStorage.Api`、`Devkit.Business.Api` 都设为启动。各自已有 Project 类型 launch profile，HTTP 端口分别为 12512、12513、12511。
-2. 右击各自 API 项目 → 管理用户机密。Identity 配置 `Jwt:SigningPrivateKeyPath`、`ConnectionStrings:Identity` 和 `Redis:ConnectionString`；Business 配置 `Jwt:ValidationPublicKeyPath`、`ConnectionStrings:Business` 以及 `FileService:ApiKey`；FileStorage 配置 `Jwt:ValidationPublicKeyPath`、`ConnectionStrings:FileStorage`、`FileStorage:DataRoot` 和同值的 `FileStorage:Clients:Business:ApiKey`（至少 32 UTF-8 字节的随机密钥）。默认开发环境 `Identity:BaseUrl=http://localhost:12512`、`Identity:RequireHttps=false`。
+2. 数据库统一使用 `server/database.json` 或 `DEVKIT_DATABASE_CONFIG_FILE` 指定的仓库外文件；先迁移已有 User Secrets 中的数据库设置，并在启动 VS 前设置统一路径。右击各自 API 项目 → 管理用户机密，配置其余选项：Identity 配置 `Redis:ConnectionString`；Business 配置 `FileService:ApiKey`；FileStorage 配置 `FileStorage:DataRoot` 和同值的 `FileStorage:Clients:Business:ApiKey`（至少 32 UTF-8 字节的随机密钥）。JWT 密钥路径可省略以使用上述自动生成的本机密钥；使用自定义密钥时，Identity 配置 `Jwt:SigningPrivateKeyPath`，另两个服务分别配置对应的 `Jwt:ValidationPublicKeyPath`。默认开发环境 `Identity:BaseUrl=http://localhost:12512`、`Identity:RequireHttps=false`。
 3. Identity 的首次管理员通过自己的 `BootstrapAccount` 用户机密配置姓名、邮箱和强密码；不要在源码中存储生产管理员密码。Business 没有管理员播种或登录服务。
 4. 从仓库根目录启动开发依赖（先确保 Redis 绑定目录存在），再迁移三个调试数据库：
 
 ```powershell
 ./server/scripts/Start-Development.ps1 -DependenciesOnly
-./server/scripts/Update-Database.ps1 -Context Identity -ConnectionString 'Server=localhost;Database=DevkitIdentity;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True'
-./server/scripts/Update-Database.ps1 -Context FileStorage -ConnectionString 'Server=localhost;Database=DevkitFileStorage;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True'
-./server/scripts/Update-Database.ps1 -Context Business -ConnectionString 'Server=localhost;Database=DevkitBusiness;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True'
+./server/scripts/Update-Database.ps1 -Context Identity
+./server/scripts/Update-Database.ps1 -Context FileStorage
+./server/scripts/Update-Database.ps1 -Context Business
 ```
 
 5. 按 F5。认证 Swagger 为 `http://localhost:12512/swagger`，文件 Swagger 为 `http://localhost:12513/swagger`，业务 Swagger 为 `http://localhost:12511/swagger`。也可分别执行 `dotnet run --project server/src/Identity/Devkit.Identity.Api` 与 `dotnet run --project server/src/Business/Devkit.Business.Api`，再附加对应进程。
@@ -56,7 +62,7 @@ Vite 将全部 API 转发到 Nginx 的 8081 端口，由 Nginx 分发三个服�
 
 ## Docker Compose 发布
 
-先完成容器三个目标库的迁移；User Secrets 不会自动传入生产容器。三个应用应使用各自受限 SQL 登录，不能依赖 Windows 集成认证。连接串中的 `$` 要注意 Compose 插值（例如使用 `$$`）。
+先为共用的 `Devkit` 数据库执行三个上下文的迁移；User Secrets 不会自动传入生产容器。容器连接不能依赖 Windows 集成认证，共享 SQL 连接串放在 `DEVKIT_DATABASE_CONFIG_FILE` 指向的 JSON 中，由只读挂载读取，内容不经过 Compose 插值。`.env` 中旧的三个 `DEVKIT_*_SQL_CONNECTION_STRING` 变量不再生效，需要迁移到统一文件。
 
 ```powershell
 dotnet build server/Devkit.Server.slnx

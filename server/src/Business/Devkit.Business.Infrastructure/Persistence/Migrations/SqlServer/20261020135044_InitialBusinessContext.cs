@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 
 #nullable disable
 
@@ -8,6 +9,8 @@ namespace Devkit.Business.Infrastructure.Persistence.Migrations.SqlServer
     /// <inheritdoc />
     public partial class InitialBusinessContext : Migration
     {
+        private static readonly string[] FileStorageTables = ["FileMigrationItems", "FileReferences", "StorageLocations", "StoredFiles"];
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -627,6 +630,15 @@ namespace Devkit.Business.Infrastructure.Persistence.Migrations.SqlServer
                 name: "IX_WorkspaceJobs_Status_LeaseUntilUtc",
                 table: "WorkspaceJobs",
                 columns: new[] { "Status", "LeaseUntilUtc" });
+            // FileStorage owns these tables. Existing installations retain their historical rows.
+            migrationBuilder.Operations.RemoveAll(operation => operation switch
+            {
+                CreateTableOperation table => FileStorageTables.Contains(table.Name),
+                CreateIndexOperation index => FileStorageTables.Contains(index.Table),
+                _ => false
+            });
+            foreach (var table in migrationBuilder.Operations.OfType<CreateTableOperation>())
+                table.ForeignKeys.RemoveAll(key => FileStorageTables.Contains(key.PrincipalTable));
         }
 
         /// <inheritdoc />
@@ -682,6 +694,8 @@ namespace Devkit.Business.Infrastructure.Persistence.Migrations.SqlServer
 
             migrationBuilder.DropTable(
                 name: "StudyKnowledgeBases");
+            migrationBuilder.Operations.RemoveAll(operation =>
+                operation is DropTableOperation table && FileStorageTables.Contains(table.Name));
         }
     }
 }

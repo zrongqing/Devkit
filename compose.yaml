@@ -45,7 +45,7 @@ services:
       - "127.0.0.1:${DEVKIT_SERVER_HOST_PORT:-8080}:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Business: ${DEVKIT_BUSINESS_SQL_CONNECTION_STRING:-}
+      DEVKIT_DATABASE_CONFIG_FILE: /run/config/database.json
       Jwt__Issuer: ${DEVKIT_JWT_ISSUER:-Devkit.Server}
       Jwt__Audience: ${DEVKIT_JWT_AUDIENCE:-Devkit.Clients}
       Jwt__ValidationPublicKeyPath: /run/keys/business-public.pem
@@ -64,6 +64,12 @@ services:
       qdrant:
         condition: service_started
     volumes:
+      - type: bind
+        source: ${DEVKIT_DATABASE_CONFIG_FILE:-D:/.server data/devkit/config/database.json}
+        target: /run/config/database.json
+        read_only: true
+        bind:
+          create_host_path: false
       - type: bind
         source: ${DEVKIT_JWT_PUBLIC_KEY_FILE:-D:/.server data/devkit/keys/business-public.pem}
         target: /run/keys/business-public.pem
@@ -84,7 +90,7 @@ services:
       - "127.0.0.1:${DEVKIT_FILESTORAGE_HOST_PORT:-8083}:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__FileStorage: ${DEVKIT_FILESTORAGE_SQL_CONNECTION_STRING:-}
+      DEVKIT_DATABASE_CONFIG_FILE: /run/config/database.json
       Jwt__Issuer: ${DEVKIT_JWT_ISSUER:-Devkit.Server}
       Jwt__Audience: ${DEVKIT_JWT_AUDIENCE:-Devkit.Clients}
       Jwt__ValidationPublicKeyPath: /run/keys/business-public.pem
@@ -97,6 +103,12 @@ services:
       devkit-identity:
         condition: service_healthy
     volumes:
+      - type: bind
+        source: ${DEVKIT_DATABASE_CONFIG_FILE:-D:/.server data/devkit/config/database.json}
+        target: /run/config/database.json
+        read_only: true
+        bind:
+          create_host_path: false
       - type: bind
         source: ${DEVKIT_DATA_ROOT:-D:/.server data/devkit}
         target: /var/lib/devkit
@@ -123,7 +135,7 @@ services:
       - "127.0.0.1:${DEVKIT_IDENTITY_HOST_PORT:-8082}:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Identity: ${DEVKIT_IDENTITY_SQL_CONNECTION_STRING:-}
+      DEVKIT_DATABASE_CONFIG_FILE: /run/config/database.json
       Jwt__Issuer: ${DEVKIT_JWT_ISSUER:-Devkit.Server}
       Jwt__Audience: ${DEVKIT_JWT_AUDIENCE:-Devkit.Clients}
       Jwt__SigningPrivateKeyPath: /run/keys/identity-private.pem
@@ -137,6 +149,12 @@ services:
       redis:
         condition: service_healthy
     volumes:
+      - type: bind
+        source: ${DEVKIT_DATABASE_CONFIG_FILE:-D:/.server data/devkit/config/database.json}
+        target: /run/config/database.json
+        read_only: true
+        bind:
+          create_host_path: false
       - type: bind
         source: ${DEVKIT_JWT_PRIVATE_KEY_FILE:-D:/.server data/devkit/keys/identity-private.pem}
         target: /run/keys/identity-private.pem

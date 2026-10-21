@@ -10,7 +10,11 @@ namespace Devkit.AspNetCore.Hosting;
 
 public static class ApiHostingExtensions
 {
-    public static WebApplicationBuilder AddDevkitExternalConfiguration(this WebApplicationBuilder builder,
+    /// <summary>
+    /// 添加额外的配置文件
+    /// </summary>
+    /// <remarks>从环境变量中获取配置文件路径</remarks>
+    public static WebApplicationBuilder AddExternalConfiguration(this WebApplicationBuilder builder,
         string environmentVariable, string[] args)
     {
         var path = Environment.GetEnvironmentVariable(environmentVariable);
@@ -20,7 +24,7 @@ public static class ApiHostingExtensions
         return builder;
     }
 
-    public static IServiceCollection AddDevkitApi(this IServiceCollection services, IConfiguration configuration,
+    public static IServiceCollection AddEndpoints(this IServiceCollection services, IConfiguration configuration,
         params Assembly[] endpointAssemblies)
     {
         services.AddEndpointModules(endpointAssemblies);

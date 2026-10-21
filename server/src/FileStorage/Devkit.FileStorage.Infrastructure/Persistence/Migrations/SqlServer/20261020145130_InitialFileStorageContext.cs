@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using Devkit.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -138,6 +139,18 @@ namespace Devkit.FileStorage.Infrastructure.Persistence.Migrations.SqlServer
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            // Adopt historical Business file tables without truncating existing values.
+            migrationBuilder.Sql("""
+                IF EXISTS (SELECT 1 FROM sys.columns
+                    WHERE object_id = OBJECT_ID(N'[dbo].[FileReferences]') AND name = N'Module'
+                      AND (max_length = -1 OR max_length > 900))
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM [dbo].[FileReferences] WHERE DATALENGTH([Module]) > 900)
+                        THROW 51000, 'FileReferences.Module exceeds 450 characters; resolve oversized values before migration.', 1;
+                    ALTER TABLE [dbo].[FileReferences] ALTER COLUMN [Module] nvarchar(450) NOT NULL;
+                END;
+                """);
+
             migrationBuilder.CreateIndex(
                 name: "IX_FileMigrationItems_JobId_FileId",
                 table: "FileMigrationItems",
@@ -177,6 +190,7 @@ namespace Devkit.FileStorage.Infrastructure.Persistence.Migrations.SqlServer
                 name: "IX_StoredFiles_OwnerId",
                 table: "StoredFiles",
                 column: "OwnerId");
+            migrationBuilder.AdoptExistingSqlServerTables();
         }
 
         /// <inheritdoc />

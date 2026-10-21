@@ -1,3 +1,4 @@
+using Devkit.Infrastructure.Persistence;
 using Devkit.Identity.Infrastructure.Configuration;
 using Devkit.Identity.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -9,8 +10,7 @@ public sealed class IdentityDbContextFactory : IDesignTimeDbContextFactory<Ident
 {
     public IdentityDbContext CreateDbContext(string[] args)
     {
-        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__Identity")
-            ?? "Server=localhost;Database=DevkitIdentity;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True";
+        var connectionString = DatabaseConfiguration.GetDesignTimeConnectionString(args);
         var bootstrapAccount = new BootstrapAccountOptions
         {
             Enabled = bool.TryParse(

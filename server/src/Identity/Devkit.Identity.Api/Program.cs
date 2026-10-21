@@ -1,3 +1,4 @@
+using Devkit.Infrastructure.Persistence;
 using Devkit.AspNetCore.Authentication;
 using Devkit.AspNetCore.Hosting;
 using System.IdentityModel.Tokens.Jwt;
@@ -18,9 +19,12 @@ public partial class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        builder.AddDevkitExternalConfiguration("DEVKIT_IDENTITY_CONFIG_FILE", args);
+        builder.AddExternalConfiguration("DEVKIT_IDENTITY_CONFIG_FILE", args);
+        builder.Configuration.AddDatabaseConfiguration(args);
+        builder.AddDevelopmentJwtKey(signing: true);
+
         builder.Services.AddIdentityInfrastructure(builder.Configuration);
-        builder.Services.AddDevkitApi(builder.Configuration, typeof(Program).Assembly);
+        builder.Services.AddEndpoints(builder.Configuration, typeof(Program).Assembly);
 
         builder.Services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

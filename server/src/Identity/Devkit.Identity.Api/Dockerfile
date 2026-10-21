@@ -3,6 +3,7 @@ WORKDIR /source
 COPY global.json NuGet.config ./
 COPY server/Directory.Build.props server/
 COPY server/Directory.Packages.props server/
+COPY server/database.json server/
 COPY server/src/Identity/Devkit.Identity.Domain/Devkit.Identity.Domain.csproj server/src/Identity/Devkit.Identity.Domain/
 COPY server/src/Identity/Devkit.Identity.Application/Devkit.Identity.Application.csproj server/src/Identity/Devkit.Identity.Application/
 COPY server/src/Identity/Devkit.Identity.Infrastructure/Devkit.Identity.Infrastructure.csproj server/src/Identity/Devkit.Identity.Infrastructure/

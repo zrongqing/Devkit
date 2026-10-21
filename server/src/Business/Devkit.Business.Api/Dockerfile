@@ -3,6 +3,7 @@ WORKDIR /source
 COPY global.json NuGet.config ./
 COPY server/Directory.Build.props server/
 COPY server/Directory.Packages.props server/
+COPY server/database.json server/
 COPY server/src/Business/Devkit.Business.Domain/Devkit.Business.Domain.csproj server/src/Business/Devkit.Business.Domain/
 COPY server/src/Business/Devkit.Business.Application/Devkit.Business.Application.csproj server/src/Business/Devkit.Business.Application/
 COPY server/src/Business/Devkit.Business.Infrastructure/Devkit.Business.Infrastructure.csproj server/src/Business/Devkit.Business.Infrastructure/

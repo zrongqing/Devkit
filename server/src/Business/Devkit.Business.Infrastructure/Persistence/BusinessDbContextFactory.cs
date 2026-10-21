@@ -1,3 +1,4 @@
+using Devkit.Infrastructure.Persistence;
 using Devkit.Business.Infrastructure.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -8,8 +9,7 @@ public sealed class BusinessDbContextFactory : IDesignTimeDbContextFactory<Busin
 {
     public BusinessDbContext CreateDbContext(string[] args)
     {
-        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__Business")
-            ?? "Server=localhost;Database=DevkitBusiness;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True";
+        var connectionString = DatabaseConfiguration.GetDesignTimeConnectionString(args);
         var optionsBuilder = new DbContextOptionsBuilder<BusinessDbContext>()
             .UseSqlServer(connectionString, sqlServer => sqlServer.EnableRetryOnFailure());
         return new BusinessDbContext(optionsBuilder.Options);

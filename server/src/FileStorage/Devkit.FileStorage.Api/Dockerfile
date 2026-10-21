@@ -3,6 +3,7 @@ WORKDIR /source
 COPY global.json NuGet.config ./
 COPY server/Directory.Build.props server/
 COPY server/Directory.Packages.props server/
+COPY server/database.json server/
 COPY server/src/FileStorage/Devkit.FileStorage.Domain/Devkit.FileStorage.Domain.csproj server/src/FileStorage/Devkit.FileStorage.Domain/
 COPY server/src/FileStorage/Devkit.FileStorage.Application/Devkit.FileStorage.Application.csproj server/src/FileStorage/Devkit.FileStorage.Application/
 COPY server/src/FileStorage/Devkit.FileStorage.Infrastructure/Devkit.FileStorage.Infrastructure.csproj server/src/FileStorage/Devkit.FileStorage.Infrastructure/

@@ -9,7 +9,7 @@
 ## 目录
 
 - `web`：Vue 3 + TypeScript 前端模板。
-- `server`：.NET 10 身份、文件与业务三个上下文，各有独立四层项目、数据库、镜像与 OpenAPI。
+- `server`：.NET 10 身份、文件与业务三个上下文，各有独立四层项目、镜像与 OpenAPI，共用 `Devkit` 数据库。
 - `client/DevkitPrism`：现有 WPF/Prism 桌面客户端。
 - `.agents`：角色协作模板、仓库级 Skills 与 Harness 定义。
 - `.agents/skills/server-development`：服务端开发 Skill，可通过 `$server-development` 显式调用，也可按任务描述自动触发。
@@ -21,7 +21,7 @@
 - `GET /api/v1/system/info`：服务名称、版本、环境和服务端时间。
 - `GET /openapi/v1.json`：OpenAPI 描述。
 
-运行服务端前分别配置 RSA 密钥并迁移三个数据库；启动 `dotnet run --project server/src/Identity/Devkit.Identity.Api`、`dotnet run --project server/src/FileStorage/Devkit.FileStorage.Api` 与 `dotnet run --project server/src/Business/Devkit.Business.Api`。Web 端复制 `web/.env.example` 为 `.env.local` 后执行 `npm install`、`npm run dev`。桌面端可设置 `DEVKIT_API_BASE_URL` 指向统一网关地址。
+运行服务端前分别配置 RSA 密钥并在共用的 `Devkit` 数据库中执行三个上下文迁移；启动 `dotnet run --project server/src/Identity/Devkit.Identity.Api`、`dotnet run --project server/src/FileStorage/Devkit.FileStorage.Api` 与 `dotnet run --project server/src/Business/Devkit.Business.Api`。Web 端复制 `web/.env.example` 为 `.env.local` 后执行 `npm install`、`npm run dev`。桌面端可设置 `DEVKIT_API_BASE_URL` 指向统一网关地址。
 
 Visual Studio 调试后端、Web 联调及 Docker Compose 发布步骤见 [Docker 发布与 Visual Studio](server/docs/Docker发布与VisualStudio.md)。
 

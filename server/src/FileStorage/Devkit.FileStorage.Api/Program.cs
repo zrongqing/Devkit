@@ -1,3 +1,4 @@
+using Devkit.Infrastructure.Persistence;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Devkit.AspNetCore.Authentication;
@@ -18,9 +19,11 @@ public partial class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        builder.AddDevkitExternalConfiguration("DEVKIT_FILESTORAGE_CONFIG_FILE", args);
+        builder.AddExternalConfiguration("DEVKIT_FILESTORAGE_CONFIG_FILE", args);
+        builder.Configuration.AddDatabaseConfiguration(args);
+        builder.AddDevelopmentJwtKey(signing: false);
         builder.Services.AddFileStorageInfrastructure(builder.Configuration);
-        builder.Services.AddDevkitApi(builder.Configuration, typeof(Program).Assembly);
+        builder.Services.AddEndpoints(builder.Configuration, typeof(Program).Assembly);
         builder.Services.AddOptions<FormOptions>().Configure<IOptions<FileStorageOptions>>((form, files) =>
             form.MultipartBodyLengthLimit = files.Value.MaximumUploadBytes + 1024 * 1024);
         builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 1024L * 1024 * 1024 + 1024 * 1024);

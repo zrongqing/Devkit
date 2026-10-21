@@ -24,6 +24,6 @@
 - 文件原件、临时目录、日志与备份默认统一放在 `D:\.server data\devkit`。生产密钥和本机模型配置通过外部配置文件或环境变量注入。
 - Web / Application / Domain / Infrastructure 各自交付；考试、文件存储、身份管理按命名空间隔离，客户端不在本次实施范围。
 
-- 文件核心服务：FileStorage 独立四层、数据库与镜像，业务通过版本化 HTTP 引用文件；存储迁移任务独立于备考任务，服务凭据限定模块，引用补偿采用本地持久化 outbox。详见 [文件服务独立部署](docs/文件服务独立部署.md)。
+- 文件核心服务：FileStorage 独立四层、DbContext 与镜像，三个服务共用 `Devkit` 数据库，业务通过版本化 HTTP 引用文件；存储迁移任务独立于备考任务，服务凭据限定模块，引用补偿采用本地持久化 outbox。详见 [文件服务独立部署](docs/文件服务独立部署.md)。
 
 - 统一网关：Nginx 默认随 `devkit` Compose 分组启动，前端只配置 8081 入口；VS 宿主机 API 通过 `compose.development.yaml` 路由，容器部署通过默认上游路由。Redis/Qdrant 的 latest 仅在显式拉取并重建时更新。

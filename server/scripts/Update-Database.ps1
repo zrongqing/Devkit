@@ -2,6 +2,7 @@
 param(
     [Parameter(Mandatory)][ValidateSet('Identity', 'Business', 'FileStorage')][string]$Context,
     [string]$ConnectionString = '',
+    [string]$DatabaseConfigFile = $env:DEVKIT_DATABASE_CONFIG_FILE,
     [switch]$SeedBootstrapAccount,
     [string]$BootstrapUserName = $env:BootstrapAccount__UserName,
     [string]$BootstrapEmail = $env:BootstrapAccount__Email,
@@ -9,20 +10,24 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if ($SeedBootstrapAccount -and $Context -ne 'Identity') { throw 'Bootstrap accounts belong to Identity.' }
-$connectionVariable = "ConnectionStrings__$Context"
-if ([string]::IsNullOrWhiteSpace($ConnectionString)) { $ConnectionString = [Environment]::GetEnvironmentVariable($connectionVariable) }
-if ([string]::IsNullOrWhiteSpace($ConnectionString)) { throw "Pass -ConnectionString or set $connectionVariable." }
+$connectionVariable = "ConnectionStrings__Devkit"
+if (-not [string]::IsNullOrWhiteSpace($DatabaseConfigFile)) {
+    $DatabaseConfigFile = (Resolve-Path -LiteralPath $DatabaseConfigFile).Path
+}
 if ($SeedBootstrapAccount -and (@($BootstrapUserName, $BootstrapEmail, $BootstrapPassword) | Where-Object { [string]::IsNullOrWhiteSpace($_) })) {
     throw 'Bootstrap user name, email and password are required.'
 }
 $previous = @{}
-foreach ($name in @($connectionVariable, 'BootstrapAccount__Enabled', 'BootstrapAccount__UserName', 'BootstrapAccount__Email', 'BootstrapAccount__Password')) {
+foreach ($name in @($connectionVariable, 'DEVKIT_DATABASE_CONFIG_FILE', 'BootstrapAccount__Enabled', 'BootstrapAccount__UserName', 'BootstrapAccount__Email', 'BootstrapAccount__Password')) {
     $previous[$name] = [Environment]::GetEnvironmentVariable($name)
 }
 $serverRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $serverRoot
 try {
-    [Environment]::SetEnvironmentVariable($connectionVariable, $ConnectionString)
+    if (-not [string]::IsNullOrWhiteSpace($ConnectionString)) {
+        [Environment]::SetEnvironmentVariable($connectionVariable, $ConnectionString)
+    }
+    [Environment]::SetEnvironmentVariable('DEVKIT_DATABASE_CONFIG_FILE', $DatabaseConfigFile)
     $env:BootstrapAccount__Enabled = $SeedBootstrapAccount.IsPresent.ToString()
     if ($SeedBootstrapAccount) {
         $env:BootstrapAccount__UserName = $BootstrapUserName
