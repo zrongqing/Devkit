@@ -1,3 +1,4 @@
+using Devkit.Infrastructure.Persistence;
 using Devkit.Identity.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,5 +17,6 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(IdentityDbContext).Assembly);
+        modelBuilder.UseSnakeCaseDatabaseNames();
     }
 }

@@ -33,7 +33,7 @@ public partial class Program
             .Configure<IOptions<JwtOptions>, JwtKeyMaterial>((options, configuredJwtOptions, keys) =>
             {
                 var jwtOptions = configuredJwtOptions.Value;
-                options.ConfigureDevkitJwt(jwtOptions.Issuer, jwtOptions.Audience,
+                options.ConfigureDevkitJwt(jwtOptions.Issuer,    jwtOptions.Audience,
                     keys.ValidationKey, keys.Algorithm, async context =>
                 {
                     var subject = context.Principal?.FindFirstValue(JwtRegisteredClaimNames.Sub);

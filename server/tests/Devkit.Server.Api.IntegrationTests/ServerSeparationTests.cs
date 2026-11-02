@@ -41,8 +41,8 @@ public sealed class ServerSeparationTests
         var identityDb = identityScope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         var businessDb = businessScope.ServiceProvider.GetRequiredService<BusinessDbContext>();
         Assert.NotEqual(identityDb.Database.GetConnectionString(), businessDb.Database.GetConnectionString());
-        Assert.DoesNotContain(businessDb.Model.GetEntityTypes(), type => type.GetTableName() is "Users" or "Roles" or "RefreshTokens" or "WebMenus");
-        Assert.DoesNotContain(identityDb.Model.GetEntityTypes(), type => type.GetTableName() is "StoredFiles" or "StudyProjects" or "WorkspaceJobs" or "ModuleInstances");
+        Assert.DoesNotContain(businessDb.Model.GetEntityTypes(), type => type.GetTableName() is "sys_user" or "sys_role" or "sys_refresh_token" or "sys_menu");
+        Assert.DoesNotContain(identityDb.Model.GetEntityTypes(), type => type.GetTableName() is "file_stored_file" or "study_project" or "workspace_job" or "module_instance");
         Assert.Contains(identityDb.Database.GetMigrations(), name => name.EndsWith("InitialIdentityContext"));
         Assert.Contains(businessDb.Database.GetMigrations(), name => name.EndsWith("InitialBusinessContext"));
         foreach (var assembly in new[] { typeof(Devkit.Business.Api.Program).Assembly, typeof(BusinessDbContext).Assembly,

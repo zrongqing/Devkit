@@ -1,3 +1,4 @@
+using Devkit.Infrastructure.Persistence;
 using Devkit.DomainCommons.Entities;
 using Devkit.FileStorage.Domain.Abstractions;
 using Devkit.FileStorage.Domain.Files;
@@ -6,7 +7,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Devkit.FileStorage.Infrastructure.Persistence;
 public sealed class FileStorageDbContext(DbContextOptions<FileStorageDbContext> options) : DbContext(options)
 {
-    protected override void OnModelCreating(ModelBuilder builder) => builder.ApplyConfigurationsFromAssembly(typeof(FileStorageDbContext).Assembly);
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        builder.ApplyConfigurationsFromAssembly(typeof(FileStorageDbContext).Assembly);
+        builder.UseSnakeCaseDatabaseNames();
+    }
 }
 public sealed class FileStorageStore(FileStorageDbContext db) : IFileStorageStore
 {
@@ -35,8 +40,8 @@ internal static class FileMappingBase
     }
 }
 
-internal sealed class JobMapping : IEntityTypeConfiguration<StorageJob> { public void Configure(EntityTypeBuilder<StorageJob> b) { FileMappingBase.Base(b, "StorageJobs"); b.Property(x=>x.Status).HasMaxLength(30); b.HasIndex(x=>new{x.Status,x.LeaseUntilUtc}); } }
-internal sealed class FileMapping : IEntityTypeConfiguration<StoredFile> { public void Configure(EntityTypeBuilder<StoredFile> b) { FileMappingBase.Base(b, "StoredFiles"); b.Property(x=>x.ObjectKey).HasMaxLength(200); b.Property(x=>x.Name).HasMaxLength(300); b.Property(x=>x.Status).HasMaxLength(30); b.HasIndex(x=>new{x.LocationId,x.Status}); b.HasOne<StorageLocation>().WithMany().HasForeignKey(x=>x.LocationId).OnDelete(DeleteBehavior.Restrict); } }
-internal sealed class ReferenceMapping : IEntityTypeConfiguration<FileReference> { public void Configure(EntityTypeBuilder<FileReference> b) { FileMappingBase.Base(b, "FileReferences"); b.HasIndex(x=>new{x.FileId,x.EntityId,x.Module}).IsUnique().HasFilter("[IsDeleted] = 0"); b.HasOne<StoredFile>().WithMany().HasForeignKey(x=>x.FileId).OnDelete(DeleteBehavior.Restrict); } }
-internal sealed class LocationMapping : IEntityTypeConfiguration<StorageLocation> { public void Configure(EntityTypeBuilder<StorageLocation> b) { FileMappingBase.Base(b, "StorageLocations"); b.Property(x=>x.RootPath).HasMaxLength(1000); b.HasIndex(x=>x.Writable).IsUnique().HasFilter("[Writable] = 1 AND [IsDeleted] = 0"); } }
-internal sealed class MigrationMapping : IEntityTypeConfiguration<FileMigrationItem> { public void Configure(EntityTypeBuilder<FileMigrationItem> b) { FileMappingBase.Base(b, "FileMigrationItems"); b.HasIndex(x=>new{x.JobId,x.FileId}).IsUnique(); } }
+internal sealed class JobMapping : IEntityTypeConfiguration<StorageJob> { public void Configure(EntityTypeBuilder<StorageJob> b) { FileMappingBase.Base(b, "file_storage_job"); b.Property(x=>x.Status).HasMaxLength(30); b.HasIndex(x=>new{x.Status,x.LeaseUntilUtc}); } }
+internal sealed class FileMapping : IEntityTypeConfiguration<StoredFile> { public void Configure(EntityTypeBuilder<StoredFile> b) { FileMappingBase.Base(b, "file_stored_file"); b.Property(x=>x.ObjectKey).HasMaxLength(200); b.Property(x=>x.Name).HasMaxLength(300); b.Property(x=>x.Status).HasMaxLength(30); b.HasIndex(x=>new{x.LocationId,x.Status}); b.HasOne<StorageLocation>().WithMany().HasForeignKey(x=>x.LocationId).OnDelete(DeleteBehavior.Restrict); } }
+internal sealed class ReferenceMapping : IEntityTypeConfiguration<FileReference> { public void Configure(EntityTypeBuilder<FileReference> b) { FileMappingBase.Base(b, "file_reference"); b.HasIndex(x=>new{x.FileId,x.EntityId,x.Module}).IsUnique().HasFilter("[is_deleted] = 0"); b.HasOne<StoredFile>().WithMany().HasForeignKey(x=>x.FileId).OnDelete(DeleteBehavior.Restrict); } }
+internal sealed class LocationMapping : IEntityTypeConfiguration<StorageLocation> { public void Configure(EntityTypeBuilder<StorageLocation> b) { FileMappingBase.Base(b, "file_storage_location"); b.Property(x=>x.RootPath).HasMaxLength(1000); b.HasIndex(x=>x.Writable).IsUnique().HasFilter("[writable] = 1 AND [is_deleted] = 0"); } }
+internal sealed class MigrationMapping : IEntityTypeConfiguration<FileMigrationItem> { public void Configure(EntityTypeBuilder<FileMigrationItem> b) { FileMappingBase.Base(b, "file_migration_item"); b.HasIndex(x=>new{x.JobId,x.FileId}).IsUnique(); } }

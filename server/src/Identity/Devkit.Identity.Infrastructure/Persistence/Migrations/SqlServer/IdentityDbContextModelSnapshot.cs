@@ -26,479 +26,606 @@ namespace Devkit.Identity.Infrastructure.Persistence.Migrations.SqlServer
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("created_at_utc");
 
                     b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by");
 
                     b.Property<DateTime>("ExpiresAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("expires_at_utc");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
 
                     b.Property<string>("ReplacedByTokenHash")
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("replaced_by_token_hash");
 
                     b.Property<DateTime?>("RevokedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("revoked_at_utc");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("token_hash");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("updated_at_utc");
 
                     b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("updated_by");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_sys_refresh_token");
 
                     b.HasIndex("TokenHash")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_refresh_token_token_hash");
 
-                    b.HasIndex("UserId", "ExpiresAtUtc");
+                    b.HasIndex("UserId", "ExpiresAtUtc")
+                        .HasDatabaseName("ix_sys_refresh_token_user_id_expires_at_utc");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("sys_refresh_token", (string)null);
                 });
 
             modelBuilder.Entity("Devkit.Identity.Domain.Identity.Role", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("created_at_utc");
 
                     b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("name");
 
                     b.Property<string>("NormalizedName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("normalized_name");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("updated_at_utc");
 
                     b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("updated_by");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_sys_role");
 
                     b.HasIndex("NormalizedName")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_role_normalized_name");
 
-                    b.ToTable("Roles", (string)null);
+                    b.ToTable("sys_role", (string)null);
                 });
 
             modelBuilder.Entity("Devkit.Identity.Domain.Identity.RoleClaim", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
 
                     b.Property<string>("ClaimType")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("claim_type");
 
                     b.Property<string>("ClaimValue")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("claim_value");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("created_at_utc");
 
                     b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
 
                     b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("role_id");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("updated_at_utc");
 
                     b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("updated_by");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_sys_role_claim");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("RoleId")
+                        .HasDatabaseName("ix_sys_role_claim_role_id");
 
-                    b.ToTable("RoleClaims", (string)null);
+                    b.ToTable("sys_role_claim", (string)null);
                 });
 
             modelBuilder.Entity("Devkit.Identity.Domain.Identity.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
 
                     b.Property<int>("AuthenticationVersion")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("authentication_version");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("created_at_utc");
 
                     b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(320)
-                        .HasColumnType("nvarchar(320)");
+                        .HasColumnType("nvarchar(320)")
+                        .HasColumnName("email");
 
                     b.Property<int>("FailedAccessCount")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("failed_access_count");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
 
                     b.Property<DateTime?>("LockoutEndUtc")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("lockout_end_utc");
 
                     b.Property<string>("NormalizedEmail")
                         .IsRequired()
                         .HasMaxLength(320)
-                        .HasColumnType("nvarchar(320)");
+                        .HasColumnType("nvarchar(320)")
+                        .HasColumnName("normalized_email");
 
                     b.Property<string>("NormalizedUserName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("normalized_user_name");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("password_hash");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("updated_at_utc");
 
                     b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("updated_by");
 
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("user_name");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_sys_user");
 
                     b.HasIndex("NormalizedEmail")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_user_normalized_email");
 
                     b.HasIndex("NormalizedUserName")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_user_normalized_user_name");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("sys_user", (string)null);
                 });
 
             modelBuilder.Entity("Devkit.Identity.Domain.Identity.UserClaim", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
 
                     b.Property<string>("ClaimType")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("claim_type");
 
                     b.Property<string>("ClaimValue")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("claim_value");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("created_at_utc");
 
                     b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("updated_at_utc");
 
                     b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("updated_by");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_sys_user_claim");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_sys_user_claim_user_id");
 
-                    b.ToTable("UserClaims", (string)null);
+                    b.ToTable("sys_user_claim", (string)null);
                 });
 
             modelBuilder.Entity("Devkit.Identity.Domain.Identity.UserLogin", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("created_at_utc");
 
                     b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
 
                     b.Property<string>("LoginProvider")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("login_provider");
 
                     b.Property<string>("ProviderDisplayName")
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("provider_display_name");
 
                     b.Property<string>("ProviderKey")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("provider_key");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("updated_at_utc");
 
                     b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("updated_by");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_sys_user_login");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_sys_user_login_user_id");
 
                     b.HasIndex("LoginProvider", "ProviderKey")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_user_login_login_provider_provider_key");
 
-                    b.ToTable("UserLogins", (string)null);
+                    b.ToTable("sys_user_login", (string)null);
                 });
 
             modelBuilder.Entity("Devkit.Identity.Domain.Identity.UserRole", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("created_at_utc");
 
                     b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
 
                     b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("role_id");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("updated_at_utc");
 
                     b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("updated_by");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_sys_user_role");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("RoleId")
+                        .HasDatabaseName("ix_sys_user_role_role_id");
 
                     b.HasIndex("UserId", "RoleId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_user_role_user_id_role_id");
 
-                    b.ToTable("UserRoles", (string)null);
+                    b.ToTable("sys_user_role", (string)null);
                 });
 
             modelBuilder.Entity("Devkit.Identity.Domain.Identity.UserToken", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("created_at_utc");
 
                     b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
 
                     b.Property<string>("LoginProvider")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("login_provider");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("name");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasPrecision(7)
-                        .HasColumnType("datetime2(7)");
+                        .HasColumnType("datetime2(7)")
+                        .HasColumnName("updated_at_utc");
 
                     b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("updated_by");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
 
                     b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("value");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_sys_user_token");
 
                     b.HasIndex("UserId", "LoginProvider", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_user_token_user_id_login_provider_name");
 
-                    b.ToTable("UserTokens", (string)null);
+                    b.ToTable("sys_user_token", (string)null);
                 });
 
             modelBuilder.Entity("Devkit.Identity.Domain.Navigation.WebMenu", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at_utc");
 
                     b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by");
 
                     b.Property<string>("DeclarationJson")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("declaration_json");
 
                     b.Property<bool>("Enabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("enabled");
 
                     b.Property<string>("IconKey")
                         .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
+                        .HasColumnType("nvarchar(80)")
+                        .HasColumnName("icon_key");
 
                     b.Property<bool>("IsClosable")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_closable");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
 
                     b.Property<bool>("IsPublic")
-                        .HasColumnType("bit");
+                        .HasColumnType("bit")
+                        .HasColumnName("is_public");
 
                     b.Property<string>("MenuCode")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("menu_code");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("order");
 
                     b.Property<string>("ParentCode")
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("parent_code");
 
                     b.Property<string>("RequiredPermissionsJson")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("required_permissions_json");
 
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("revision");
 
                     b.Property<string>("RouteKey")
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("route_key");
 
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("source");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("title");
 
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("type");
 
                     b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at_utc");
 
                     b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("updated_by");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_sys_menu");
 
-                    b.HasIndex("ParentCode");
+                    b.HasAlternateKey("MenuCode")
+                        .HasName("ak_sys_menu_menu_code");
 
-                    b.ToTable("WebMenus", (string)null);
+                    b.HasIndex("ParentCode")
+                        .HasDatabaseName("ix_sys_menu_parent_code");
+
+                    b.ToTable("sys_menu", (string)null);
                 });
 
             modelBuilder.Entity("Devkit.Identity.Domain.Navigation.WebMenuState", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("id");
 
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("version");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_sys_menu_state");
 
-                    b.ToTable("WebMenuState", (string)null);
+                    b.ToTable("sys_menu_state", (string)null);
 
                     b.HasData(
                         new
@@ -514,7 +641,8 @@ namespace Devkit.Identity.Infrastructure.Persistence.Migrations.SqlServer
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_refresh_token_sys_user_user_id");
 
                     b.Navigation("User");
                 });
@@ -525,7 +653,8 @@ namespace Devkit.Identity.Infrastructure.Persistence.Migrations.SqlServer
                         .WithMany("RoleClaims")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_role_claim_sys_role_role_id");
 
                     b.Navigation("Role");
                 });
@@ -536,7 +665,8 @@ namespace Devkit.Identity.Infrastructure.Persistence.Migrations.SqlServer
                         .WithMany("UserClaims")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_user_claim_sys_user_user_id");
 
                     b.Navigation("User");
                 });
@@ -547,7 +677,8 @@ namespace Devkit.Identity.Infrastructure.Persistence.Migrations.SqlServer
                         .WithMany("UserLogins")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_user_login_sys_user_user_id");
 
                     b.Navigation("User");
                 });
@@ -558,13 +689,15 @@ namespace Devkit.Identity.Infrastructure.Persistence.Migrations.SqlServer
                         .WithMany("UserRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_user_role_sys_role_role_id");
 
                     b.HasOne("Devkit.Identity.Domain.Identity.User", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_user_role_sys_user_user_id");
 
                     b.Navigation("Role");
 
@@ -577,7 +710,8 @@ namespace Devkit.Identity.Infrastructure.Persistence.Migrations.SqlServer
                         .WithMany("UserTokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_user_token_sys_user_user_id");
 
                     b.Navigation("User");
                 });
@@ -588,7 +722,8 @@ namespace Devkit.Identity.Infrastructure.Persistence.Migrations.SqlServer
                         .WithMany()
                         .HasForeignKey("ParentCode")
                         .HasPrincipalKey("MenuCode")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_sys_menu_sys_menu_parent_code");
                 });
 
             modelBuilder.Entity("Devkit.Identity.Domain.Identity.Role", b =>

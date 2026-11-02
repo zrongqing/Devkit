@@ -1,10 +1,9 @@
 using Devkit.Business.Infrastructure.Persistence;
-using Devkit.Business.Infrastructure.Persistence.Migrations.SqlServer;
 using Devkit.FileStorage.Infrastructure.Persistence;
-using Devkit.FileStorage.Infrastructure.Persistence.Migrations.SqlServer;
 using Devkit.Identity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Xunit;
@@ -14,39 +13,63 @@ namespace Devkit.Server.Api.IntegrationTests;
 public sealed class SharedDatabaseMigrationTests
 {
     [Fact]
-    public void Initial_migrations_create_each_table_in_only_its_own_context()
-    {
-        var business = new InitialBusinessContext { ActiveProvider = "Microsoft.EntityFrameworkCore.SqlServer" };
-        var files = new[] { "FileMigrationItems", "FileReferences", "StoredFiles", "StorageLocations" };
-        Assert.DoesNotContain(business.UpOperations.OfType<CreateTableOperation>(), table => files.Contains(table.Name));
-        Assert.DoesNotContain(business.UpOperations.OfType<CreateTableOperation>().SelectMany(table => table.ForeignKeys),
-            key => files.Contains(key.PrincipalTable));
-        Assert.DoesNotContain(business.DownOperations.OfType<DropTableOperation>(), table => files.Contains(table.Name));
-
-        var initialFiles = new InitialFileStorageContext { ActiveProvider = "Microsoft.EntityFrameworkCore.SqlServer" };
-        foreach (var table in files.Append("StorageJobs"))
-            Assert.Contains(initialFiles.UpOperations.OfType<SqlOperation>(), operation =>
-                operation.Sql.Contains($"IF OBJECT_ID(N'[dbo].[{table}]', N'U') IS NULL", StringComparison.Ordinal)
-                && operation.Sql.Contains($"CREATE TABLE [{table}]", StringComparison.Ordinal));
-        Assert.Contains(initialFiles.UpOperations.OfType<SqlOperation>(), operation => operation.Sql.Contains("DATALENGTH([Module]) > 900"));
-    }
-
-    [Fact]
-    public void SQL_Server_migration_scripts_keep_shared_history_and_guard_existing_file_tables()
+    public void Baselines_create_and_drop_only_their_owned_tables_with_unique_migration_ids()
     {
         using var identity = new IdentityDbContext(new DbContextOptionsBuilder<IdentityDbContext>().UseSqlServer().Options);
         using var business = new BusinessDbContext(new DbContextOptionsBuilder<BusinessDbContext>().UseSqlServer().Options);
         using var files = new FileStorageDbContext(new DbContextOptionsBuilder<FileStorageDbContext>().UseSqlServer().Options);
+        var ids = new HashSet<string>();
+        var allTables = new HashSet<string>();
         foreach (var context in new DbContext[] { identity, business, files })
         {
-            var script = context.GetService<IMigrator>().GenerateScript(options: MigrationsSqlGenerationOptions.Idempotent);
-            Assert.Contains("__EFMigrationsHistory", script);
-            if (context is BusinessDbContext) Assert.DoesNotContain("CREATE TABLE [StoredFiles]", script);
-            if (context is FileStorageDbContext)
+            var assembly = context.GetService<IMigrationsAssembly>();
+            var baseline = Assert.Single(assembly.Migrations);
+            Assert.True(ids.Add(baseline.Key), $"Duplicate migration ID: {baseline.Key}");
+            var migration = assembly.CreateMigration(baseline.Value, context.Database.ProviderName!);
+            var modelTables = context.GetService<IDesignTimeModel>().Model.GetRelationalModel().Tables.ToArray();
+            var created = migration.UpOperations.OfType<CreateTableOperation>().ToArray();
+            var dropped = migration.DownOperations.Select(operation => Assert.IsType<DropTableOperation>(operation)).ToArray();
+            Assert.Equal(modelTables.Select(t => t.Name).Order(), created.Select(t => t.Name).Order());
+            Assert.Equal(created.Select(t => t.Name).Order(), dropped.Select(t => t.Name).Order());
+            // Express the new schema directly, without historical table-adoption SQL.
+            Assert.DoesNotContain(migration.UpOperations, operation => operation is SqlOperation);
+            foreach (var table in created)
             {
-                Assert.Contains("IF OBJECT_ID(N'[dbo].[StoredFiles]', N'U') IS NULL", script);
-                Assert.Contains("IF NOT EXISTS (SELECT 1 FROM sys.indexes", script);
+                Assert.True(allTables.Add(table.Name), $"Table owned by two contexts: {table.Name}");
+                var modelTable = Assert.Single(modelTables, t => t.Name == table.Name);
+                Assert.Equal(modelTable.Columns.Select(c => c.Name).Order(), table.Columns.Select(c => c.Name).Order());
+                foreach (var foreignKey in table.ForeignKeys)
+                {
+                    var principal = Assert.Single(created, t => t.Name == foreignKey.PrincipalTable);
+                    Assert.All(foreignKey.Columns, column => Assert.Contains(table.Columns, c => c.Name == column));
+                    Assert.NotNull(foreignKey.PrincipalColumns);
+                    Assert.All(foreignKey.PrincipalColumns, column => Assert.Contains(principal.Columns, c => c.Name == column));
+                }
+            }
+            foreach (var index in migration.UpOperations.OfType<CreateIndexOperation>())
+            {
+                var table = Assert.Single(created, t => t.Name == index.Table);
+                Assert.All(index.Columns, column => Assert.Contains(table.Columns, c => c.Name == column));
             }
         }
+        Assert.Equal(29, allTables.Count);
+    }
+
+    [Fact]
+    public void File_baseline_declares_module_length_and_filtered_uniqueness_without_legacy_adoption()
+    {
+        var migration = new Devkit.FileStorage.Infrastructure.Persistence.Migrations.SqlServer.InitialFileStorageContext();
+        var table = Assert.Single(migration.UpOperations.OfType<CreateTableOperation>(), t => t.Name == "file_reference");
+        var module = Assert.Single(table.Columns, c => c.Name == "module");
+        Assert.Equal("nvarchar(450)", module.ColumnType);
+        Assert.False(module.IsNullable);
+        var references = Assert.Single(migration.UpOperations.OfType<CreateIndexOperation>(),
+            i => i.Table == "file_reference" && i.Columns.SequenceEqual(new[] { "file_id", "entity_id", "module" }));
+        Assert.True(references.IsUnique);
+        Assert.Equal("[is_deleted] = 0", references.Filter);
+        var writable = Assert.Single(migration.UpOperations.OfType<CreateIndexOperation>(),
+            i => i.Table == "file_storage_location" && i.Columns.SequenceEqual(new[] { "writable" }));
+        Assert.True(writable.IsUnique);
+        Assert.Equal("[writable] = 1 AND [is_deleted] = 0", writable.Filter);
     }
 }

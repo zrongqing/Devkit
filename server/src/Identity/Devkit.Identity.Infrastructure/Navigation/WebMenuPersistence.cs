@@ -12,7 +12,7 @@ internal sealed class WebMenuConfiguration : IEntityTypeConfiguration<WebMenu>
 {
     public void Configure(EntityTypeBuilder<WebMenu> b)
     {
-        b.ToTable("WebMenus"); b.HasKey(x => x.Id);
+        b.ToTable("sys_menu"); b.HasKey(x => x.Id);
         b.Property(x => x.MenuCode).HasMaxLength(120); b.HasAlternateKey(x => x.MenuCode);
         b.Property(x => x.ParentCode).HasMaxLength(120);
         b.HasOne<WebMenu>().WithMany().HasForeignKey(x => x.ParentCode).HasPrincipalKey(x => x.MenuCode).OnDelete(DeleteBehavior.Restrict);
@@ -26,7 +26,7 @@ internal sealed class WebMenuStateConfiguration : IEntityTypeConfiguration<WebMe
 {
     public void Configure(EntityTypeBuilder<WebMenuState> b)
     {
-        b.ToTable("WebMenuState"); b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever();
+        b.ToTable("sys_menu_state"); b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever();
         b.Property(x => x.Version).IsConcurrencyToken(); b.HasData(new WebMenuState());
     }
 }

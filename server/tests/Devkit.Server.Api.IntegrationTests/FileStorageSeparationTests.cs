@@ -18,12 +18,18 @@ namespace Devkit.Server.Api.IntegrationTests;
 public sealed class FileStorageSeparationTests
 {
     [Fact]
-    public void Business_extraction_migration_preserves_legacy_file_tables_for_offline_transfer()
+    public void Business_baseline_owns_workspace_outbox_and_only_business_tables()
     {
-        var migration=new Devkit.Business.Infrastructure.Persistence.Migrations.SqlServer.ExtractFileStorageContext();
+        var migration=new Devkit.Business.Infrastructure.Persistence.Migrations.SqlServer.InitialBusinessContext();
         Assert.DoesNotContain(migration.UpOperations,operation=>operation is Microsoft.EntityFrameworkCore.Migrations.Operations.DropTableOperation);
-        Assert.Contains(migration.UpOperations,operation=>operation is Microsoft.EntityFrameworkCore.Migrations.Operations.CreateTableOperation{ Name:"FileReleaseOutbox" });
-        Assert.All(migration.DownOperations,operation=>Assert.Equal("FileReleaseOutbox",Assert.IsType<Microsoft.EntityFrameworkCore.Migrations.Operations.DropTableOperation>(operation).Name));
+        Assert.Contains(migration.UpOperations,operation=>operation is Microsoft.EntityFrameworkCore.Migrations.Operations.CreateTableOperation{ Name:"workspace_file_release_outbox" });
+        Assert.All(migration.UpOperations.OfType<Microsoft.EntityFrameworkCore.Migrations.Operations.CreateTableOperation>(),
+            table=>Assert.True(table.Name.StartsWith("module_")||table.Name.StartsWith("study_")||table.Name.StartsWith("workspace_")));
+        Assert.All(migration.DownOperations,operation=>
+        {
+            var table=Assert.IsType<Microsoft.EntityFrameworkCore.Migrations.Operations.DropTableOperation>(operation);
+            Assert.True(table.Name.StartsWith("module_")||table.Name.StartsWith("study_")||table.Name.StartsWith("workspace_"));
+        });
     }
     private static async Task<Guid> Upload(HttpClient client)
     {
@@ -48,8 +54,8 @@ public sealed class FileStorageSeparationTests
         using var fs=factory.FileServices.CreateScope();using var bs=factory.Services.CreateScope();
         var fileDb=fs.ServiceProvider.GetRequiredService<FileStorageDbContext>();var businessDb=bs.ServiceProvider.GetRequiredService<BusinessDbContext>();
         Assert.NotEqual(fileDb.Database.GetConnectionString(),businessDb.Database.GetConnectionString());
-        Assert.DoesNotContain(businessDb.Model.GetEntityTypes(),x=>x.GetTableName() is "StoredFiles" or "StorageLocations" or "FileReferences" or "FileMigrationItems" or "StorageJobs");
-        Assert.DoesNotContain(fileDb.Model.GetEntityTypes(),x=>x.GetTableName() is "StudySources" or "WorkspaceJobs" or "Users" or "RefreshTokens");
+        Assert.DoesNotContain(businessDb.Model.GetEntityTypes(),x=>x.GetTableName() is "file_stored_file" or "file_storage_location" or "file_reference" or "file_migration_item" or "file_storage_job");
+        Assert.DoesNotContain(fileDb.Model.GetEntityTypes(),x=>x.GetTableName() is "study_source" or "workspace_job" or "sys_user" or "sys_refresh_token");
         Assert.Contains(fileDb.Database.GetMigrations(),x=>x.EndsWith("InitialFileStorageContext"));
         foreach(var assembly in new[]{typeof(Devkit.FileStorage.Api.Program).Assembly,typeof(FileStorageDbContext).Assembly,
             typeof(Devkit.FileStorage.Application.Files.Actor).Assembly,typeof(StoredFile).Assembly})

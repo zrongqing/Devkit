@@ -8,7 +8,7 @@ internal sealed class ModuleInstanceConfiguration : IEntityTypeConfiguration<Mod
 {
     public void Configure(EntityTypeBuilder<ModuleInstance> builder)
     {
-        builder.ToTable("ModuleInstances");
+        builder.ToTable("module_instance");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.ModuleKey).HasMaxLength(100).IsRequired();
         builder.Property(x => x.InstanceId).HasMaxLength(100).IsRequired();
@@ -29,7 +29,7 @@ internal sealed class BufferedModuleCommandConfiguration : IEntityTypeConfigurat
 {
     public void Configure(EntityTypeBuilder<BufferedModuleCommand> builder)
     {
-        builder.ToTable("BufferedModuleCommands");
+        builder.ToTable("module_buffered_command");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.SourceModule).HasMaxLength(100).IsRequired();
         builder.Property(x => x.TargetModule).HasMaxLength(100).IsRequired();
@@ -55,7 +55,7 @@ internal sealed class ModuleCommandSequenceConfiguration : IEntityTypeConfigurat
 {
     public void Configure(EntityTypeBuilder<ModuleCommandSequence> builder)
     {
-        builder.ToTable("ModuleCommandSequences");
+        builder.ToTable("module_command_sequence");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.TargetModule).HasMaxLength(100).IsRequired();
         builder.Property(x => x.CreatedAtUtc).HasPrecision(7);

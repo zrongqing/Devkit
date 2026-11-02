@@ -7,6 +7,8 @@
 - 平台：.NET 10、ASP.NET Core Minimal API，接口统一使用 `/api/v1` 版本路径与 ProblemDetails 错误响应。
 - 分层：`Api -> Infrastructure -> Application -> Domain`；Domain 不依赖持久化、缓存或 HTTP 框架。
 - 数据库与 ORM：EF Core 10.0.12；首版 provider 为 SQL Server，迁移独立保存在 Infrastructure。模型避免依赖 schema、sequence 和 rowversion，以便以后增加 MySQL、SQLite provider。
+- 数据库命名：业务表使用 `sys_`、`file_`、`module_`、`study_`、`workspace_` 模块前缀和单数表名，表、列、索引与约束统一小写 `snake_case`；当前迁移基线仅支持全新建库，详见 [数据库与认证](docs/数据库与认证.md)。
+- 迁移管理：三个 DbContext 独立维护迁移，开发期在相关数据库可全部重建时整理为各一份初始基线；已发布或需要保留数据的环境使用增量迁移，迁移及快照提交 Git。当前仍共用迁移历史表，详见 [共库服务与 EF Core 迁移管理](docs/共库服务与EFCore迁移管理.md)。
 - DTO 映射：Mapster 10.0.12，使用显式映射配置并在启动注册时编译验证。
 - 身份认证与授权：RS256 JWT Bearer（身份持私钥、业务仅持公钥）、短期 access token、数据库哈希保存且单次轮换的 refresh token、角色声明和认证版本失效机制。
 - 上下文：Identity、FileStorage、Business 各有独立 API / Infrastructure / Application / Domain、DbContext、SQL Server 迁移与镜像；上下文之间不直接引用实体或项目。通过版本化 HTTP 身份断言衔接业务权限，详见 [认证与业务分离部署](docs/认证与业务分离部署.md)。

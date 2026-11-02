@@ -2,7 +2,7 @@
   "profiles": {
     "Devkit.Business.Api": {
       "commandName": "Project",
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "swagger",
       "applicationUrl": "http://localhost:12511",
       "environmentVariables": {

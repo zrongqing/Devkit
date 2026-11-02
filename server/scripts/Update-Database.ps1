@@ -42,6 +42,14 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "$Context database migration failed." }
 }
 finally {
-    foreach ($name in $previous.Keys) { [Environment]::SetEnvironmentVariable($name, $previous[$name]) }
+    foreach ($name in $previous.Keys) {
+        if ($null -eq $previous[$name]) {
+            # Preserve absence: an empty connection variable overrides database.json on .NET 10.
+            Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+        }
+        else {
+            [Environment]::SetEnvironmentVariable($name, $previous[$name])
+        }
+    }
     Pop-Location
 }

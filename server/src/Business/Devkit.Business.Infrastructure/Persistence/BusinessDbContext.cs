@@ -1,3 +1,4 @@
+using Devkit.Infrastructure.Persistence;
 using Devkit.Business.Domain.Modules;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,5 +13,6 @@ public sealed class BusinessDbContext(DbContextOptions<BusinessDbContext> option
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(BusinessDbContext).Assembly);
+        modelBuilder.UseSnakeCaseDatabaseNames();
     }
 }

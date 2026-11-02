@@ -8,7 +8,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("Users");
+        builder.ToTable("sys_user");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.UserName).HasMaxLength(100).IsRequired();
         builder.Property(x => x.NormalizedUserName).HasMaxLength(100).IsRequired();
@@ -27,7 +27,7 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
 {
     public void Configure(EntityTypeBuilder<Role> builder)
     {
-        builder.ToTable("Roles");
+        builder.ToTable("sys_role");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
         builder.Property(x => x.NormalizedName).HasMaxLength(100).IsRequired();
@@ -42,7 +42,7 @@ internal sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
 {
     public void Configure(EntityTypeBuilder<UserRole> builder)
     {
-        builder.ToTable("UserRoles");
+        builder.ToTable("sys_user_role");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.CreatedAtUtc).HasPrecision(7);
         builder.Property(x => x.UpdatedAtUtc).HasPrecision(7);
@@ -57,7 +57,7 @@ internal sealed class UserClaimConfiguration : IEntityTypeConfiguration<UserClai
 {
     public void Configure(EntityTypeBuilder<UserClaim> builder)
     {
-        builder.ToTable("UserClaims");
+        builder.ToTable("sys_user_claim");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.ClaimType).HasMaxLength(256).IsRequired();
         builder.Property(x => x.ClaimValue).IsRequired();
@@ -73,7 +73,7 @@ internal sealed class RoleClaimConfiguration : IEntityTypeConfiguration<RoleClai
 {
     public void Configure(EntityTypeBuilder<RoleClaim> builder)
     {
-        builder.ToTable("RoleClaims");
+        builder.ToTable("sys_role_claim");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.ClaimType).HasMaxLength(256).IsRequired();
         builder.Property(x => x.ClaimValue).IsRequired();
@@ -89,7 +89,7 @@ internal sealed class UserLoginConfiguration : IEntityTypeConfiguration<UserLogi
 {
     public void Configure(EntityTypeBuilder<UserLogin> builder)
     {
-        builder.ToTable("UserLogins");
+        builder.ToTable("sys_user_login");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.LoginProvider).HasMaxLength(128).IsRequired();
         builder.Property(x => x.ProviderKey).HasMaxLength(128).IsRequired();
@@ -107,7 +107,7 @@ internal sealed class UserTokenConfiguration : IEntityTypeConfiguration<UserToke
 {
     public void Configure(EntityTypeBuilder<UserToken> builder)
     {
-        builder.ToTable("UserTokens");
+        builder.ToTable("sys_user_token");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.LoginProvider).HasMaxLength(128).IsRequired();
         builder.Property(x => x.Name).HasMaxLength(128).IsRequired();
@@ -123,7 +123,7 @@ internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refre
 {
     public void Configure(EntityTypeBuilder<RefreshToken> builder)
     {
-        builder.ToTable("RefreshTokens");
+        builder.ToTable("sys_refresh_token");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
         builder.Property(x => x.ReplacedByTokenHash).HasMaxLength(64);
