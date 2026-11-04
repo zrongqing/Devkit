@@ -32,8 +32,11 @@
           <Button Content="git pull"
                   Visibility="Collapsed" />
           <Button Command="{Binding SearchFilesCommand}"
-                  CommandParameter="{Binding Text,ElementName=WebappPath}"
                   Content="读取文件夹"
+                  Style="{StaticResource ButtonPrimary}" />
+          <Button Command="{Binding SavePathsCommand}"
+                  Margin="10,0,0,0"
+                  Content="保存路径"
                   Style="{StaticResource ButtonPrimary}" />
           <Button Command="{Binding UpdateFilesCommand}"
                   CommandParameter="development"
@@ -65,9 +68,16 @@
                    x:Name="WebappPath"
                    hc:InfoElement.Necessary="True"
                    hc:InfoElement.Title="webapp path:"
-                   IsReadOnly="True"
                    Style="{StaticResource TextBoxExtend}"
                    Text="{Binding WebappPath,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+
+          <TextBox Margin="0,10,0,0"
+                   hc:InfoElement.Title="Webapp 发布路径："
+                   Style="{StaticResource TextBoxExtend}"
+                   Text="{Binding WebappPublishPath,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock Margin="0,4,0,10"
+                     TextWrapping="Wrap"
+                     Text="发布路径留空时使用 Barcode2 配置中的各环境发布目录；填写 UNC 共享路径后，覆盖所选环境的发布目录，账号密码仍使用该环境配置。" />
 
         </StackPanel>
 

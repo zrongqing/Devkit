@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Devkit.Core.Helpers;
@@ -22,6 +23,9 @@ public partial class WebappUpdateViewModel : ViewModelBase
     [ObservableProperty]
     private string _webappPath = string.Empty;
 
+    [ObservableProperty]
+    private string _webappPublishPath = string.Empty;
+
     public WebappUpdateViewModel(
         IBarcode2ConfigurationService configuration,
         IClientNotificationService notifications)
@@ -34,7 +38,9 @@ public partial class WebappUpdateViewModel : ViewModelBase
     {
         try
         {
-            WebappPath = (await _configuration.GetAsync(cancellationToken)).WebappSourcePath;
+            var settings = await _configuration.GetAsync(cancellationToken);
+            WebappPath = settings.WebappUpdateSourcePath;
+            WebappPublishPath = settings.WebappPublishPath;
         }
         catch (Exception exception)
         {
@@ -43,15 +49,46 @@ public partial class WebappUpdateViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task SearchFiles(object? searchRootPath)
+    private async Task SavePaths()
     {
         try
         {
-            WebappPath = (await _configuration.GetAsync()).WebappSourcePath;
-            var rootPath = WebappPath;
+            var settings = await _configuration.GetAsync();
+            settings.WebappUpdateSourcePath = WebappPath.Trim();
+            settings.WebappPublishPath = WebappPublishPath.Trim();
+            await _configuration.SaveAsync(settings);
+            ShowInformation("Webapp 路径已保存到本地。");
+        }
+        catch (Barcode2ConfigurationException exception)
+        {
+            ShowWarning(exception.Message);
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception.Message);
+        }
+    }
+
+    partial void OnWebappPathChanged(string value)
+    {
+        TreeNodes.Clear();
+    }
+
+    [RelayCommand]
+    private void SearchFiles()
+    {
+        try
+        {
+            var rootPath = WebappPath.Trim();
             if (string.IsNullOrWhiteSpace(rootPath))
             {
                 ShowWarning("请先配置 webapp 源目录。");
+                return;
+            }
+
+            if (!Directory.Exists(rootPath))
+            {
+                ShowWarning("webapp 源目录不存在或无法访问。");
                 return;
             }
 
@@ -80,9 +117,9 @@ public partial class WebappUpdateViewModel : ViewModelBase
                 return;
             }
 
-            var settings = await _configuration.GetAsync();
-            WebappPath = settings.WebappSourcePath;
-            if (string.IsNullOrWhiteSpace(WebappPath))
+            var sourcePath = WebappPath.Trim();
+            var publishPath = WebappPublishPath.Trim();
+            if (string.IsNullOrWhiteSpace(sourcePath))
             {
                 ShowWarning("未配置 webapp 源目录。");
                 return;
@@ -92,6 +129,11 @@ public partial class WebappUpdateViewModel : ViewModelBase
                 .SelectMany(node => node.GetCheckedNodes())
                 .Distinct()
                 .Where(node => node.NodeType == FileNodeType.File)
+                .Select(node => new
+                {
+                    node.FullPath,
+                    RelativePath = ExtractRelativePath(node.FullPath, sourcePath)
+                })
                 .ToList();
 
             if (files.Count == 0)
@@ -100,11 +142,13 @@ public partial class WebappUpdateViewModel : ViewModelBase
                 return;
             }
 
-            var targets = settings.GetShareTargets(targetName)
+            var settings = await _configuration.GetAsync();
+            var targets = settings.GetShareTargets(targetName, publishPath)
                 .Select(target => new Barcode2ShareTarget(
                     target.Root,
                     target.Username,
                     target.Password))
+                .Distinct()
                 .ToArray();
             var failures = new List<string>();
 
@@ -121,7 +165,7 @@ public partial class WebappUpdateViewModel : ViewModelBase
                     {
                         uploader.UploadFile(
                             fileNode.FullPath,
-                            ExtractRelativePath(fileNode.FullPath));
+                            fileNode.RelativePath);
                     }
                 }
                 catch (Exception exception)
@@ -151,17 +195,16 @@ public partial class WebappUpdateViewModel : ViewModelBase
         }
     }
 
-    public static string ExtractRelativePath(string fullPath, string baseFolderName = "webapp")
+    public static string ExtractRelativePath(string fullPath, string sourceRootPath)
     {
-        if (string.IsNullOrEmpty(fullPath))
-            return fullPath;
+        var relativePath = Path.GetRelativePath(sourceRootPath, fullPath);
+        if (Path.IsPathRooted(relativePath) || relativePath == ".." ||
+            relativePath.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+        {
+            throw new Barcode2ConfigurationException("所选文件不在当前 webapp 源目录内，请重新读取文件夹。");
+        }
 
-        var searchKey = baseFolderName + @"\";
-        var index = fullPath.LastIndexOf(searchKey, StringComparison.OrdinalIgnoreCase);
-
-        return index >= 0
-                   ? fullPath[(index + searchKey.Length)..]
-                   : fullPath;
+        return relativePath;
     }
 
     private void ShowInformation(string message)

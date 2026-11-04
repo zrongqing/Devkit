@@ -77,6 +77,12 @@ public sealed class Barcode2ConfigurationService : IBarcode2ConfigurationService
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        if (!string.IsNullOrWhiteSpace(settings.WebappPublishPath) &&
+            !settings.WebappPublishPath.Trim().StartsWith(@"\\", StringComparison.Ordinal))
+        {
+            throw new Barcode2ConfigurationException("Webapp 发布路径必须是有效的 UNC 共享路径。");
+        }
+
         if (settings.Environments.Select(environment => environment.Key)
             .Distinct(StringComparer.OrdinalIgnoreCase).Count() != settings.Environments.Count)
         {
@@ -206,6 +212,8 @@ public sealed class Barcode2ConfigurationService : IBarcode2ConfigurationService
         {
             new("General.SourceCodePath", TrimOrEmpty(settings.SourceCodePath)),
             new("General.WebappSourcePath", TrimOrEmpty(settings.WebappSourcePath)),
+            new("Preference.WebappUpdateSourcePath", TrimOrEmpty(settings.WebappUpdateSourcePath)),
+            new("Preference.WebappPublishPath", TrimOrEmpty(settings.WebappPublishPath)),
             new("Preference.SelectedPageEnvironment", settings.SelectedPageEnvironmentKey),
             new("Preference.SelectedApiCode", settings.SelectedApiCode ?? string.Empty),
             new("Preference.SelectedApiName", settings.SelectedApiName ?? string.Empty)
@@ -262,6 +270,12 @@ public sealed class Barcode2ConfigurationService : IBarcode2ConfigurationService
         {
             SourceCodePath = Required("General.SourceCodePath"),
             WebappSourcePath = Required("General.WebappSourcePath"),
+            WebappUpdateSourcePath = values.TryGetValue("Preference.WebappUpdateSourcePath", out var webappUpdateSourcePath)
+                                         ? webappUpdateSourcePath
+                                         : string.Empty,
+            WebappPublishPath = values.TryGetValue("Preference.WebappPublishPath", out var webappPublishPath)
+                                   ? webappPublishPath
+                                   : string.Empty,
             SelectedPageEnvironmentKey = Required("Preference.SelectedPageEnvironment"),
             SelectedApiCode = Required("Preference.SelectedApiCode"),
             SelectedApiName = values.TryGetValue(

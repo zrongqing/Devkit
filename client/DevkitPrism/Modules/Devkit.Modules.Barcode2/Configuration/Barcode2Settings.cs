@@ -4,6 +4,8 @@ public sealed class Barcode2Settings
 {
     public string SourceCodePath { get; set; } = string.Empty;
     public string WebappSourcePath { get; set; } = string.Empty;
+    public string WebappUpdateSourcePath { get; set; } = string.Empty;
+    public string WebappPublishPath { get; set; } = string.Empty;
     public string SelectedPageEnvironmentKey { get; set; } = Barcode2Defaults.DevelopmentEnvironment;
     public string SelectedApiCode { get; set; } = string.Empty;
     public string SelectedApiName { get; set; } = string.Empty;
@@ -18,13 +20,32 @@ public sealed class Barcode2Settings
                ?? throw new Barcode2ConfigurationException($"缺少 {resolvedKey} 环境配置。");
     }
 
-    public IReadOnlyList<Barcode2ShareSettings> GetShareTargets(string targetKey)
+    public IReadOnlyList<Barcode2ShareSettings> GetShareTargets(string targetKey, string? rootOverride = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetKey);
         var resolvedKey = Barcode2Defaults.ResolveEnvironmentKey(targetKey);
-        var targets = ShareTargets.Where(target =>
-                target.TargetKey.Equals(resolvedKey, StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrWhiteSpace(target.Root))
+        var publishPath = rootOverride?.Trim();
+        var environmentTargets = ShareTargets.Where(target =>
+                target.TargetKey.Equals(resolvedKey, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        var configuredTargets = environmentTargets.Where(target => !string.IsNullOrWhiteSpace(target.Root))
+            .ToArray();
+        if (configuredTargets.Length == 0 && !string.IsNullOrWhiteSpace(publishPath))
+        {
+            configuredTargets = environmentTargets.Take(1).ToArray();
+        }
+
+        var targets = configuredTargets
+            .Select(target => new Barcode2ShareSettings
+            {
+                Id = target.Id,
+                TargetKey = target.TargetKey,
+                Order = target.Order,
+                DisplayName = target.DisplayName,
+                Root = string.IsNullOrWhiteSpace(publishPath) ? target.Root : publishPath,
+                Username = target.Username,
+                Password = target.Password
+            })
             .ToArray();
         if (targets.Length == 0)
         {

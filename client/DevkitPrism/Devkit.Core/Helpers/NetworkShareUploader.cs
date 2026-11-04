@@ -170,9 +170,9 @@ public class NetworkShareUploader : IDisposable
 
             File.Copy(localFilePath, remotePath, overwrite);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            
+            throw;
         }
         finally
         {
