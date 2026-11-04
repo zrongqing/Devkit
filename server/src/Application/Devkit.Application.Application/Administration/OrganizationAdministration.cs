@@ -6,6 +6,11 @@ namespace Devkit.Application.Application.Administration;
 public sealed class OrganizationAdministration(IOrganizationStore store, IAdministrationLog log, ICurrentIdentity identity)
 {
     private async Task Authorize(CancellationToken ct) => (await identity.CurrentAsync(ct)).Require("system.organization.manage");
+    public async Task<Devkit.DomainCommons.Querying.PageResult<AdministrationEvent>> QueryAuditAsync(Devkit.DomainCommons.Querying.PageQuery query, CancellationToken ct)
+    {
+        (await identity.CurrentAsync(ct)).Require("system.audit.view");
+        return await log.PageAsync(query, ct);
+    }
 
     private static string Name(string value) => value?.Trim() is { Length: > 0 and <= 100 } name ? name
         : throw new IdentityException(400, "invalid_name", "名称须为 1 到 100 个字符。");

@@ -5,7 +5,7 @@ using Devkit.FileStorage.Domain.Files;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Devkit.FileStorage.Infrastructure.Persistence;
-public sealed class FileStorageDbContext(DbContextOptions<FileStorageDbContext> options) : DbContext(options)
+public sealed class FileStorageDbContext(DbContextOptions<FileStorageDbContext> options) : PagedDbContext(options)
 {
     protected override void OnModelCreating(ModelBuilder builder)
     {

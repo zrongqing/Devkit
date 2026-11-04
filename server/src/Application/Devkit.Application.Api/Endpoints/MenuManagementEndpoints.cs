@@ -1,3 +1,4 @@
+using Devkit.DomainCommons.Querying;
 using Devkit.Application.Api.Contracts;
 using Devkit.Application.Application.Navigation;
 using Devkit.Application.Application.Authorization;
@@ -15,6 +16,9 @@ public sealed class MenuManagementEndpoints : IEndpointModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var group=endpoints.MapGroup("/api/v1/web/menu-management").RequireAuthorization().WithTags("Web Menu Management");
+        group.MapPost("/menus/query", (HttpContext c, MenuPageService s, PageQuery q) => Run(c, a => s.TreeAsync(a, q, c.RequestAborted)));
+        group.MapPost("/compare/query", (HttpContext c, MenuPageService s, MenuCompareQuery r) => Run(c, a => s.CompareAsync(a, r, c.RequestAborted)));
+        group.MapPost("/fields/query", (HttpContext c, MenuPageService s, MenuFieldsQuery r) => Run(c, a => s.FieldsAsync(a, r, c.RequestAborted)));
         group.MapGet("/menus",(HttpContext c,WebMenuService s)=>Run(c,a=>s.ListAsync(a,c.RequestAborted)));
         group.MapPost("/menus",(HttpContext c,WebMenuService s,DirectoryCreateRequest r)=>Run(c,a=>s.CreateDirectoryAsync(a,r,c.RequestAborted)));
         group.MapPut("/menus/{code}",(HttpContext c,WebMenuService s,string code,MenuEditRequest r)=>Run(c,a=>s.EditAsync(a,code,r,c.RequestAborted)));

@@ -10,6 +10,7 @@ namespace Devkit.Business.Infrastructure.Workspace;
 
 public sealed class WorkspaceStore(BusinessDbContext db) : IWorkspaceStore
 {
+    public Task<Devkit.DomainCommons.Querying.PageResult<T>> PageAsync<T>(Devkit.DomainCommons.Querying.PageQuery query, Expression<Func<T, bool>> scope, CancellationToken ct = default) where T : class => db.PageAsync(query, scope, ct);
     public Task<T?> FindAsync<T>(Guid id, CancellationToken ct = default) where T : AuditableEntity => db.Set<T>().SingleOrDefaultAsync(x => x.Id == id, ct);
     public Task<List<T>> ListAsync<T>(Expression<Func<T, bool>>? predicate = null, CancellationToken ct = default) where T : AuditableEntity => (predicate is null ? db.Set<T>() : db.Set<T>().Where(predicate)).ToListAsync(ct);
     public void Add<T>(T entity) where T : AuditableEntity => db.Add(entity);

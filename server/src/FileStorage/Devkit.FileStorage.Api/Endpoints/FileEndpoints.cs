@@ -1,4 +1,5 @@
 using Devkit.FileStorage.Application.Files;
+using Devkit.DomainCommons.Querying;
 using Devkit.FileStorage.Domain.Files;
 using Microsoft.AspNetCore.Http.HttpResults;
 namespace Devkit.FileStorage.Api.Endpoints;
@@ -10,6 +11,8 @@ public sealed class FileEndpoints : IEndpointModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var file=endpoints.MapGroup("/api/v1/files").RequireAuthorization().WithTags("Files");
+        file.MapPost("/query", (HttpContext c, IFileService s, PageQuery q) => Run(c, a => s.QueryFilesAsync(a, q, c.RequestAborted)));
+        file.MapPost("/{id:guid}/references/query", (HttpContext c, IFileService s, Guid id, PageQuery q) => Run(c, a => s.QueryReferencesAsync(a, id, q, c.RequestAborted)));
         file.MapGet("/",(HttpContext c,IFileService s)=>Run(c,a=>s.ListAsync(a,c.RequestAborted)));
         file.MapPost("/",async(HttpContext c,IFileService s,IFormFile file,string purpose="exam-study")=>
         {await using var stream=file.OpenReadStream();return await Run(c,a=>s.UploadAsync(a,file.FileName,purpose,stream,c.RequestAborted));}).DisableAntiforgery().Produces<ApiResponse<FileView>>();
@@ -19,6 +22,7 @@ public sealed class FileEndpoints : IEndpointModule
         file.MapGet("/{id:guid}/references",(HttpContext c,IFileService s,Guid id)=>Run(c,a=>s.ReferencesAsync(a,id,c.RequestAborted)));
 
         var storage=endpoints.MapGroup("/api/v1/storage").RequireAuthorization().WithTags("Storage");
+        storage.MapPost("/jobs/query", (HttpContext c, IFileService s, PageQuery q) => Run(c, a => s.QueryJobsAsync(a, q, c.RequestAborted)));
         storage.MapGet("/locations",(HttpContext c,IFileService s)=>Run(c,a=>s.LocationsAsync(a,c.RequestAborted)));
         storage.MapPost("/locations",(HttpContext c,IFileService s,LocationRequest r)=>Run(c,a=>s.AddLocationAsync(a,r,c.RequestAborted)));
         storage.MapPost("/migrations",async(HttpContext c,IFileService s,IFileAccess access,MigrationRequest r)=>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DataTable from "../../components/DataTable";
+import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
@@ -73,6 +75,10 @@ onMounted(() => {
     );
   });
 });
+
+const tableValues = {
+  knowledgeBases: ({ knowledgeBaseIdsJson }: { knowledgeBaseIdsJson: string }) => bases.value.filter(b => parse<string[]>(knowledgeBaseIdsJson).includes(b.id)).map(b => b.name),
+};
 </script>
 <template>
   <main class="study-page">
@@ -87,7 +93,7 @@ onMounted(() => {
           v-model="all"
           active-text="全部用户"
           @change="run(load)"
-        /><el-button v-if="managing" type="primary" @click="edit()">新建项目</el-button>
+        />
       </div>
     </header>
     <el-alert
@@ -97,7 +103,7 @@ onMounted(() => {
       class="study-error"
       :closable="false"
     />
-    <div class="study-toolbar">
+    <div v-if="!managing" class="study-toolbar">
       <el-select
         :model-value="selected?.id ?? ''"
         placeholder="选择项目"
@@ -110,19 +116,18 @@ onMounted(() => {
           :key="p.id"
           :value="p.id"
           :label="p.name" /></el-select
-      ><el-button v-if="selected && managing" @click="edit(selected)"
-        >项目设置 / 关联知识库</el-button
       ><el-button @click="run(load)">刷新</el-button>
     </div>
     <div v-if="managing" class="study-card" v-loading="busy">
-      <el-table :data="projects" empty-text="暂无项目，点击新建项目开始配置">
+      <DataTable table-key="study-projects" :load-page="tableQueries.projects(all)" :query-context="String(all)" :data="projects" empty-text="暂无项目，点击新建项目开始配置">
+        <template #actions><el-button type="primary" @click="edit()">新建项目</el-button></template>
         <el-table-column prop="name" label="项目名称" min-width="160" />
         <el-table-column prop="description" label="说明" min-width="200" />
-        <el-table-column label="关联知识库" min-width="200"><template #default="{ row }">
+        <el-table-column column-key="knowledgeBases" :table-value="tableValues.knowledgeBases" label="关联知识库" min-width="200"><template #default="{ row }">
           <el-tag v-for="base in bases.filter(b => parse<string[]>(row.knowledgeBaseIdsJson).includes(b.id))" :key="base.id" style="margin: 4px">{{ base.name }}</el-tag>
         </template></el-table-column>
-        <el-table-column label="操作" width="160"><template #default="{ row }"><el-button link type="primary" @click="edit(row)">编辑 / 关联知识库</el-button></template></el-table-column>
-      </el-table>
+        <el-table-column column-key="actions" label="操作" width="160"><template #default="{ row }"><el-button link type="primary" @click="edit(row)">编辑 / 关联知识库</el-button></template></el-table-column>
+      </DataTable>
     </div>
     <ProjectWorkspace
       ref="workspace"

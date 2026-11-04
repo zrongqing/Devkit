@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DataTable from "../../components/DataTable";
+import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { identityApi, type Account, type Role, type ModulePermission } from "../../api/examStudy";
@@ -16,13 +18,13 @@ const roles = ref<Role[]>([]);
 const disabledDialog = ref(false);
 const disabledUsers = ref<Pick<Account, 'id' | 'userName' | 'email'>[]>([]);
 async function showDisabled() {
-  await run(async () => { disabledUsers.value = await identityApi.disabledUsers(); disabledDialog.value = true; });
+  await run(async () => { disabledUsers.value = []; disabledDialog.value = true; });
 }
 async function restoreUser(user: Pick<Account, 'id' | 'userName'>) {
   try { await ElMessageBox.confirm(`恢复账号 ${user.userName} 及其原有角色和授权？`, '恢复账号'); } catch { return; }
   await run(async () => {
     await identityApi.restoreUser(user.id);
-    disabledUsers.value = await identityApi.disabledUsers();
+    disabledUsers.value = [];
     await load();
   });
 }
@@ -63,7 +65,7 @@ async function load() {
   catalog.value = await identityApi.catalog();
   if (!moduleKey.value) moduleKey.value = catalog.value[0]?.key ?? "";
   roles.value = await identityApi.roles();
-  if (page.value !== "roles") users.value = await identityApi.users();
+  users.value = [];
 }
 async function updated() {
   await loadPermissions(true);
@@ -139,6 +141,16 @@ async function disable(user: Account) {
   await run(async () => { await identityApi.disable(user.id); await load(); });
 }
 onMounted(() => { void run(load); });
+
+const tableValues = {
+  effectivePermissions: ({ effectivePermissions }: { effectivePermissions: string[] }) => expand(effectivePermissions).map(nameOf),
+  permissions: ({ permissions }: { permissions: string[] }) => expand(permissions).map(nameOf),
+  directModuleGrant: ({ permissions, name }: { permissions: string[]; name?: string }) => name === 'Administrator' || expand(permissions).includes(moduleKey.value) ? '已授权' : '未授权',
+  effectiveModuleGrant: ({ effectivePermissions }: { effectivePermissions: string[] }) => effectivePermissions.includes(moduleKey.value) ? '可访问' : '未授权',
+  roleModuleGrant: ({ permissions, name }: { permissions: string[]; name?: string }) => name === 'Administrator' || expand(permissions).includes(moduleKey.value) ? '已授权' : '未授权',
+  userMenuCounts: ({ menuCodes, effectiveMenuCodes }: { menuCodes: string[]; effectiveMenuCodes: string[] }) => `${menuCodes.length} / ${effectiveMenuCodes.length}`,
+  roleMenuCount: ({ menuCodes }: { menuCodes: string[] }) => menuCodes.length,
+};
 </script>
 <template>
   <main class="study-page">
@@ -156,46 +168,46 @@ onMounted(() => { void run(load); });
       <el-tab-pane label="菜单访问权限" name="menus" />
     </el-tabs>
     <div v-if="page === 'users' || page === 'permissions' && ['user-roles', 'user-permissions'].includes(permissionTab)" class="study-card" v-loading="busy">
-      <div v-if="page === 'users'" class="study-toolbar"><el-button type="primary" @click="editUser()">创建用户</el-button><el-button @click="showDisabled">已停用账号</el-button></div>
       <el-dialog v-model="disabledDialog" title="已停用账号" width="min(680px, 94vw)">
-        <el-table :data="disabledUsers" empty-text="暂无停用账号"><el-table-column prop="userName" label="账号" /><el-table-column prop="email" label="邮箱" />
-          <el-table-column v-if="permissions?.administrator" label="操作"><template #default="{row}"><el-button link type="primary" :disabled="busy" @click="restoreUser(row)">恢复账号</el-button></template></el-table-column>
-        </el-table>
+        <DataTable v-if="disabledDialog" table-key="identity-disabled-users" :load-page="tableQueries.disabledUsers" :data="disabledUsers" empty-text="暂无停用账号"><el-table-column prop="userName" label="账号" /><el-table-column prop="email" label="邮箱" />
+          <el-table-column column-key="actions" v-if="permissions?.administrator" label="操作"><template #default="{row}"><el-button link type="primary" :disabled="busy" @click="restoreUser(row)">恢复账号</el-button></template></el-table-column>
+        </DataTable>
       </el-dialog>
-      <el-table :data="users">
+      <DataTable table-key="identity-users" :load-page="tableQueries.users()" :query-context="page + permissionTab" :data="users">
+        <template v-if="page === 'users'" #actions><el-button @click="showDisabled">已停用账号</el-button><el-button type="primary" @click="editUser()">创建用户</el-button></template>
         <el-table-column prop="userName" label="账号" min-width="120" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
-        <el-table-column label="角色" min-width="160"><template #default="{ row }"><el-tag v-for="r in row.roles" :key="r" class="permission-tag">{{ r }}</el-tag></template></el-table-column>
-        <el-table-column v-if="page === 'permissions' && permissionTab === 'user-permissions'" label="有效业务权限" min-width="260"><template #default="{ row }"><el-tag v-for="key in expand(row.effectivePermissions)" :key="key" class="permission-tag" :type="expand(row.permissions).includes(key) ? 'primary' : 'info'">{{ nameOf(key) }} · {{ expand(row.permissions).includes(key) ? '直接' : '角色' }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" min-width="210"><template #default="{ row }">
+        <el-table-column prop="roles" label="角色" min-width="160"><template #default="{ row }"><el-tag v-for="r in row.roles" :key="r" class="permission-tag">{{ r }}</el-tag></template></el-table-column>
+        <el-table-column :table-value="tableValues.effectivePermissions" prop="effectivePermissions" v-if="page === 'permissions' && permissionTab === 'user-permissions'" label="有效业务权限" min-width="260"><template #default="{ row }"><el-tag v-for="key in expand(row.effectivePermissions)" :key="key" class="permission-tag" :type="expand(row.permissions).includes(key) ? 'primary' : 'info'">{{ nameOf(key) }} · {{ expand(row.permissions).includes(key) ? '直接' : '角色' }}</el-tag></template></el-table-column>
+        <el-table-column column-key="actions" label="操作" min-width="210"><template #default="{ row }">
           <template v-if="page === 'users'"><el-button link type="primary" @click="editUser(row)">编辑信息</el-button><el-button link type="danger" @click="disable(row)">停用</el-button></template>
           <el-button v-if="canAssign && page === 'users' && !row.roles.includes('Administrator')" link type="primary" @click="editUserMenus(row)">菜单授权</el-button>
           <el-button v-if="canAssign && (page === 'users' || permissionTab === 'user-roles')" link type="primary" @click="assign(row)">分配角色</el-button>
           <el-button v-if="canAssign && permissionTab === 'user-permissions' && page === 'permissions'" link type="primary" @click="editPermissions(row)">直接授权</el-button>
         </template></el-table-column>
-      </el-table>
+      </DataTable>
     </div>
     <div v-if="page === 'roles' || page === 'permissions' && permissionTab === 'role-permissions'" class="study-card" v-loading="busy">
-      <div class="study-toolbar"><el-button v-if="page === 'roles'" type="primary" @click="editRole()">新建角色</el-button></div>
-      <el-table :data="roles">
+      <DataTable table-key="identity-roles" :load-page="tableQueries.roles()" :query-context="page + permissionTab" :data="roles">
+        <template v-if="page === 'roles'" #actions><el-button type="primary" @click="editRole()">新建角色</el-button></template>
         <el-table-column prop="name" label="角色名称" min-width="160" />
-        <el-table-column label="业务权限" min-width="300"><template #default="{ row }"><span v-if="row.name === 'Administrator'">全部权限（含未来新增模块）</span><template v-else><el-tag v-for="key in expand(row.permissions)" :key="key" class="permission-tag">{{ nameOf(key) }}</el-tag></template></template></el-table-column>
-        <el-table-column label="操作" width="120"><template #default="{ row }"><el-button v-if="row.name !== 'Administrator'" link type="primary" @click="editRole(row)">{{ page === 'roles' ? '编辑角色' : '配置权限' }}</el-button><el-button v-if="row.name !== 'Administrator'" link type="primary" @click="editRoleMenus(row)">菜单授权</el-button></template></el-table-column>
-      </el-table>
+        <el-table-column :table-value="tableValues.permissions" prop="permissions" label="业务权限" min-width="300"><template #default="{ row }"><span v-if="row.name === 'Administrator'">全部权限（含未来新增模块）</span><template v-else><el-tag v-for="key in expand(row.permissions)" :key="key" class="permission-tag">{{ nameOf(key) }}</el-tag></template></template></el-table-column>
+        <el-table-column column-key="actions" label="操作" width="180" min-width="180"><template #default="{ row }"><span v-if="row.name !== 'Administrator'" class="role-row-actions"><el-button link type="primary" @click="editRole(row)">{{ page === 'roles' ? '编辑角色' : '配置权限' }}</el-button><el-button link type="primary" @click="editRoleMenus(row)">菜单授权</el-button></span></template></el-table-column>
+      </DataTable>
     </div>
     <div v-if="page === 'permissions' && permissionTab === 'modules'" class="study-card" v-loading="busy">
       <div class="study-toolbar"><span>选择业务权限</span><el-select v-model="moduleKey" style="width: 330px"><el-option-group v-for="group in groups" :key="group" :label="group"><el-option v-for="item in catalog.filter(x => x.group === group)" :key="item.key" :label="item.name" :value="item.key" /></el-option-group></el-select></div>
       <h3>按用户授权</h3>
-      <el-table :data="users"><el-table-column prop="userName" label="用户" /><el-table-column label="直接授权"><template #default="{ row }"><el-switch :model-value="expand(row.permissions).includes(moduleKey)" :disabled="busy || row.roles.includes('Administrator') || !hasPermission(moduleKey)" @change="(v: string | number | boolean) => toggleModule(row, false, Boolean(v))" /></template></el-table-column><el-table-column label="最终访问权限"><template #default="{ row }"><el-tag :type="row.effectivePermissions.includes(moduleKey) ? 'success' : 'info'">{{ row.effectivePermissions.includes(moduleKey) ? '可访问' : '未授权' }}</el-tag></template></el-table-column></el-table>
+      <DataTable table-key="identity-module-users" :load-page="tableQueries.users(moduleKey)" :query-context="moduleKey" :data="users"><el-table-column prop="userName" label="用户" /><el-table-column column-key="directModuleGrant" :table-value="tableValues.directModuleGrant" label="直接授权"><template #default="{ row }"><el-switch :model-value="expand(row.permissions).includes(moduleKey)" :disabled="busy || row.roles.includes('Administrator') || !hasPermission(moduleKey)" @change="(v: string | number | boolean) => toggleModule(row, false, Boolean(v))" /></template></el-table-column><el-table-column column-key="effectiveModuleGrant" :table-value="tableValues.effectiveModuleGrant" label="最终访问权限"><template #default="{ row }"><el-tag :type="row.effectivePermissions.includes(moduleKey) ? 'success' : 'info'">{{ row.effectivePermissions.includes(moduleKey) ? '可访问' : '未授权' }}</el-tag></template></el-table-column></DataTable>
       <h3>按角色授权</h3>
-      <el-table :data="roles"><el-table-column prop="name" label="角色" /><el-table-column label="授予业务权限"><template #default="{ row }"><el-switch :model-value="row.name === 'Administrator' || expand(row.permissions).includes(moduleKey)" :disabled="busy || row.name === 'Administrator' || !hasPermission(moduleKey)" @change="(v: string | number | boolean) => toggleModule(row, true, Boolean(v))" /></template></el-table-column></el-table>
+      <DataTable table-key="identity-module-roles" :load-page="tableQueries.roles(moduleKey)" :query-context="moduleKey" :data="roles"><el-table-column prop="name" label="角色" /><el-table-column column-key="roleModuleGrant" :table-value="tableValues.roleModuleGrant" label="授予业务权限"><template #default="{ row }"><el-switch :model-value="row.name === 'Administrator' || expand(row.permissions).includes(moduleKey)" :disabled="busy || row.name === 'Administrator' || !hasPermission(moduleKey)" @change="(v: string | number | boolean) => toggleModule(row, true, Boolean(v))" /></template></el-table-column></DataTable>
     </div>
     <div v-if="page === 'permissions' && permissionTab === 'menus'" class="study-card" v-loading="busy">
       <el-alert title="菜单访问权与业务权限分别配置；授予菜单不会自动授予接口权限。" type="info" :closable="false" />
       <h3>用户直接菜单授权</h3>
-      <el-table :data="users"><el-table-column prop="userName" label="用户" /><el-table-column label="直接 / 最终授权数量"><template #default="{ row }">{{ row.menuCodes.length }} / {{ row.effectiveMenuCodes.length }}</template></el-table-column><el-table-column label="操作"><template #default="{ row }"><el-button v-if="!row.roles.includes('Administrator')" link type="primary" @click="editUserMenus(row)">配置菜单</el-button><span v-else>全部菜单</span></template></el-table-column></el-table>
+      <DataTable table-key="identity-menu-users" :load-page="tableQueries.users()" :data="users"><el-table-column prop="userName" label="用户" /><el-table-column column-key="userMenuCounts" :table-value="tableValues.userMenuCounts" label="直接 / 最终授权数量"><template #default="{ row }">{{ row.menuCodes.length }} / {{ row.effectiveMenuCodes.length }}</template></el-table-column><el-table-column column-key="actions" label="操作"><template #default="{ row }"><el-button v-if="!row.roles.includes('Administrator')" link type="primary" @click="editUserMenus(row)">配置菜单</el-button><span v-else>全部菜单</span></template></el-table-column></DataTable>
       <h3>角色菜单授权</h3>
-      <el-table :data="roles"><el-table-column prop="name" label="角色" /><el-table-column label="授权数量"><template #default="{ row }">{{ row.menuCodes.length }}</template></el-table-column><el-table-column label="操作"><template #default="{ row }"><el-button v-if="row.name !== 'Administrator'" link type="primary" @click="editRoleMenus(row)">配置菜单</el-button><span v-else>全部菜单</span></template></el-table-column></el-table>
+      <DataTable table-key="identity-menu-roles" :load-page="tableQueries.roles()" :data="roles"><el-table-column prop="name" label="角色" /><el-table-column column-key="roleMenuCount" :table-value="tableValues.roleMenuCount" label="授权数量"><template #default="{ row }">{{ row.menuCodes.length }}</template></el-table-column><el-table-column column-key="actions" label="操作"><template #default="{ row }"><el-button v-if="row.name !== 'Administrator'" link type="primary" @click="editRoleMenus(row)">配置菜单</el-button><span v-else>全部菜单</span></template></el-table-column></DataTable>
     </div>
     <MenuGrantDialog v-if="menuTarget" :target="menuTarget" :permission-names="permissionNames" @close="menuTarget = undefined" @saved="menusSaved" />
     <el-dialog v-model="userDialog" :title="editingUser ? '编辑用户信息' : '创建用户'" width="min(560px,94vw)" append-to-body>
@@ -216,6 +228,8 @@ onMounted(() => { void run(load); });
   </main>
 </template>
 <style scoped>
+.role-row-actions { display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 12px; white-space: nowrap; }
+.role-row-actions .el-button + .el-button { margin-left: 0; }
 .permission-tag { margin: 3px; }
 .permission-group { padding: 6px 0 14px; border-bottom: 1px solid var(--el-border-color-lighter); }
 .permission-group h4 { margin: 8px 0; }

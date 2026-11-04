@@ -39,5 +39,6 @@ public sealed class AdministrationEvent
 }
 public interface IAdministrationLog
 {
+    Task<Devkit.DomainCommons.Querying.PageResult<AdministrationEvent>> PageAsync(Devkit.DomainCommons.Querying.PageQuery query, CancellationToken ct);
     Task<AdministrationEvent[]> ReadAsync(long? before, CancellationToken ct);
 }

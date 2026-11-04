@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DataTable from "../../components/DataTable";
+import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -410,6 +412,14 @@ onUnmounted(() => {
   for (const timer of timers.values()) clearTimeout(timer);
   window.removeEventListener("keydown", keyboard);
 });
+
+const tableValues = {
+  question: ({ questionId }: { questionId: string }) => questionNames.value[questionId] ?? '题目已归档，可在历史试卷查看',
+  mastery: ({ mastered }: { mastered: boolean }) => mastered ? '已掌握' : '未掌握',
+  startedAt: ({ createdAtUtc }: { createdAtUtc: string }) => date(createdAtUtc),
+  mode: ({ mode }: { mode: string }) => label(mode),
+  status: ({ status }: { status: string }) => label(status),
+};
 </script>
 <template>
   <section>
@@ -704,15 +714,15 @@ onUnmounted(() => {
               >重练错题</el-button
             >
           </div>
-          <el-table :data="progress.mistakes"
-            ><el-table-column label="题目" min-width="250"
+          <DataTable table-key="study-mistakes" :load-page="tableQueries.mistakes(project.id)" :query-context="project.id" :data="progress.mistakes"
+            ><el-table-column column-key="question" :table-value="tableValues.question" label="题目" min-width="250"
               ><template #default="{ row }">{{
                 questionNames[row.questionId] ?? "题目已归档，可在历史试卷查看"
               }}</template></el-table-column
             ><el-table-column
               prop="wrongCount"
               label="答错次数"
-              width="100" /><el-table-column label="掌握" width="100"
+              width="100" /><el-table-column :table-value="tableValues.mastery" prop="mastered" label="掌握" width="100"
               ><template #default="{ row }"
                 ><el-switch
                   :model-value="row.mastered"
@@ -723,20 +733,20 @@ onUnmounted(() => {
                         await loadProgress();
                       })
                   " /></template></el-table-column
-          ></el-table>
+          ></DataTable>
         </div>
         <div class="study-card">
           <h3>学习记录</h3>
-          <el-table :data="progress.attempts"
-            ><el-table-column label="开始时间" min-width="185"
+          <DataTable table-key="study-attempts" :load-page="tableQueries.attempts(project.id)" :query-context="project.id" :data="progress.attempts"
+            ><el-table-column :table-value="tableValues.startedAt" prop="createdAtUtc" label="开始时间" min-width="185"
               ><template #default="{ row }">{{
                 date(row.createdAtUtc)
               }}</template></el-table-column
-            ><el-table-column label="类型" width="100"
+            ><el-table-column :table-value="tableValues.mode" prop="mode" label="类型" width="100"
               ><template #default="{ row }">{{
                 label(row.mode)
               }}</template></el-table-column
-            ><el-table-column label="状态" width="110"
+            ><el-table-column :table-value="tableValues.status" prop="status" label="状态" width="110"
               ><template #default="{ row }">{{
                 label(row.status)
               }}</template></el-table-column
@@ -744,13 +754,13 @@ onUnmounted(() => {
               prop="score"
               label="成绩"
               width="90"
-            /><el-table-column label="操作" width="120"
+            /><el-table-column column-key="actions" label="操作" width="120"
               ><template #default="{ row }"
                 ><el-button link type="primary" @click="resume(row.id)">{{
                   row.status === "active" ? "继续作答" : "查看试卷"
                 }}</el-button></template
               ></el-table-column
-            ></el-table
+            ></DataTable
           >
         </div></el-tab-pane
       ></el-tabs

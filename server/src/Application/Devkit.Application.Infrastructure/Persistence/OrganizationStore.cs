@@ -24,6 +24,9 @@ internal sealed class OrganizationStore(ApplicationDbContext db) : IOrganization
         db.Set<AdministrationEvent>().AsNoTracking().Where(x => before == null || x.Id < before)
             .OrderByDescending(x => x.Id).Take(50).ToArrayAsync(ct);
 
+    public Task<Devkit.DomainCommons.Querying.PageResult<AdministrationEvent>> PageAsync(Devkit.DomainCommons.Querying.PageQuery query, CancellationToken ct) =>
+        db.PageAsync<AdministrationEvent>((query.Sorts?.Length ?? 0) == 0 ? query with { Sorts = [new("id", "desc")] } : query, _ => true, ct);
+
     // Serialize hierarchy validation with the write so concurrent moves cannot form a cycle.
     private Task<T> WriteAsync<T>(Func<Task<T>> change, CancellationToken ct) =>
         db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>

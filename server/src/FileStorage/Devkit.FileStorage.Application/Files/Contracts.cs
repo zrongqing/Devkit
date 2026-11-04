@@ -27,6 +27,9 @@ public sealed record JobCreatedView(Guid Id);
 public interface IFileAccess { Task<Actor> CurrentAsync(CancellationToken ct = default); }
 public interface IFileService
 {
+    Task<Devkit.DomainCommons.Querying.PageResult<FileView>> QueryFilesAsync(Actor actor, Devkit.DomainCommons.Querying.PageQuery query, CancellationToken ct);
+    Task<Devkit.DomainCommons.Querying.PageResult<StorageJob>> QueryJobsAsync(Actor actor, Devkit.DomainCommons.Querying.PageQuery query, CancellationToken ct);
+    Task<Devkit.DomainCommons.Querying.PageResult<FileReference>> QueryReferencesAsync(Actor actor, Guid id, Devkit.DomainCommons.Querying.PageQuery query, CancellationToken ct);
     Task<FileView> UploadAsync(Actor actor, string name, string purpose, Stream stream, CancellationToken ct);
     Task<IReadOnlyList<FileView>> ListAsync(Actor actor, CancellationToken ct);
     Task<OpenedFile> OpenAsync(Actor actor, Guid id, CancellationToken ct);

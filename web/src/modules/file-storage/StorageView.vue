@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DataTable from "../../components/DataTable";
+import { tableQueries } from "../../api/tableQueries";
 import { onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -21,7 +23,7 @@ const target = ref("");
 async function load() {
   [locations.value, jobs.value] = await Promise.all([
     fileApi.locations(),
-    fileApi.jobs(),
+    Promise.resolve([]),
   ]);
   jobs.value = jobs.value.filter((x) =>
     ["migrate", "cleanup"].includes(x.kind),
@@ -78,6 +80,12 @@ onMounted(() => {
   }, 5000);
 });
 onUnmounted(() => clearInterval(timer));
+
+const tableValues = {
+  kind: ({ kind }: { kind: string }) => label(kind),
+  createdAt: ({ createdAtUtc }: { createdAtUtc: string }) => date(createdAtUtc),
+  status: ({ status }: { status: string }) => label(status),
+};
 </script>
 <template>
   <main class="study-page">
@@ -123,16 +131,16 @@ onUnmounted(() => clearInterval(timer));
     </div>
     <div class="study-card">
       <h3>迁移与清理记录</h3>
-      <el-table :data="jobs"
-        ><el-table-column label="任务" width="120"
+      <DataTable table-key="storage-jobs" :load-page="tableQueries.storageJobs" :data="jobs"
+        ><el-table-column :table-value="tableValues.kind" prop="kind" label="任务" width="120"
           ><template #default="{ row }">{{
             label(row.kind)
           }}</template></el-table-column
-        ><el-table-column label="创建时间" width="190"
+        ><el-table-column :table-value="tableValues.createdAt" prop="createdAtUtc" label="创建时间" width="190"
           ><template #default="{ row }">{{
             date(row.createdAtUtc)
           }}</template></el-table-column
-        ><el-table-column label="状态" width="110"
+        ><el-table-column :table-value="tableValues.status" prop="status" label="状态" width="110"
           ><template #default="{ row }"
             ><el-tag>{{ label(row.status) }}</el-tag></template
           ></el-table-column
@@ -140,7 +148,7 @@ onUnmounted(() => clearInterval(timer));
           prop="error"
           label="说明"
           min-width="220"
-        /><el-table-column label="操作" width="210"
+        /><el-table-column column-key="actions" label="操作" width="210"
           ><template #default="{ row }"
             ><el-button
               v-if="row.status === 'failed' || row.status === 'waiting'"
@@ -161,7 +169,7 @@ onUnmounted(() => clearInterval(timer));
               >校验并清理旧副本</el-button
             ></template
           ></el-table-column
-        ></el-table
+        ></DataTable
       >
       <p class="study-muted">
         应用文件迁移支持中断恢复。Docker

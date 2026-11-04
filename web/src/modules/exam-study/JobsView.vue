@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DataTable from "../../components/DataTable";
+import { tableQueries } from "../../api/tableQueries";
 import { onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { studyApi, type Job } from "../../api/examStudy";
@@ -7,7 +9,7 @@ const { run, busy } = useOperation();
 const jobs = ref<Job[]>([]);
 const route = useRoute();
 async function load() {
-  jobs.value = await studyApi.jobs();
+  jobs.value = [];
 }
 let timer: ReturnType<typeof setInterval> | undefined;
 onMounted(() => {
@@ -17,6 +19,12 @@ onMounted(() => {
   }, 5000);
 });
 onUnmounted(() => clearInterval(timer));
+
+const tableValues = {
+  kind: ({ kind }: { kind: string }) => label(kind),
+  status: ({ status }: { status: string }) => label(status),
+  createdAt: ({ createdAtUtc }: { createdAtUtc: string }) => date(createdAtUtc),
+};
 </script>
 <template>
   <main class="study-page">
@@ -25,15 +33,14 @@ onUnmounted(() => clearInterval(timer));
         <h2>处理任务</h2>
         <p>查看资料解析、检索索引、AI 出题及文件迁移进度。</p>
       </div>
-      <el-button @click="run(load)">刷新</el-button>
     </header>
     <div class="study-card" v-loading="busy">
-      <el-table :data="jobs"
-        ><el-table-column label="任务" width="180"
+      <DataTable table-key="study-jobs" :load-page="tableQueries.jobs" :data="jobs"
+        ><el-table-column :table-value="tableValues.kind" prop="kind" label="任务" width="180"
           ><template #default="{ row }">{{
             label(row.kind)
           }}</template></el-table-column
-        ><el-table-column label="状态" width="100"
+        ><el-table-column :table-value="tableValues.status" prop="status" label="状态" width="100"
           ><template #default="{ row }"
             ><el-tag
               :type="
@@ -46,7 +53,7 @@ onUnmounted(() => clearInterval(timer));
               >{{ label(row.status) }}</el-tag
             ></template
           ></el-table-column
-        ><el-table-column label="创建时间" width="185"
+        ><el-table-column :table-value="tableValues.createdAt" prop="createdAtUtc" label="创建时间" width="185"
           ><template #default="{ row }">{{
             date(row.createdAtUtc)
           }}</template></el-table-column
@@ -58,7 +65,7 @@ onUnmounted(() => clearInterval(timer));
           prop="error"
           label="说明"
           min-width="220"
-        /><el-table-column label="操作" width="90"
+        /><el-table-column column-key="actions" label="操作" width="90"
           ><template #default="{ row }"
             ><el-button
               v-if="['failed', 'waiting'].includes(row.status)"
@@ -73,7 +80,7 @@ onUnmounted(() => clearInterval(timer));
               >重试</el-button
             ></template
           ></el-table-column
-        ></el-table
+        ></DataTable
       >
       <p class="study-muted">“语义增强”待配置不会影响已经就绪的关键词查询。</p>
     </div>

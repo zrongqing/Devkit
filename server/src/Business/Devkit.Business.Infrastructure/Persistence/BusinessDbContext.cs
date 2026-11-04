@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Devkit.Business.Infrastructure.Persistence;
 
-public sealed class BusinessDbContext(DbContextOptions<BusinessDbContext> options) : DbContext(options)
+public sealed class BusinessDbContext(DbContextOptions<BusinessDbContext> options) : PagedDbContext(options)
 {
     public DbSet<ModuleInstance> ModuleInstances => Set<ModuleInstance>();
     public DbSet<BufferedModuleCommand> BufferedModuleCommands => Set<BufferedModuleCommand>();

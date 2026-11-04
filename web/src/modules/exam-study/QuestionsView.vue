@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DataTable from "../../components/DataTable";
+import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import {
@@ -18,17 +20,17 @@ const bases = ref<KnowledgeBase[]>([]);
 const questions = ref<Question[]>([]);
 const all = ref(false);
 const kb = ref("");
-const search = ref("");
 const status = ref("");
+const externalFilters = computed(() => [
+  ...(kb.value ? [{ key: 'knowledgeBase', label: '知识库', value: bases.value.find(b => b.id === kb.value)?.name ?? kb.value }] : []),
+  ...(status.value ? [{ key: 'status', label: '状态', value: label(status.value) }] : []),
+]);
+function removeTableFilter(key: string) { if (key === 'knowledgeBase') kb.value = ''; else if (key === 'status') status.value = '' }
+function resetTableFilters() {
+  kb.value = ""; status.value = ""
+}
 const optionsOf = (value: string) => parse<QuestionOption[]>(value);
-const visible = computed(() =>
-  questions.value.filter(
-    (q) =>
-      (!kb.value || q.knowledgeBaseId === kb.value) &&
-      (!status.value || q.status === status.value) &&
-      q.stem.includes(search.value),
-  ),
-);
+
 const dialog = ref(false);
 const editing = ref<Question>();
 const blank = (): QuestionInput => ({
@@ -63,7 +65,7 @@ const generation = ref({
 async function load() {
   [bases.value, questions.value] = await Promise.all([
     studyApi.bases(all.value),
-    studyApi.questions(undefined, all.value),
+    Promise.resolve([]),
   ]);
 }
 async function loadCitationSources() {
@@ -166,6 +168,11 @@ async function startGeneration() {
 onMounted(() => {
   void run(load);
 });
+
+const tableValues = {
+  questionType: ({ type }: { type: string }) => label(type),
+  status: ({ status }: { status: string }) => label(status),
+};
 </script>
 <template>
   <main class="study-page">
@@ -180,10 +187,7 @@ onMounted(() => {
           v-model="all"
           active-text="全部用户"
           @change="run(load)"
-        /><el-button @click="generate">AI 辅助出题</el-button
-        ><el-button type="primary" @click="run(() => edit())"
-          >手动录题</el-button
-        >
+        />
       </div>
     </header>
     <el-alert
@@ -194,28 +198,12 @@ onMounted(() => {
       :closable="false"
     />
     <div class="study-card" v-loading="busy">
-      <div class="study-toolbar">
-        <el-input
-          v-model="search"
-          placeholder="搜索题干"
-          clearable
-          style="width: 260px"
-        /><el-select v-model="kb" clearable placeholder="全部知识库"
-          ><el-option
-            v-for="b in bases"
-            :key="b.id"
-            :label="b.name"
-            :value="b.id" /></el-select
-        ><el-select v-model="status" clearable placeholder="全部状态"
-          ><el-option
-            v-for="s in ['draft', 'approved', 'stale', 'disabled']"
-            :key="s"
-            :value="s"
-            :label="label(s)" /></el-select
-        ><el-button @click="run(load)">刷新</el-button>
-      </div>
-      <el-table :data="visible"
-        ><el-table-column type="expand"
+      <DataTable table-key="study-questions" @reset-filters="resetTableFilters" search-field="stem" :external-filters="externalFilters" @remove-filter="removeTableFilter" :load-page="tableQueries.questions(all, kb, '', status)" :query-context="JSON.stringify([all, kb, status])" :data="questions"
+        >
+        <template #filters><el-select v-model="kb" clearable placeholder="全部知识库" aria-label="筛选知识库"><el-option v-for="b in bases" :key="b.id" :label="b.name" :value="b.id" /></el-select>
+          <el-select v-model="status" clearable placeholder="全部状态" aria-label="筛选题目状态"><el-option v-for="s in ['draft', 'approved', 'stale', 'disabled']" :key="s" :value="s" :label="label(s)" /></el-select></template>
+        <template #actions><el-button @click="generate">AI 辅助出题</el-button><el-button type="primary" @click="run(() => edit())">手动录题</el-button></template>
+        <el-table-column type="expand"
           ><template #default="{ row }"
             ><div style="padding: 16px 35px">
               <p v-for="o in optionsOf(row.optionsJson)" :key="o.id">
@@ -226,7 +214,7 @@ onMounted(() => {
               <CitationPanel
                 :citations="parse(row.citationsJson)"
               /></div></template></el-table-column
-        ><el-table-column label="题型" width="75"
+        ><el-table-column :table-value="tableValues.questionType" prop="type" label="题型" width="75"
           ><template #default="{ row }">{{
             label(row.type)
           }}</template></el-table-column
@@ -234,7 +222,7 @@ onMounted(() => {
           prop="stem"
           label="题干"
           min-width="260"
-        /><el-table-column label="状态" width="110"
+        /><el-table-column :table-value="tableValues.status" prop="status" label="状态" width="110"
           ><template #default="{ row }"
             ><el-tag
               :type="
@@ -247,7 +235,7 @@ onMounted(() => {
               >{{ label(row.status) }}</el-tag
             ></template
           ></el-table-column
-        ><el-table-column label="操作" width="175"
+        ><el-table-column column-key="actions" label="操作" width="175"
           ><template #default="{ row }"
             ><el-button link type="primary" @click="run(() => edit(row))"
               >编辑</el-button
@@ -274,7 +262,7 @@ onMounted(() => {
               >停用</el-button
             ></template
           ></el-table-column
-        ></el-table
+        ></DataTable
       >
     </div>
     <el-dialog

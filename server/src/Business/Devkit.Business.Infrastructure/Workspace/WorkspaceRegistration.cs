@@ -13,6 +13,7 @@ public static class WorkspaceRegistration
         services.AddHttpClient();
         services.AddScoped<IWorkspaceStore,WorkspaceStore>();
         services.AddScoped<StudyService>();
+        services.AddScoped<StudyPageService>();
         services.AddScoped<RemoteFileService>();services.AddScoped<IFileService>(x=>x.GetRequiredService<RemoteFileService>());
         services.AddFileServiceClient(config);
         services.AddScoped<IDocumentProcessor,DocumentProcessor>();services.AddScoped<IModelGateway,ModelGateway>();

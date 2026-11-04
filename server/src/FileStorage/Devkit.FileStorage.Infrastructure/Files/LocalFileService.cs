@@ -1,4 +1,6 @@
 using Devkit.Commons.Serialization;
+using Devkit.DomainCommons.Querying;
+using Devkit.Infrastructure.Persistence;
 using System.Security.Cryptography;
 using Devkit.FileStorage.Application.Files;
 using Devkit.FileStorage.Domain.Files;
@@ -12,6 +14,45 @@ namespace Devkit.FileStorage.Infrastructure.Files;
 public sealed class LocalFileService(IFileStorageStore db, IOptions<FileStorageOptions> configured) : IFileService, IFileReferenceService
 {
     private readonly FileStorageOptions options=configured.Value;
+    private static string Display(string value) => value + " " + (value switch
+    { "ready" => "可检索", "uploading" => "上传中", "failed" => "失败", "purged" => "已永久删除", "purging" => "待完成清理", "queued" => "等待处理", "running" => "处理中", "completed" => "已完成", "waiting" => "待配置", "migrate" => "文件迁移", "cleanup" => "清理旧副本", _ => value });
+    private static PageQuery DefaultOrder(PageQuery q) => (q.Sorts?.Length ?? 0) == 0 ? q with { Sorts = [new("createdAtUtc", "desc")] } : q;
+    private sealed class FilePageRow
+    {
+        public Guid Id { get; init; }
+        public string Name { get; init; } = "";
+        public string ContentType { get; init; } = "";
+        public long Length { get; init; }
+        public string Sha256 { get; init; } = "";
+        public string Purpose { get; init; } = "";
+        public Guid OwnerId { get; init; }
+        public string Status { get; init; } = "";
+        public int ReferenceCount { get; init; }
+        public DateTime CreatedAtUtc { get; init; }
+        public FileView View() => new(Id, Name, ContentType, Length, Sha256, Purpose, OwnerId, Status, ReferenceCount, CreatedAtUtc);
+    }
+    public async Task<PageResult<FileView>> QueryFilesAsync(Actor actor, PageQuery query, CancellationToken ct)
+    {
+        actor.Require("system.files.manage"); PageQueries.Validate(query);
+        var rows = db.Query<StoredFile>().Where(x => actor.Administrator || x.OwnerId == actor.Id)
+            .Select(f => new FilePageRow { Id = f.Id, Name = f.Name, ContentType = f.ContentType, Length = f.Length, Sha256 = f.Sha256,
+                Purpose = f.Purpose, OwnerId = f.OwnerId, Status = f.Status, ReferenceCount = db.Query<FileReference>().Count(r => r.FileId == f.Id), CreatedAtUtc = f.CreatedAtUtc });
+        if (!(query.Filters ?? []).Any(f => f.Field == "status"))
+        {
+            var page = await PagedDbContext.QueryPageAsync(rows, DefaultOrder(query), ct);
+            return new(page.Items.Select(x => x.View()).ToArray(), page.Total, page.Page, page.PageSize);
+        }
+        return PageQueries.Snapshot((await rows.ToArrayAsync(ct)).Select(x => x.View()), DefaultOrder(query), new Dictionary<string, Func<FileView, object?>> { ["status"] = x => Display(x.Status) });
+    }
+    public async Task<PageResult<StorageJob>> QueryJobsAsync(Actor actor, PageQuery query, CancellationToken ct)
+    {
+        actor.Require("system.storage.manage"); PageQueries.Validate(query);
+        var rows = db.Query<StorageJob>().Where(x => actor.Administrator || x.OwnerId == actor.Id);
+        if (!(query.Filters ?? []).Any(f => f.Field is "status" or "kind")) return await PagedDbContext.QueryPageAsync(rows, DefaultOrder(query), ct);
+        return PageQueries.Snapshot(await rows.ToArrayAsync(ct), DefaultOrder(query), new Dictionary<string, Func<StorageJob, object?>> { ["status"] = x => Display(x.Status), ["kind"] = x => Display(x.Kind) });
+    }
+    public async Task<PageResult<FileReference>> QueryReferencesAsync(Actor actor, Guid id, PageQuery query, CancellationToken ct) =>
+        PageQueries.Snapshot(await ReferencesAsync(actor, id, ct), query);
     public async Task EnsureDefaultAsync(CancellationToken ct)
     {
         ValidateRoot(options.DataRoot);

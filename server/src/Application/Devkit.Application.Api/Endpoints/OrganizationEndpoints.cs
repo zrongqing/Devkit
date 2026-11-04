@@ -1,3 +1,4 @@
+using Devkit.DomainCommons.Querying;
 using Devkit.Application.Api.Contracts;
 using Devkit.Application.Application.Administration;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -9,6 +10,7 @@ public sealed class OrganizationEndpoints : IEndpointModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/identity/organization").RequireAuthorization().WithTags("Organization");
+        group.MapPost("/departments/{id:guid}/positions/query", (HttpContext c, AdministrationPageService s, Guid id, PageQuery q) => Result(c, s.PositionsAsync(id, q, c.RequestAborted)));
         group.MapGet("/", (HttpContext c, OrganizationAdministration service) => Result(c, service.ReadAsync(c.RequestAborted)));
         group.MapPost("/departments", (HttpContext c, OrganizationAdministration service, DepartmentRequest input) =>
             Result(c, service.DepartmentAsync(null, input.Name, input.ParentId, c.RequestAborted)));
@@ -26,6 +28,7 @@ public sealed class OrganizationEndpoints : IEndpointModule
             Done(service.SetMemberAsync(id, userId, true, ct)));
         group.MapDelete("/positions/{id:guid}/members/{userId:guid}", (CancellationToken ct, OrganizationAdministration service, Guid id, Guid userId) =>
             Done(service.SetMemberAsync(id, userId, false, ct)));
+        endpoints.MapPost("/api/v1/identity/audit/query", (HttpContext c, OrganizationAdministration s, PageQuery q) => Result(c, s.QueryAuditAsync(q, c.RequestAborted))).RequireAuthorization().WithTags("Administration Audit");
         endpoints.MapGet("/api/v1/identity/audit", (HttpContext c, OrganizationAdministration service, long? before) =>
             Result(c, service.AuditAsync(before, c.RequestAborted))).RequireAuthorization().WithTags("Administration Audit");
     }

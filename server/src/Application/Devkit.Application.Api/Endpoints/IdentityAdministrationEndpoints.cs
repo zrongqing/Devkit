@@ -1,3 +1,4 @@
+using Devkit.DomainCommons.Querying;
 using Devkit.Application.Application.Administration;
 using Devkit.Application.Api.Contracts;
 using Devkit.Application.Application.Navigation;
@@ -20,6 +21,9 @@ public sealed class IdentityAdministrationEndpoints : IEndpointModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var identity=endpoints.MapGroup("/api/v1/identity").RequireAuthorization().WithTags("Identity Administration");
+        identity.MapPost("/users/query", (HttpContext c, AdministrationPageService s, PageQuery q, string? module) => Run(c, a => s.UsersAsync(a, q, module, c.RequestAborted)));
+        identity.MapPost("/roles/query", (HttpContext c, AdministrationPageService s, PageQuery q, string? module) => Run(c, a => s.RolesAsync(a, q, module, c.RequestAborted)));
+        identity.MapPost("/users/disabled/query", (HttpContext c, AdministrationPageService s, PageQuery q) => Run(c, a => s.DisabledAsync(a, q, c.RequestAborted)));
         identity.MapGet("/users",(HttpContext c,IAccountAdministration s)=>Run(c,a=>s.UsersAsync(a,c.RequestAborted)));
         identity.MapGet("/permissions", (HttpContext c, ICurrentIdentity access) => Run(c, a => { a.RequireAny("system.users.manage", "system.roles.manage", "system.permissions.manage"); return Task.FromResult(PermissionCatalog.Modules); }));
         identity.MapPut("/users/{id:guid}", (HttpContext c, IAccountAdministration s, Guid id, AccountUpdateRequest r) => Run(c, a => s.UpdateAsync(a, id, r, c.RequestAborted)));

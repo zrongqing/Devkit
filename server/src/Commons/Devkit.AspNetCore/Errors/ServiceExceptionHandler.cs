@@ -12,6 +12,7 @@ public sealed class ServiceExceptionHandler : IExceptionHandler
     {
         (int Status, string Code, string Message)? failure = exception switch
         {
+            Devkit.DomainCommons.Querying.QueryValidationException query => (400, "invalid_query", query.Message),
             ServiceException service => (service.Status, service.Code, service.Message),
             DbUpdateConcurrencyException => (409, "revision_conflict", "内容已变更，请刷新后重试。"),
             JsonException => (400, "invalid_json", "数据格式不正确。"),

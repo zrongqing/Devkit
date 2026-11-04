@@ -10,7 +10,9 @@ internal sealed class StudyPermissionFilter : IEndpointFilter
         var c = context.HttpContext;
         var actor = await c.RequestServices.GetRequiredService<IWorkspaceAccess>().CurrentAsync(c.RequestAborted);
         var path = ((RouteEndpoint)c.GetEndpoint()!).RoutePattern.RawText!;
-        var read = HttpMethods.IsGet(c.Request.Method);
+        var query = path.EndsWith("/query", StringComparison.Ordinal);
+        if (query) path = path[..^6];
+        var read = HttpMethods.IsGet(c.Request.Method) || query;
         if (path.EndsWith("/capabilities") || read && path.EndsWith("/knowledge-bases"))
             actor.Require("exam-study.access");
         else if (path.Contains("/jobs"))

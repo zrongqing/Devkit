@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DataTable from "../../components/DataTable";
+import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { menuApi } from '../../api/menuManagement'
@@ -40,7 +42,6 @@ const nodes = computed(() => {
   sort(roots)
   return roots
 })
-const visibleDiffs = computed(() => comparison.value.items.filter(x => !filter.value || x.status === filter.value))
 function ancestors(code: string): string[] {
   const result: string[] = []
   let parent = tree.value.menus.find(m => m.menuCode === code)?.parentCode
@@ -88,6 +89,15 @@ function display(value: unknown) { return value === null || value === undefined 
 function fieldValue(source: object | null | undefined, key: string) { return display(source ? (source as Record<string, unknown>)[key] : undefined) }
 const selectable = (row: MenuDifference) => row.local !== null
 onMounted(() => { void run(load) })
+
+const tableValues = {
+  menuType: ({ type }: { type: string }) => type === 'directory' ? '目录' : '模块',
+  enabled: ({ enabled }: { enabled: boolean }) => enabled ? '已启用' : '已停用',
+  syncStatus: ({ status }: { status: string }) => statuses[status],
+  localValue: ({ key }: { key: string }) => fieldValue(details.value?.local, key),
+  lastSyncedValue: ({ key }: { key: string }) => fieldValue(details.value?.current?.lastDeclaration, key),
+  currentValue: ({ key }: { key: string }) => fieldValue(details.value?.current, key),
+};
 </script>
 <template>
   <main class="study-page">
@@ -97,30 +107,31 @@ onMounted(() => { void run(load) })
     <el-tabs v-model="tab">
       <el-tab-pane label="菜单配置" name="tree">
         <div class="study-card" v-loading="busy">
-          <div class="study-toolbar"><el-button type="primary" :disabled="legacyDatabase" @click="edit()">新增目录</el-button><span class="study-muted">模块页面从“前端菜单对比”同步；拖动源码文件不会改变菜单编码。</span></div>
-          <el-table :data="nodes" row-key="menuCode" default-expand-all>
+          <DataTable table-key="menu-tree" :load-page="tableQueries.menuTree" :data="nodes" row-key="menuCode" default-expand-all>
+            <template #actions><el-button type="primary" :disabled="legacyDatabase" @click="edit()">新增目录</el-button></template>
             <el-table-column prop="title" label="菜单名称" min-width="220" />
             <el-table-column prop="menuCode" label="唯一编码" min-width="200" />
-            <el-table-column label="类型" width="90"><template #default="{ row }"><el-tag :type="row.type === 'directory' ? 'info' : 'primary'">{{ row.type === 'directory' ? '目录' : '模块' }}</el-tag></template></el-table-column>
+            <el-table-column :table-value="tableValues.menuType" prop="type" label="类型" width="90"><template #default="{ row }"><el-tag :type="row.type === 'directory' ? 'info' : 'primary'">{{ row.type === 'directory' ? '目录' : '模块' }}</el-tag></template></el-table-column>
             <el-table-column prop="order" label="排序" width="70" />
-            <el-table-column label="启用" width="80"><template #default="{ row }"><el-switch :model-value="row.enabled" :disabled="busy || legacyDatabase || protectedCodes.has(row.menuCode)" @change="(v: string | number | boolean) => toggle(row, Boolean(v))" /></template></el-table-column>
-            <el-table-column label="操作" width="140"><template #default="{ row }"><el-button link type="primary" :disabled="legacyDatabase" @click="edit(row)">编辑</el-button><el-button v-if="row.type === 'directory' && !row.children.length && !protectedCodes.has(row.menuCode)" link type="danger" :disabled="legacyDatabase" @click="remove(row)">删除</el-button></template></el-table-column>
-          </el-table>
+            <el-table-column :table-value="tableValues.enabled" prop="enabled" label="启用" width="80"><template #default="{ row }"><el-switch :model-value="row.enabled" :disabled="busy || legacyDatabase || protectedCodes.has(row.menuCode)" @change="(v: string | number | boolean) => toggle(row, Boolean(v))" /></template></el-table-column>
+            <el-table-column column-key="actions" label="操作" width="140"><template #default="{ row }"><el-button link type="primary" :disabled="legacyDatabase" @click="edit(row)">编辑</el-button><el-button v-if="row.type === 'directory' && !tree.menus.some(m => m.parentCode === row.menuCode) && !protectedCodes.has(row.menuCode)" link type="danger" :disabled="legacyDatabase" @click="remove(row)">删除</el-button></template></el-table-column>
+          </DataTable>
         </div>
       </el-tab-pane>
       <el-tab-pane label="前端菜单对比" name="compare" :disabled="legacyDatabase">
         <el-alert title="仅同步菜单信息，不上传页面代码。未同步的页面不会出现在业务导航；后台调整不会被默认覆盖。" type="info" :closable="false" class="study-error" />
         <div class="study-card" v-loading="busy">
-          <div class="study-toolbar"><el-select v-model="filter" clearable placeholder="全部同步状态" style="width: 230px"><el-option v-for="(label, key) in statuses" :key="key" :value="key" :label="`${label}（${comparison.items.filter(x => x.status === key).length}）`" /></el-select><el-button type="primary" :disabled="!selected.length" :loading="busy" @click="synchronize">同步所选 {{ selected.length || '' }}</el-button></div>
           <div class="sync-options"><span>将前端默认值应用到已入库菜单：</span><el-checkbox-group v-model="applyFields"><el-checkbox v-for="field in fields.slice(0, 4)" :key="field.key" :value="field.key">{{ field.name }}</el-checkbox></el-checkbox-group><small class="study-muted">默认不勾选：仅更新声明快照，保留后台名称、层级、图标、排序及启用状态。缺失的父目录会自动创建。</small></div>
-          <el-table :data="visibleDiffs" row-key="menuCode" @selection-change="(rows: MenuDifference[]) => selected = rows">
+          <DataTable table-key="menu-differences" :external-filters="filter ? [{ key: 'syncStatus', label: '同步状态', value: statuses[filter] }] : []" @remove-filter="filter = ''" @reset-filters="filter = ''" :load-page="tableQueries.menuDiffs(menuManifest, filter)" :query-context="filter" :data="comparison.items" row-key="menuCode" @selection-change="(rows: MenuDifference[]) => selected = rows">
+            <template #filters><el-select v-model="filter" clearable placeholder="全部同步状态" aria-label="筛选同步状态"><el-option v-for="(label, key) in statuses" :key="key" :value="key" :label="label" /></el-select></template>
+            <template #actions><el-button type="primary" :disabled="!selected.length" :loading="busy" @click="synchronize">同步所选 {{ selected.length || '' }}</el-button></template>
             <el-table-column type="selection" width="45" :selectable="selectable" />
             <el-table-column prop="menuCode" label="唯一编码" min-width="200" />
-            <el-table-column label="前端默认名称" min-width="150"><template #default="{ row }">{{ row.local?.title ?? '—' }}</template></el-table-column>
-            <el-table-column label="后台当前名称" min-width="150"><template #default="{ row }">{{ row.current?.title ?? '—' }}</template></el-table-column>
-            <el-table-column label="状态" width="165"><template #default="{ row }"><el-tag :type="row.status === 'synced' ? 'success' : row.status === 'new' ? 'warning' : 'info'">{{ statuses[row.status] }}</el-tag></template></el-table-column>
-            <el-table-column label="详情" width="90"><template #default="{ row }"><el-button link type="primary" @click="inspect(row)">比较</el-button></template></el-table-column>
-          </el-table>
+            <el-table-column prop="local.title" label="前端默认名称" min-width="150"><template #default="{ row }">{{ row.local?.title ?? '—' }}</template></el-table-column>
+            <el-table-column prop="current.title" label="后台当前名称" min-width="150"><template #default="{ row }">{{ row.current?.title ?? '—' }}</template></el-table-column>
+            <el-table-column :table-value="tableValues.syncStatus" prop="status" label="状态" width="165"><template #default="{ row }"><el-tag :type="row.status === 'synced' ? 'success' : row.status === 'new' ? 'warning' : 'info'">{{ statuses[row.status] }}</el-tag></template></el-table-column>
+            <el-table-column column-key="details" label="详情" width="90"><template #default="{ row }"><el-button link type="primary" @click="inspect(row)">比较</el-button></template></el-table-column>
+          </DataTable>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -129,7 +140,7 @@ onMounted(() => { void run(load) })
       <template #footer><el-button @click="editOpen = false">取消</el-button><el-button type="primary" :loading="busy" @click="save">保存</el-button></template>
     </el-dialog>
     <el-dialog v-model="detailOpen" :title="`菜单比较 · ${details?.menuCode ?? ''}`" width="min(960px,96vw)" append-to-body>
-      <el-table :data="fields"><el-table-column prop="name" label="字段" width="125" /><el-table-column label="前端默认值" min-width="180"><template #default="{ row }">{{ fieldValue(details?.local, row.key) }}</template></el-table-column><el-table-column label="上次同步值" min-width="180"><template #default="{ row }">{{ fieldValue(details?.current?.lastDeclaration, row.key) }}</template></el-table-column><el-table-column label="后台当前值" min-width="180"><template #default="{ row }">{{ fieldValue(details?.current, row.key) }}</template></el-table-column></el-table>
+      <DataTable v-if="detailOpen" table-key="menu-field-comparison" :load-page="tableQueries.menuFields(menuManifest, details!.menuCode)" :query-context="details?.menuCode ?? ''" :data="fields"><el-table-column prop="name" label="字段" width="125" /><el-table-column column-key="localValue" :table-value="tableValues.localValue" label="前端默认值" min-width="180"><template #default="{ row }">{{ fieldValue(details?.local, row.key) }}</template></el-table-column><el-table-column column-key="lastSyncedValue" :table-value="tableValues.lastSyncedValue" label="上次同步值" min-width="180"><template #default="{ row }">{{ fieldValue(details?.current?.lastDeclaration, row.key) }}</template></el-table-column><el-table-column column-key="currentValue" :table-value="tableValues.currentValue" label="后台当前值" min-width="180"><template #default="{ row }">{{ fieldValue(details?.current, row.key) }}</template></el-table-column></DataTable>
       <p class="study-muted">后台自建目录不会被同步删除；当前前端缺失的模块可保留或在菜单配置中停用。</p>
     </el-dialog>
   </main>

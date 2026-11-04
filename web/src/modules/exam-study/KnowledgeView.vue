@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DataTable from "../../components/DataTable";
+import { tableQueries } from "../../api/tableQueries";
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -36,7 +38,7 @@ async function load() {
 async function select(kb: KnowledgeBase) {
   selected.value = kb;
   await router.replace({ query: { knowledgeBaseId: kb.id } });
-  sources.value = await studyApi.sources(kb.id);
+  sources.value = [];
 }
 function editBase(kb?: KnowledgeBase) {
   baseEditing.value = kb;
@@ -117,7 +119,7 @@ async function saveSource() {
       sourceEditing.value?.id,
     );
     sourceDialog.value = false;
-    sources.value = await studyApi.sources(selected.value!.id);
+    sources.value = [];
     ElMessage.success("已保存原件，后台正在处理。");
   });
 }
@@ -139,7 +141,7 @@ async function removeSource(source: Source) {
   }
   await run(async () => {
     await studyApi.deleteSource(source.id);
-    sources.value = await studyApi.sources(selected.value!.id);
+    sources.value = [];
   });
 }
 let timer: ReturnType<typeof setInterval> | undefined;
@@ -153,18 +155,16 @@ onMounted(() => {
   timer = setInterval(() => {
     if (
       route.params.routeKey === "study-knowledge" &&
-      selected.value &&
-      sources.value.some((s) => s.status !== "ready")
+      selected.value
     )
-      void studyApi
-        .sources(selected.value.id)
-        .then((x) => {
-          sources.value = x;
-        })
-        .catch(() => {});
+      sources.value = [];
   }, 5000);
 });
 onUnmounted(() => clearInterval(timer));
+
+const tableValues = {
+  status: ({ status }: { status: string }) => label(status),
+};
 </script>
 <template>
   <main class="study-page">
@@ -224,34 +224,24 @@ onUnmounted(() => clearInterval(timer));
               >
             </div>
           </div>
-          <div class="study-toolbar">
-            <el-button type="primary" @click="run(() => editSource())"
-              >上传资料 / 手动补充</el-button
-            ><el-button
-              @click="
-                run(async () => {
-                  sources = await studyApi.sources(selected!.id);
-                })
-              "
-              >刷新状态</el-button
-            ><span class="study-muted">原文件和历史版本持续保留</span>
-          </div>
-          <el-table :data="sources"
-            ><el-table-column
+          <DataTable table-key="knowledge-sources" :load-page="tableQueries.sources(selected!.id)" :query-context="selected?.id ?? ''" :data="sources"
+            >
+            <template #actions><el-button type="primary" @click="run(() => editSource())">上传资料 / 手动补充</el-button></template>
+            <el-table-column
               prop="title"
               label="资料名称"
               min-width="190"
-            /><el-table-column label="状态" width="100"
+            /><el-table-column :table-value="tableValues.status" prop="status" label="状态" width="100"
               ><template #default="{ row }"
                 ><el-tag :type="row.status === 'ready' ? 'success' : 'info'">{{
                   label(row.status)
                 }}</el-tag></template
               ></el-table-column
-            ><el-table-column label="版本" width="75"
+            ><el-table-column prop="revision" label="版本" width="75"
               ><template #default="{ row }"
                 >v{{ row.revision }}</template
               ></el-table-column
-            ><el-table-column label="操作" width="235"
+            ><el-table-column column-key="actions" label="操作" width="235"
               ><template #default="{ row }"
                 ><el-button link type="primary" @click="show(row)"
                   >预览</el-button
@@ -271,7 +261,7 @@ onUnmounted(() => clearInterval(timer));
                   >归档</el-button
                 ></template
               ></el-table-column
-            ></el-table
+            ></DataTable
           >
           <p class="study-muted">
             若处理失败，可到“处理任务”查看原因并重试；扫描文件需先做 OCR。

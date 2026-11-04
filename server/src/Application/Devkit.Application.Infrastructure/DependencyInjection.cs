@@ -101,6 +101,8 @@ public static class DependencyInjection
         services.AddScoped<Devkit.Application.Domain.Organization.IOrganizationStore, OrganizationStore>();
         services.AddScoped<Devkit.Application.Domain.Organization.IAdministrationLog, OrganizationStore>();
         services.AddScoped<OrganizationAdministration>();
+        services.AddScoped<AdministrationPageService>();
+        services.AddScoped<MenuPageService>();
         services.AddScoped<ICurrentIdentity, CurrentIdentity>();
         services.AddScoped<IAccountAdministration, AccountAdministration>();
         services.AddScoped<IWebMenuStore, WebMenuStore>();

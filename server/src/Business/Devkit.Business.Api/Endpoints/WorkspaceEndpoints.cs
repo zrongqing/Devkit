@@ -1,3 +1,4 @@
+using Devkit.DomainCommons.Querying;
 using Devkit.Business.Api.Contracts;
 using Devkit.Business.Application.Workspace;
 using Devkit.Business.Domain.Abstractions;
@@ -20,6 +21,13 @@ public sealed class WorkspaceEndpoints : IEndpointModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var group=endpoints.MapGroup("/api/v1/exam-study").RequireAuthorization().WithTags("Exam Study").AddEndpointFilter<StudyPermissionFilter>();
+        group.MapPost("/knowledge-bases/query", (HttpContext c, StudyPageService s, PageQuery q, bool all = false) => Run(c, a => s.BasesAsync(a, q, all, c.RequestAborted)));
+        group.MapPost("/projects/query", (HttpContext c, StudyPageService s, PageQuery q, bool all = false) => Run(c, a => s.ProjectsAsync(a, q, all, c.RequestAborted)));
+        group.MapPost("/knowledge-bases/{id:guid}/sources/query", (HttpContext c, StudyPageService s, Guid id, PageQuery q) => Run(c, a => s.SourcesAsync(a, id, q, c.RequestAborted)));
+        group.MapPost("/questions/query", (HttpContext c, StudyPageService s, PageQuery q, Guid? knowledgeBaseId, bool all = false) => Run(c, a => s.QuestionsAsync(a, knowledgeBaseId, q, all, c.RequestAborted)));
+        group.MapPost("/jobs/query", (HttpContext c, StudyPageService s, PageQuery q) => Run(c, a => s.JobsAsync(a, q, c.RequestAborted)));
+        group.MapPost("/projects/{id:guid}/mistakes/query", (HttpContext c, StudyPageService s, Guid id, PageQuery q) => Run(c, a => s.MistakesAsync(a, id, q, c.RequestAborted)));
+        group.MapPost("/projects/{id:guid}/attempts/query", (HttpContext c, StudyPageService s, Guid id, PageQuery q) => Run(c, a => s.AttemptsAsync(a, id, q, c.RequestAborted)));
         group.MapGet("/knowledge-bases",(HttpContext c,StudyService s,bool all=false)=>Run(c,a=>s.BasesAsync(a,all,c.RequestAborted))).Produces<ApiResponse<IReadOnlyList<KnowledgeBase>>>();
         group.MapPost("/knowledge-bases",(HttpContext c,StudyService s,NamedRequest r)=>Run(c,a=>s.SaveBaseAsync(a,null,r,c.RequestAborted)));
         group.MapPut("/knowledge-bases/{id:guid}",(HttpContext c,StudyService s,Guid id,NamedRequest r)=>Run(c,a=>s.SaveBaseAsync(a,id,r,c.RequestAborted)));

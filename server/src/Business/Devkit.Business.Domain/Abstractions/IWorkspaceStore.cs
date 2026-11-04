@@ -3,7 +3,7 @@ using Devkit.DomainCommons.Entities;
 
 namespace Devkit.Business.Domain.Abstractions;
 
-public interface IWorkspaceStore
+public interface IWorkspaceStore : Devkit.DomainCommons.Querying.IPagedQueryStore
 {
     Task<T?> FindAsync<T>(Guid id, CancellationToken ct = default) where T : AuditableEntity;
     Task<List<T>> ListAsync<T>(Expression<Func<T, bool>>? predicate = null, CancellationToken ct = default) where T : AuditableEntity;

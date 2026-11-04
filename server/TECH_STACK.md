@@ -29,3 +29,5 @@
 - 文件核心服务：FileStorage 独立四层、DbContext 与镜像，三个服务共用 `Devkit` 数据库，业务通过版本化 HTTP 引用文件；存储迁移任务独立于备考任务，服务凭据限定模块，引用补偿采用本地持久化 outbox。详见 [文件服务独立部署](docs/文件服务独立部署.md)。
 
 - 统一网关：Nginx 默认随 `devkit` Compose 分组启动，前端只配置 8081 入口；VS 宿主机 API 通过 `compose.development.yaml` 路由，容器部署通过默认上游路由。Redis/Qdrant 的 latest 仅在显式拉取并重建时更新。
+
+- 统一查询：DomainCommons 的 `PageQuery` / `PageResult<T>` / `IPagedQueryStore`，Infrastructure 的 `PagedDbContext`，覆盖三个服务的所有映射表；公开 API 使用版本化 `.../query` 与授权 DTO，多条件 AND、多列稳定排序、服务端分页。见 `docs/统一分页查询.md`。

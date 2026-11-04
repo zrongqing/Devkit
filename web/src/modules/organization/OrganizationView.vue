@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DataTable from "../../components/DataTable";
+import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { directoryApi, type Directory, type Department, type Position } from '../../api/organization'
@@ -53,6 +55,10 @@ async function remove(label: string, action: () => Promise<void>) {
   await run(async () => { await action(); await refresh() })
 }
 onMounted(() => run(refresh))
+
+const tableValues = {
+  members: ({ id }: { id: string }) => directory.value.members.filter(m => m.positionId === id).map(m => names.value.get(m.userId)),
+};
 </script>
 <template>
   <section class="page-shell" v-loading="busy">
@@ -70,22 +76,22 @@ onMounted(() => run(refresh))
         <el-empty v-if="!department" description="创建部门后即可设置职位和分配人员" />
         <template v-else>
           <div class="org-actions">
-            <el-button type="primary" @click="editPosition()">新增职位</el-button>
             <el-button @click="editDepartment(department)">编辑部门</el-button>
             <el-button type="danger" plain @click="remove('删除当前部门？', () => directoryApi.remove('departments', selected))">删除部门</el-button>
           </div>
-          <el-table :data="positions" empty-text="本部门暂无职位">
+          <DataTable table-key="organization-positions" :load-page="tableQueries.positions(selected)" :query-context="selected" :data="positions" empty-text="本部门暂无职位">
+            <template #actions><el-button type="primary" @click="editPosition()">新增职位</el-button></template>
             <el-table-column prop="name" label="职位" min-width="110" />
-            <el-table-column label="任职人员" min-width="160"><template #default="{row}">
+            <el-table-column column-key="members" :table-value="tableValues.members" label="任职人员" min-width="160"><template #default="{row}">
               <el-tag v-for="m in directory.members.filter(m => m.positionId === row.id)" :key="m.userId" closable
                 @close="remove('移除该人员的任职？', () => directoryApi.member(row.id, m.userId, false))">{{ names.get(m.userId) }}</el-tag>
             </template></el-table-column>
-            <el-table-column label="操作" width="170"><template #default="{row}">
+            <el-table-column column-key="actions" label="操作" width="170"><template #default="{row}">
               <el-button link type="primary" @click="assign(row)">添加人员</el-button>
               <el-button link @click="editPosition(row)">编辑</el-button>
               <el-button link type="danger" @click="remove('删除该职位？', () => directoryApi.remove('positions', row.id))">删除</el-button>
             </template></el-table-column>
-          </el-table>
+          </DataTable>
         </template>
       </el-card>
     </div>
