@@ -215,6 +215,39 @@ function navigateTo(routeKey: string, replace = false) {
         </div>
       </el-scrollbar>
 
+      <div class="sidebar-controls" role="group" aria-label="导航显示方式">
+        <button
+          type="button"
+          class="sidebar-control"
+          title="展开导航"
+          aria-label="展开导航"
+          :aria-pressed="navigationMode === 'expanded'"
+          :disabled="navigationMode === 'expanded'"
+          @click="setNavigationMode('expanded')"
+        >
+          <el-icon><Expand /></el-icon><span v-show="!collapsed">展开</span>
+        </button>
+        <button
+          type="button"
+          class="sidebar-control"
+          title="收起为图标"
+          aria-label="收起为图标"
+          :aria-pressed="navigationMode === 'icons'"
+          :disabled="navigationMode === 'icons'"
+          @click="setNavigationMode('icons')"
+        >
+          <el-icon><Fold /></el-icon><span v-show="!collapsed">图标</span>
+        </button>
+        <button
+          type="button"
+          class="sidebar-control"
+          title="完全隐藏"
+          aria-label="完全隐藏"
+          @click="setNavigationMode('hidden')"
+        >
+          <el-icon><Hide /></el-icon><span v-show="!collapsed">隐藏</span>
+        </button>
+      </div>
     </aside>
 
     <button
@@ -242,16 +275,6 @@ function navigateTo(routeKey: string, replace = false) {
           </div>
         </div>
         <div class="header-actions">
-          <el-dropdown class="navigation-control" trigger="click" @command="setNavigationMode">
-            <el-button :icon="Fold" aria-label="导航显示方式">导航显示</el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="expanded" :icon="Expand" :disabled="navigationMode === 'expanded'">展开导航</el-dropdown-item>
-                <el-dropdown-item command="icons" :icon="Fold" :disabled="navigationMode === 'icons'">收起为图标</el-dropdown-item>
-                <el-dropdown-item command="hidden" :icon="Hide" :disabled="navigationMode === 'hidden'">完全隐藏</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
           <span v-if="session" class="session-username" style="margin-right: 12px">{{
             session.user.userName
           }}</span

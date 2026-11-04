@@ -13,6 +13,41 @@ namespace Devkit.Server.Api.IntegrationTests;
 public sealed class SharedDatabaseMigrationTests
 {
     [Fact]
+    public void User_role_view_upgrade_and_rollback_only_change_the_view()
+    {
+        using var context = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer().Options);
+        var assembly = context.GetService<IMigrationsAssembly>();
+        const string migrationId = "20261104131144_UserRoleView";
+        var migration = assembly.CreateMigration(assembly.Migrations[migrationId], context.Database.ProviderName!);
+        var sql = Assert.IsType<SqlOperation>(Assert.Single(migration.UpOperations)).Sql;
+        Assert.Contains("EXEC(N'CREATE VIEW [dbo].[vw_sys_user_role]", sql);
+        Assert.Contains("u.[user_name]", sql);
+        Assert.Contains("r.[name] AS [role_name]", sql);
+        Assert.Contains("u.[id] = ur.[user_id]", sql);
+        Assert.Contains("r.[id] = ur.[role_id]", sql);
+        foreach (var timestamp in new[] { "created", "updated" })
+        {
+            Assert.Contains($"ur.[{timestamp}_at_utc],", sql);
+            Assert.Contains($"DATEADD(HOUR, 8, ur.[{timestamp}_at_utc]) AS [{timestamp}_at_beijing]", sql);
+        }
+        foreach (var alias in new[] { "ur", "u", "r" })
+            Assert.Contains($"{alias}.[is_deleted] = 0", sql);
+
+        var migrator = context.GetService<IMigrator>();
+        var upgrade = migrator.GenerateScript("20261102163454_OrganizationAdministration", migrationId,
+            MigrationsSqlGenerationOptions.Idempotent);
+        // The idempotent generator indents each SQL line inside its history guard.
+        Assert.All(sql.Split('\n'), line => Assert.Contains(line.Trim(), upgrade));
+        Assert.Contains("IF NOT EXISTS", upgrade);
+        Assert.DoesNotContain("CREATE TABLE [sys_", upgrade);
+        Assert.DoesNotContain("DROP TABLE", upgrade);
+        Assert.DoesNotContain("DELETE FROM", upgrade);
+        var rollback = Assert.IsType<SqlOperation>(Assert.Single(migration.DownOperations)).Sql;
+        Assert.Equal("DROP VIEW [dbo].[vw_sys_user_role];", rollback);
+        Assert.Contains(rollback, migrator.GenerateScript(migrationId, "20261102163454_OrganizationAdministration"));
+    }
+
+    [Fact]
     public void Organization_upgrade_script_only_adds_organization_and_audit_tables()
     {
         using var context = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer().Options);
@@ -46,12 +81,13 @@ public sealed class SharedDatabaseMigrationTests
                 return assembly.CreateMigration(entry.Value, context.Database.ProviderName!);
             }).ToArray();
             var modelTables = context.GetService<IDesignTimeModel>().Model.GetRelationalModel().Tables.ToArray();
+            var tableMigrations = migrations.Where(m => m.UpOperations.Any(operation => operation is CreateTableOperation)).ToArray();
             var created = migrations.SelectMany(m => m.UpOperations).OfType<CreateTableOperation>().ToArray();
-            var dropped = migrations.SelectMany(m => m.DownOperations).Select(operation => Assert.IsType<DropTableOperation>(operation)).ToArray();
+            var dropped = tableMigrations.SelectMany(m => m.DownOperations).Select(operation => Assert.IsType<DropTableOperation>(operation)).ToArray();
             Assert.Equal(modelTables.Select(t => t.Name).Order(), created.Select(t => t.Name).Order());
             Assert.Equal(created.Select(t => t.Name).Order(), dropped.Select(t => t.Name).Order());
             // Express the new schema directly, without historical table-adoption SQL.
-            Assert.DoesNotContain(migrations.SelectMany(m => m.UpOperations), operation => operation is SqlOperation);
+            Assert.DoesNotContain(tableMigrations.SelectMany(m => m.UpOperations), operation => operation is SqlOperation);
             foreach (var table in created)
             {
                 Assert.True(allTables.Add(table.Name), $"Table owned by two contexts: {table.Name}");
