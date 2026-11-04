@@ -7,7 +7,7 @@ services:
     ports:
       - "${DEVKIT_WEB_HOST_IP:-127.0.0.1}:${DEVKIT_WEB_HOST_PORT:-8081}:80"
     environment:
-      DEVKIT_IDENTITY_UPSTREAM: devkit-identity:8080
+      DEVKIT_APPLICATION_UPSTREAM: devkit-application:8080
       DEVKIT_BUSINESS_UPSTREAM: devkit-server:8080
       DEVKIT_FILESTORAGE_UPSTREAM: devkit-files:8080
     extra_hosts:
@@ -49,7 +49,7 @@ services:
       Jwt__Issuer: ${DEVKIT_JWT_ISSUER:-Devkit.Server}
       Jwt__Audience: ${DEVKIT_JWT_AUDIENCE:-Devkit.Clients}
       Jwt__ValidationPublicKeyPath: /run/keys/business-public.pem
-      Identity__BaseUrl: http://devkit-identity:8080
+      Identity__BaseUrl: http://devkit-application:8080
       # Plain HTTP is confined to this private Compose network; use HTTPS across hosts.
       Identity__RequireHttps: "false"
       Workspace__QdrantUrl: http://qdrant:6333
@@ -57,7 +57,7 @@ services:
       FileService__RequireHttps: "false"
       FileService__ApiKey: ${DEVKIT_FILE_SERVICE_API_KEY:-}
     depends_on:
-      devkit-identity:
+      devkit-application:
         condition: service_healthy
       devkit-files:
         condition: service_healthy
@@ -94,13 +94,13 @@ services:
       Jwt__Issuer: ${DEVKIT_JWT_ISSUER:-Devkit.Server}
       Jwt__Audience: ${DEVKIT_JWT_AUDIENCE:-Devkit.Clients}
       Jwt__ValidationPublicKeyPath: /run/keys/business-public.pem
-      Identity__BaseUrl: http://devkit-identity:8080
+      Identity__BaseUrl: http://devkit-application:8080
       # Plain HTTP is confined to this private Compose network; use HTTPS across hosts.
       Identity__RequireHttps: "false"
       FileStorage__DataRoot: /var/lib/devkit
       FileStorage__Clients__Business__ApiKey: ${DEVKIT_FILE_SERVICE_API_KEY:-}
     depends_on:
-      devkit-identity:
+      devkit-application:
         condition: service_healthy
     volumes:
       - type: bind
@@ -123,16 +123,19 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  devkit-identity:
-    image: ${DEVKIT_IDENTITY_IMAGE:-devkit-identity:local}
+  devkit-application:
+    networks:
+      default:
+        aliases: [devkit-identity]
+    image: ${DEVKIT_APPLICATION_IMAGE:-${DEVKIT_IDENTITY_IMAGE:-devkit-application:local}}
     build:
       context: .
-      dockerfile: server/src/Identity/Devkit.Identity.Api/Dockerfile
+      dockerfile: server/src/Application/Devkit.Application.Api/Dockerfile
       args:
-        VERSION: ${DEVKIT_IDENTITY_VERSION:-0.1.0}
+        VERSION: ${DEVKIT_APPLICATION_VERSION:-${DEVKIT_IDENTITY_VERSION:-0.1.0}}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${DEVKIT_IDENTITY_HOST_PORT:-8082}:8080"
+      - "127.0.0.1:${DEVKIT_APPLICATION_HOST_PORT:-${DEVKIT_IDENTITY_HOST_PORT:-8082}}:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       DEVKIT_DATABASE_CONFIG_FILE: /run/config/database.json

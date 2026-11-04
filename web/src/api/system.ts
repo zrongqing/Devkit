@@ -22,6 +22,6 @@ export interface SystemRuntime {
   processorCount: number;
   totalProcessorSeconds: number;
 }
-export async function getSystemRuntime(signal?: AbortSignal): Promise<SystemRuntime> {
-  return request<SystemRuntime>("/api/v1/system/runtime", { signal });
+export async function getSystemRuntime(signal?: AbortSignal, service: 'application' | 'business' = 'business'): Promise<SystemRuntime> {
+  return request<SystemRuntime>(service === "application" ? "/api/v1/identity/runtime" : "/api/v1/system/runtime", { signal });
 }

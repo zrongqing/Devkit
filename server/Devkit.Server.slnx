@@ -5,11 +5,11 @@
     <Project Path="src/Commons/Devkit.DomainCommons/Devkit.DomainCommons.csproj" />
     <Project Path="src/Commons/Devkit.Infrastructure/Devkit.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Identity/">
-    <Project Path="src/Identity/Devkit.Identity.Api/Devkit.Identity.Api.csproj" />
-    <Project Path="src/Identity/Devkit.Identity.Application/Devkit.Identity.Application.csproj" />
-    <Project Path="src/Identity/Devkit.Identity.Domain/Devkit.Identity.Domain.csproj" />
-    <Project Path="src/Identity/Devkit.Identity.Infrastructure/Devkit.Identity.Infrastructure.csproj" />
+  <Folder Name="/src/Application/">
+    <Project Path="src/Application/Devkit.Application.Api/Devkit.Application.Api.csproj" />
+    <Project Path="src/Application/Devkit.Application.Application/Devkit.Application.Application.csproj" />
+    <Project Path="src/Application/Devkit.Application.Domain/Devkit.Application.Domain.csproj" />
+    <Project Path="src/Application/Devkit.Application.Infrastructure/Devkit.Application.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/Business/">

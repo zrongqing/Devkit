@@ -6,9 +6,9 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Devkit.Business.Infrastructure.Identity;
 using Devkit.Business.Infrastructure.Persistence;
-using Devkit.Identity.Application.Contracts.Auth;
-using Devkit.Identity.Infrastructure.Identity;
-using Devkit.Identity.Infrastructure.Persistence;
+using Devkit.Application.Application.Contracts.Auth;
+using Devkit.Application.Infrastructure.Identity;
+using Devkit.Application.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -33,12 +33,23 @@ public sealed class ServerSeparationTests
         Assert.Equal(HttpStatusCode.NotFound, (await identity.GetAsync("/api/v1/system/info")).StatusCode);
         var identityPaths = (await identity.GetFromJsonAsync<JsonElement>("/openapi/v1.json")).GetProperty("paths");
         var businessPaths = (await business.GetFromJsonAsync<JsonElement>("/openapi/v1.json")).GetProperty("paths");
-        Assert.True(identityPaths.TryGetProperty("/api/v1/auth/login", out _));
-        Assert.True(identityPaths.TryGetProperty("/api/v1/web/menu-management/menus", out _));
-        Assert.False(businessPaths.TryGetProperty("/api/v1/auth/login", out _));
-        Assert.False(businessPaths.TryGetProperty("/api/v1/identity/users", out _));
+        using var files = factory.CreateFileClient();
+        var filePaths = (await files.GetFromJsonAsync<JsonElement>("/openapi/v1.json")).GetProperty("paths");
+        foreach (var path in new[]
+        {
+            "/api/v1/auth/login", "/api/v1/identity/users", "/api/v1/identity/roles",
+            "/api/v1/identity/permissions", "/api/v1/identity/users/{id}/menus",
+            "/api/v1/web/menu-management/menus", "/api/v1/identity/organization/departments",
+            "/api/v1/identity/organization/positions", "/api/v1/identity/organization/positions/{id}/members/{userId}",
+            "/api/v1/identity/audit", "/api/v1/identity/runtime"
+        })
+        {
+            Assert.True(identityPaths.TryGetProperty(path, out _), $"Application must own {path}");
+            Assert.False(businessPaths.TryGetProperty(path, out _));
+            Assert.False(filePaths.TryGetProperty(path, out _));
+        }
         using var identityScope = factory.IdentityServices.CreateScope(); using var businessScope = factory.Services.CreateScope();
-        var identityDb = identityScope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        var identityDb = identityScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var businessDb = businessScope.ServiceProvider.GetRequiredService<BusinessDbContext>();
         Assert.NotEqual(identityDb.Database.GetConnectionString(), businessDb.Database.GetConnectionString());
         Assert.DoesNotContain(businessDb.Model.GetEntityTypes(), type => type.GetTableName() is "sys_user" or "sys_role" or "sys_refresh_token" or "sys_menu");
@@ -47,9 +58,9 @@ public sealed class ServerSeparationTests
         Assert.Contains(businessDb.Database.GetMigrations(), name => name.EndsWith("InitialBusinessContext"));
         foreach (var assembly in new[] { typeof(Devkit.Business.Api.Program).Assembly, typeof(BusinessDbContext).Assembly,
             typeof(Devkit.Business.Application.Workspace.Actor).Assembly, typeof(Devkit.Business.Domain.Workspace.KnowledgeBase).Assembly })
-            Assert.DoesNotContain(assembly.GetReferencedAssemblies(), dependency => dependency.Name!.StartsWith("Devkit.Identity."));
-        foreach (var assembly in new[] { typeof(Devkit.Identity.Api.Program).Assembly, typeof(IdentityDbContext).Assembly,
-            typeof(TokenPairDto).Assembly, typeof(Devkit.Identity.Domain.Identity.User).Assembly })
+            Assert.DoesNotContain(assembly.GetReferencedAssemblies(), dependency => dependency.Name!.StartsWith("Devkit.Application."));
+        foreach (var assembly in new[] { typeof(Devkit.Application.Api.Program).Assembly, typeof(ApplicationDbContext).Assembly,
+            typeof(TokenPairDto).Assembly, typeof(Devkit.Application.Domain.Identity.User).Assembly })
             Assert.DoesNotContain(assembly.GetReferencedAssemblies(), dependency => dependency.Name!.StartsWith("Devkit.Business."));
         var publicKey = (RsaSecurityKey)factory.Services.GetRequiredService<JwtValidationKey>().ValidationKey;
         Assert.ThrowsAny<CryptographicException>(() => publicKey.Rsa.ExportParameters(includePrivateParameters: true));
@@ -64,7 +75,7 @@ public sealed class ServerSeparationTests
     {
         using var factory = new DevkitApiFactory(builtInAdmin: true); using var admin = factory.CreateIdentityClient();
         await Login(admin);
-        var profile = await Data<Devkit.Identity.Application.Contracts.Auth.UserProfileDto>(await admin.PostAsJsonAsync("/api/v1/auth/register", new
+        var profile = await Data<Devkit.Application.Application.Contracts.Auth.UserProfileDto>(await admin.PostAsJsonAsync("/api/v1/auth/register", new
         { userName = "learner", email = "learner@example.test", password = "StrongPassword123" }), HttpStatusCode.Created);
         using var learner = factory.CreateIdentityClient(); var tokens = await Login(learner, "learner", "StrongPassword123");
         using var business = factory.CreateBusinessClient(); business.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);

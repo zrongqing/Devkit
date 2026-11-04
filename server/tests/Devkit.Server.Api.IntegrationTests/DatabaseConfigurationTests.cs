@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Devkit.Business.Infrastructure.Persistence;
 using Devkit.FileStorage.Infrastructure.Persistence;
-using Devkit.Identity.Infrastructure.Persistence;
+using Devkit.Application.Infrastructure.Persistence;
 using Devkit.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +20,7 @@ public sealed class DatabaseConfigurationTests
         using var configuration = LoadDefaults();
         Assert.Equal("Devkit", new SqlConnectionStringBuilder(DatabaseConfiguration.GetConnectionString(configuration)).InitialCatalog);
         var args = new[] { "--ConnectionStrings:Devkit=Server=design.test;Database=Devkit;Integrated Security=true" };
-        using var identity = new IdentityDbContextFactory().CreateDbContext(args);
+        using var identity = new ApplicationDbContextFactory().CreateDbContext(args);
         using var business = new BusinessDbContextFactory().CreateDbContext(args);
         using var files = new FileStorageDbContextFactory().CreateDbContext(args);
         Assert.Equal("Devkit", identity.Database.GetDbConnection().Database);
@@ -99,7 +99,7 @@ public sealed class DatabaseConfigurationTests
     }
 
     [Theory]
-    [InlineData("Identity")]
+    [InlineData("Application")]
     [InlineData("Business")]
     [InlineData("FileStorage")]
     public async Task All_hosts_accept_the_shared_database_without_opening_a_connection(string name)
@@ -107,7 +107,7 @@ public sealed class DatabaseConfigurationTests
         using var configuration = LoadDefaults();
         using var host = new HostBuilder().ConfigureServices(services =>
         {
-            if (name == "Identity") services.AddDevkitSqlServer<IdentityDbContext>(configuration, name);
+            if (name == "Application") services.AddDevkitSqlServer<ApplicationDbContext>(configuration, name);
             else if (name == "Business") services.AddDevkitSqlServer<BusinessDbContext>(configuration, name);
             else services.AddDevkitSqlServer<FileStorageDbContext>(configuration, name);
         }).Build();
@@ -115,7 +115,7 @@ public sealed class DatabaseConfigurationTests
         using var scope = host.Services.CreateScope();
         var db = name switch
         {
-            "Identity" => (DbContext)scope.ServiceProvider.GetRequiredService<IdentityDbContext>(),
+            "Application" => (DbContext)scope.ServiceProvider.GetRequiredService<ApplicationDbContext>(),
             "Business" => scope.ServiceProvider.GetRequiredService<BusinessDbContext>(),
             _ => scope.ServiceProvider.GetRequiredService<FileStorageDbContext>()
         };

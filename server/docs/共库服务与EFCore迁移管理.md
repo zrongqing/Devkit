@@ -2,7 +2,7 @@
 
 ## 当前决策
 
-现阶段保留 Identity、FileStorage、Business 三个独立服务，共用 SQL Server 中的 `Devkit` 数据库；各自拥有实体、DbContext、表和迁移。该方案降低初期部署成本，保留服务边界，但数据库资源、故障和整库恢复仍会相互影响。
+现阶段保留 Application、FileStorage、Business 三个独立服务，共用 SQL Server 中的 `Devkit` 数据库；各自拥有实体、DbContext、表和迁移。该方案降低初期部署成本，保留服务边界，但数据库资源、故障和整库恢复仍会相互影响。
 
 保留 EF Core Migrations。开发期在所有相关数据库均可丢弃重建的前提下，定期将未发布迁移整理为每个 DbContext 一份初始基线，控制文件数量。进入共享测试环境或正式发布后，保留已经应用的迁移，通过增量迁移演进。
 
@@ -12,7 +12,7 @@
 
 | 服务 | DbContext | 拥有的表前缀 |
 | --- | --- | --- |
-| Identity | `IdentityDbContext` | `sys_` |
+| Application | `ApplicationDbContext` | `sys_` |
 | FileStorage | `FileStorageDbContext` | `file_` |
 | Business | `BusinessDbContext` | `module_`、`study_`、`workspace_` |
 
@@ -31,12 +31,12 @@
 在仓库根目录执行建库或应用未执行迁移：
 
 ```powershell
-./server/scripts/Update-Database.ps1 -Context Identity
+./server/scripts/Update-Database.ps1 -Context Application
 ./server/scripts/Update-Database.ps1 -Context Business
 ./server/scripts/Update-Database.ps1 -Context FileStorage
 ```
 
-连接配置使用统一的 `ConnectionStrings:Devkit`，默认值来自 `server/database.json`；本机凭据放在仓库外的配置文件或环境变量中。脚本支持 `-DatabaseConfigFile` 指定外部配置。普通建库不创建管理员；确需初始化账号时使用 Identity 脚本的 `-SeedBootstrapAccount`，凭据由外部环境变量提供。
+连接配置使用统一的 `ConnectionStrings:Devkit`，默认值来自 `server/database.json`；本机凭据放在仓库外的配置文件或环境变量中。脚本支持 `-DatabaseConfigFile` 指定外部配置。普通建库不创建管理员；确需初始化账号时使用 Application 脚本的 `-SeedBootstrapAccount`，凭据由外部环境变量提供。
 
 ## 开发期整理基线
 
@@ -47,7 +47,7 @@
 3. 根据当前模型为每个上下文重新生成初始迁移，不手写快照。以下命令从仓库根目录运行：
 
 ```powershell
-foreach ($context in @('Identity', 'Business', 'FileStorage')) {
+foreach ($context in @('Application', 'Business', 'FileStorage')) {
     dotnet ef migrations add "Initial${context}Context" `
         --context "${context}DbContext" `
         --project "server/src/$context/Devkit.$context.Infrastructure/Devkit.$context.Infrastructure.csproj" `
@@ -59,7 +59,7 @@ foreach ($context in @('Identity', 'Business', 'FileStorage')) {
 
 4. 审查生成的迁移：三个上下文不得重复创建表，外键不得越过服务边界，种子数据、字段长度、过滤索引及约束应与当前模型一致。初始迁移直接表达新库结构，不保留历史拆表、旧表复用或旧数据修补逻辑。
 5. 执行 `dotnet build server/Devkit.Server.slnx` 和 `dotnet test server/Devkit.Server.slnx`。模型命名及迁移测试需确认模型与快照一致、基线表归属正确、迁移 SQL 可生成。
-6. 在独立临时 SQL Server 数据库中依次应用三个基线，再重复执行验证无待执行迁移；验证 29 张业务表、外键、索引和菜单状态种子数据。回退迁移时按 FileStorage、Business、Identity 的顺序检查各上下文仅删除自己的表；测试结束删除临时库。
+6. 在独立临时 SQL Server 数据库中依次应用三个基线，再重复执行验证无待执行迁移；验证当前 33 张业务表、外键、索引和菜单状态种子数据。回退迁移时按 FileStorage、Business、Application 的顺序检查各上下文仅删除自己的表；测试结束删除临时库。
 7. 经明确授权后重建需要切换的开发库，使用新迁移建立结构，再由开发者重新初始化所需账号及测试数据。将旧迁移删除、新基线、相关测试和文档一并提交。
 
 开发中的零碎模型调整可以在功能完成时一起生成迁移；每次提交或交付时，模型、快照和迁移必须一致。基线清理不是自动完成的，修改实体不会自动更新现有基线。
@@ -70,7 +70,7 @@ foreach ($context in @('Identity', 'Business', 'FileStorage')) {
 
 | 上下文 | 新迁移 ID |
 | --- | --- |
-| Identity | `20261102154500_InitialIdentityContext` |
+| Application | `20261102154500_InitialIdentityContext` |
 | Business | `20261102154506_InitialBusinessContext` |
 | FileStorage | `20261102154512_InitialFileStorageContext` |
 

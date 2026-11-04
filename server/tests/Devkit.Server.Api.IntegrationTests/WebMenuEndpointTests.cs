@@ -1,13 +1,13 @@
 using Devkit.Commons.Serialization;
 using System.Net;
-using Devkit.Identity.Application.Administration;
+using Devkit.Application.Application.Administration;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Devkit.Identity.Application.Navigation;
+using Devkit.Application.Application.Navigation;
 using Devkit.Business.Application.Workspace;
-using Devkit.Identity.Domain.Identity;
-using Devkit.Identity.Infrastructure.Persistence;
-using Devkit.Identity.Domain.Navigation;
+using Devkit.Application.Domain.Identity;
+using Devkit.Application.Infrastructure.Persistence;
+using Devkit.Application.Domain.Navigation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -41,7 +41,7 @@ public sealed class WebMenuEndpointTests
         Assert.Equal(tree.Version,(await Tree(admin)).Version); // comparison is read-only
         using (var scope=factory.IdentityServices.CreateScope())
         {
-            var db=scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+            var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var saved=await db.Set<WebMenu>().SingleAsync(x=>x.MenuCode=="knowledge.search");
             saved.DeclarationJson=JsonSerializer.Serialize(JsonData.Read<MenuDeclaration>(saved.DeclarationJson!), new JsonSerializerOptions(JsonData.Options){WriteIndented=true});
             await db.SaveChangesAsync();

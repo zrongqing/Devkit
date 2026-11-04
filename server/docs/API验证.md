@@ -34,7 +34,7 @@
 dotnet test server/Devkit.Server.slnx -m:1
 ```
 
-API 集成测试使用 Identity、FileStorage、Business 三个独立宿主与 SQLite 数据库和内存 / 故障缓存替身，覆盖注册开关、管理员引导、登录锁定、DTO 敏感字段、refresh 轮换与重放、注销、审计 / 软删除和 Redis 降级。
+API 集成测试使用 Application、FileStorage、Business 三个独立宿主与 SQLite 数据库和内存 / 故障缓存替身，覆盖注册开关、管理员引导、登录锁定、DTO 敏感字段、refresh 轮换与重放、注销、审计 / 软删除和 Redis 降级。
 
 备考、文件和权限模块的用例位于 `server/tests/Devkit.Server.Api.IntegrationTests`：
 

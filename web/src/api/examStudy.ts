@@ -386,6 +386,8 @@ export const identityApi = {
   catalog: () => request<ModulePermission[]>("/api/v1/identity/permissions"),
   update: (id: string, body: { userName: string; email: string }) => request(`/api/v1/identity/users/${id}`, json(body, "PUT")),
   permissions: (id: string, permissions: string[]) => request(`/api/v1/identity/users/${id}/permissions`, json({ permissions }, "PUT")),
+  disabledUsers: () => request<Pick<Account, 'id' | 'userName' | 'email'>[]>("/api/v1/identity/users/disabled"),
+  restoreUser: (id: string) => request(`/api/v1/identity/users/${id}/restore`, { method: "POST" }),
   users: () => request<Account[]>("/api/v1/identity/users"),
   roles: () => request<Role[]>("/api/v1/identity/roles"),
   create: (body: {

@@ -119,7 +119,7 @@ public sealed class CommonInfrastructureTests
     {
         foreach (var assembly in new[] { typeof(ServiceException).Assembly, typeof(AuditableEntity).Assembly,
             typeof(RsaKeyLoader).Assembly, typeof(ApiResponse<>).Assembly })
-            Assert.DoesNotContain(assembly.GetReferencedAssemblies(), reference => reference.Name!.StartsWith("Devkit.Identity.")
+            Assert.DoesNotContain(assembly.GetReferencedAssemblies(), reference => reference.Name!.StartsWith("Devkit.Application.")
                 || reference.Name.StartsWith("Devkit.Business."));
         Assert.DoesNotContain(typeof(AuditableEntity).Assembly.GetReferencedAssemblies(), reference =>
             reference.Name!.StartsWith("Microsoft.AspNetCore") || reference.Name.StartsWith("Microsoft.EntityFrameworkCore"));

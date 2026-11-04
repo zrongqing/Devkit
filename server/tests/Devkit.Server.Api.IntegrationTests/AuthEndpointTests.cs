@@ -2,8 +2,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Devkit.Identity.Application.Contracts.Auth;
-using Devkit.Identity.Infrastructure.Persistence;
+using Devkit.Application.Application.Contracts.Auth;
+using Devkit.Application.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -71,7 +71,7 @@ public sealed class AuthEndpointTests
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
 
         using var scope = factory.IdentityServices.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var user = await dbContext.Users.SingleAsync(item => item.Id == registered.Id);
         Assert.NotEqual(default, user.CreatedAtUtc);
         Assert.Equal(user.Id, user.CreatedBy);

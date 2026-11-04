@@ -1,4 +1,4 @@
-using Devkit.Identity.Application.Administration;
+using Devkit.Application.Application.Administration;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -22,7 +22,7 @@ public sealed class ModulePermissionEndpointTests
         await Login(user, "monitor", "StrongPassword123");
         await Problem(await user.GetAsync("/api/v1/system/runtime"), HttpStatusCode.Forbidden, "forbidden");
         await Data<SuccessView>(await admin.PutAsJsonAsync($"/api/v1/identity/users/{id}/permissions", new AssignPermissionsRequest(["system.monitor.view"])));
-        var runtime = await Data<Devkit.Business.Application.Contracts.SystemRuntimeResponse>(await user.GetAsync("/api/v1/system/runtime"));
+        var runtime = await Data<Devkit.Commons.Runtime.SystemRuntimeResponse>(await user.GetAsync("/api/v1/system/runtime"));
         Assert.True(runtime.UptimeSeconds >= 0); Assert.True(runtime.WorkingSetBytes > 0);
         Assert.True(runtime.ThreadCount > 0); Assert.True(runtime.ProcessorCount > 0);
         Assert.True(runtime.StartedAtUtc <= runtime.Info.ServerTime);
@@ -108,6 +108,12 @@ public sealed class ModulePermissionEndpointTests
         await Problem(await admin.PostAsJsonAsync("/api/v1/identity/roles", new RoleRequest(" Administrator ", [])), HttpStatusCode.Conflict, "builtin_role");
         using var grantor = factory.CreateClient(); await Login(grantor, "grantor", "StrongPassword123");
         await Data<AccountView[]>(await grantor.GetAsync("/api/v1/identity/users"));
+        var reviewer = await StudyUser(admin, "reviewer", "system.audit.view");
+        await Problem(await grantor.PutAsJsonAsync($"/api/v1/identity/users/{reviewer}/roles", new AssignRolesRequest([])), HttpStatusCode.Forbidden, "forbidden");
+        var menuRole = await Data<Guid>(await admin.PostAsJsonAsync("/api/v1/identity/roles", new RoleRequest("菜单访问", [])));
+        (await admin.PutAsJsonAsync($"/api/v1/identity/roles/{menuRole}/menus", new { menuCodes = new[] { "system.monitor.audit" } })).EnsureSuccessStatusCode();
+        (await admin.PutAsJsonAsync($"/api/v1/identity/users/{reviewer}/roles", new AssignRolesRequest([menuRole]))).EnsureSuccessStatusCode();
+        await Problem(await grantor.PutAsJsonAsync($"/api/v1/identity/users/{reviewer}/roles", new AssignRolesRequest([])), HttpStatusCode.Forbidden, "forbidden");
         await Problem(await grantor.PutAsJsonAsync($"/api/v1/identity/users/{id}/permissions", new AssignPermissionsRequest(["system.storage.manage"])), HttpStatusCode.Forbidden, "forbidden");
         await Problem(await grantor.PutAsJsonAsync($"/api/v1/identity/roles/{role}", new RoleRequest("授权员", ["system.storage.manage"])), HttpStatusCode.Forbidden, "forbidden");
         await Problem(await grantor.PutAsJsonAsync($"/api/v1/identity/users/{adminPair.User.Id}/permissions", new AssignPermissionsRequest([])), HttpStatusCode.Forbidden, "forbidden");

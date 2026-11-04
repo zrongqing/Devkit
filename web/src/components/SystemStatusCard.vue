@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { getSystemRuntime, type SystemRuntime } from "../api/system";
 import { bytes } from "../modules/exam-study/shared";
+const props = defineProps<{ service: 'application' | 'business' }>();
 const route = useRoute();
 const runtime = ref<SystemRuntime>();
 const error = ref("");
@@ -22,7 +23,7 @@ async function refresh() {
   controller = new AbortController();
   const started = performance.now();
   try {
-    runtime.value = await getSystemRuntime(controller.signal);
+    runtime.value = await getSystemRuntime(controller.signal, props.service);
     latency.value = Math.round(performance.now() - started);
     error.value = "";
     lastChecked.value = new Date().toLocaleString("zh-CN");

@@ -1,10 +1,10 @@
 # 统一网关与 Docker 维护
 
-Identity、FileStorage 和 Business 保持独立领域与独立部署。Nginx 提供统一 HTTP 入口，浏览器只访问 `http://localhost:8081`，前端默认使用相对路径 `/api/v1/...`。Docker Compose 项目固定为 `devkit`，Nginx 默认启用，无需额外的 `web` profile。
+Application、FileStorage 和 Business 保持独立领域与独立部署。Nginx 提供统一 HTTP 入口，浏览器只访问 `http://localhost:8081`，前端默认使用相对路径 `/api/v1/...`。Docker Compose 项目固定为 `devkit`，Nginx 默认启用，无需额外的 `web` profile。
 
 | 请求 | 转发目标 |
 | --- | --- |
-| `/api/v1/auth`、`identity`、`web`、`client/navigation` | Identity |
+| `/api/v1/auth`、`identity`、`web`、`client/navigation` | Application |
 | `/api/v1/files`、`storage` | FileStorage |
 | 其他 `/api/` | Business |
 | 页面与静态资源 | `web/dist`，支持 SPA 路由 |
@@ -39,7 +39,7 @@ docker compose config --quiet
 docker compose up -d --build
 ```
 
-默认配置将网关转发到组内的 `devkit-identity:8080`、`devkit-files:8080`、`devkit-server:8080`。从 VS 调试切换到容器部署时，执行上述命令即可重新应用容器上游配置，前端仍使用相同的 8081 入口。
+默认配置将网关转发到组内的 `devkit-application:8080`、`devkit-files:8080`、`devkit-server:8080`。从 VS 调试切换到容器部署时，执行上述命令即可重新应用容器上游配置，前端仍使用相同的 8081 入口。
 
 `web/nginx.conf` 作为 `/etc/nginx/templates/default.conf.template` 挂载，由官方 Nginx 镜像入口脚本替换上游环境变量。Docker DNS 在请求时解析，网关可以先于 API 启动，API 重建更换地址后也会重新解析。三个 API 的 Swagger 仍分别位于其独立端口，未进行 OpenAPI 聚合。
 
@@ -58,6 +58,6 @@ VS 调试模式下，up 命令继续同时指定两个 Compose 文件。升级�
 
 ## 镜像与数据维护
 
-本次验证镜像已整理为三个可复用标签：`devkit-identity:local`、`devkit-business:local`、`devkit-filestorage:local`。临时 `*-check` 标签、旧合并服务镜像及已替换的依赖镜像已清理；其他项目的镜像、容器和持久化数据保留。
+本次验证镜像已整理为三个可复用标签：`devkit-application:local`、`devkit-business:local`、`devkit-filestorage:local`。临时 `*-check` 标签、旧合并服务镜像及已替换的依赖镜像已清理；其他项目的镜像、容器和持久化数据保留。
 
 同时清理了未使用的构建缓存，下次 Docker 构建会重新生成需要的缓存。日常检查使用 `docker image ls`、`docker system df`；删除前核对所有运行和已停止容器的镜像引用。不要用 `docker system prune --volumes` 或 `docker compose down --volumes` 处理镜像堆积。

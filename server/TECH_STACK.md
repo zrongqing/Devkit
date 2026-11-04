@@ -11,11 +11,11 @@
 - 迁移管理：三个 DbContext 独立维护迁移，开发期在相关数据库可全部重建时整理为各一份初始基线；已发布或需要保留数据的环境使用增量迁移，迁移及快照提交 Git。当前仍共用迁移历史表，详见 [共库服务与 EF Core 迁移管理](docs/共库服务与EFCore迁移管理.md)。
 - DTO 映射：Mapster 10.0.12，使用显式映射配置并在启动注册时编译验证。
 - 身份认证与授权：RS256 JWT Bearer（身份持私钥、业务仅持公钥）、短期 access token、数据库哈希保存且单次轮换的 refresh token、角色声明和认证版本失效机制。
-- 上下文：Identity、FileStorage、Business 各有独立 API / Infrastructure / Application / Domain、DbContext、SQL Server 迁移与镜像；上下文之间不直接引用实体或项目。通过版本化 HTTP 身份断言衔接业务权限，详见 [认证与业务分离部署](docs/认证与业务分离部署.md)。
+- 上下文：Application、FileStorage、Business 各有独立 API / Infrastructure / Application / Domain、DbContext、SQL Server 迁移与镜像；上下文之间不直接引用实体或项目。通过版本化 HTTP 身份断言衔接业务权限，详见 [认证与业务分离部署](docs/认证与业务分离部署.md)。
 - 公共基础：`src/Commons` 中的 Commons、DomainCommons、Infrastructure、AspNetCore 四个项目统一序列化、审计与软删除、数据库注册、RSA/JWT 验证和 API 宿主能力；公共项目不引用业务上下文，详见 [公共基础模块](docs/公共基础模块.md)。
 - 缓存：Redis，Compose 默认 `redis:latest`，通过 `IDistributedCache` 使用；缓存失败时业务回退 SQL Server，readiness 仍报告异常。
 - 后台作业：ASP.NET Core `BackgroundService` + `PeriodicTimer`；当前用于清理过期 refresh token。
-- 部署：Linux .NET 10 容器，Docker Compose 编排 Identity、FileStorage、Business 与身份 Redis；SQL Server 2022 使用外部实例。
+- 部署：Linux .NET 10 容器，Docker Compose 编排 Application、FileStorage、Business 与身份 Redis；SQL Server 2022 使用外部实例。
 - OpenAPI：ASP.NET Core 内置 OpenAPI，文档地址 `/openapi/v1.json`；Swagger UI 页面地址 `/swagger`。
 - 模块通信：第一阶段使用 SQL Server 持久化命令缓冲、目标模块内严格顺序、处理租约和幂等键；高吞吐阶段是否切换 Kafka、RabbitMQ 或云消息服务由压测决定。
 - PLC、ERP 等外部集成：具体协议和适配器待定，按独立业务服务隔离。

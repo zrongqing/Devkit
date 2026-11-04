@@ -1,6 +1,6 @@
 using Devkit.Business.Infrastructure.Persistence;
 using Devkit.FileStorage.Infrastructure.Persistence;
-using Devkit.Identity.Infrastructure.Persistence;
+using Devkit.Application.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -15,7 +15,7 @@ public sealed class SharedDatabaseMigrationTests
     [Fact]
     public void Baselines_create_and_drop_only_their_owned_tables_with_unique_migration_ids()
     {
-        using var identity = new IdentityDbContext(new DbContextOptionsBuilder<IdentityDbContext>().UseSqlServer().Options);
+        using var identity = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer().Options);
         using var business = new BusinessDbContext(new DbContextOptionsBuilder<BusinessDbContext>().UseSqlServer().Options);
         using var files = new FileStorageDbContext(new DbContextOptionsBuilder<FileStorageDbContext>().UseSqlServer().Options);
         var ids = new HashSet<string>();
@@ -23,16 +23,18 @@ public sealed class SharedDatabaseMigrationTests
         foreach (var context in new DbContext[] { identity, business, files })
         {
             var assembly = context.GetService<IMigrationsAssembly>();
-            var baseline = Assert.Single(assembly.Migrations);
-            Assert.True(ids.Add(baseline.Key), $"Duplicate migration ID: {baseline.Key}");
-            var migration = assembly.CreateMigration(baseline.Value, context.Database.ProviderName!);
+            var migrations = assembly.Migrations.Select(entry =>
+            {
+                Assert.True(ids.Add(entry.Key), $"Duplicate migration ID: {entry.Key}");
+                return assembly.CreateMigration(entry.Value, context.Database.ProviderName!);
+            }).ToArray();
             var modelTables = context.GetService<IDesignTimeModel>().Model.GetRelationalModel().Tables.ToArray();
-            var created = migration.UpOperations.OfType<CreateTableOperation>().ToArray();
-            var dropped = migration.DownOperations.Select(operation => Assert.IsType<DropTableOperation>(operation)).ToArray();
+            var created = migrations.SelectMany(m => m.UpOperations).OfType<CreateTableOperation>().ToArray();
+            var dropped = migrations.SelectMany(m => m.DownOperations).Select(operation => Assert.IsType<DropTableOperation>(operation)).ToArray();
             Assert.Equal(modelTables.Select(t => t.Name).Order(), created.Select(t => t.Name).Order());
             Assert.Equal(created.Select(t => t.Name).Order(), dropped.Select(t => t.Name).Order());
             // Express the new schema directly, without historical table-adoption SQL.
-            Assert.DoesNotContain(migration.UpOperations, operation => operation is SqlOperation);
+            Assert.DoesNotContain(migrations.SelectMany(m => m.UpOperations), operation => operation is SqlOperation);
             foreach (var table in created)
             {
                 Assert.True(allTables.Add(table.Name), $"Table owned by two contexts: {table.Name}");
@@ -46,13 +48,13 @@ public sealed class SharedDatabaseMigrationTests
                     Assert.All(foreignKey.PrincipalColumns, column => Assert.Contains(principal.Columns, c => c.Name == column));
                 }
             }
-            foreach (var index in migration.UpOperations.OfType<CreateIndexOperation>())
+            foreach (var index in migrations.SelectMany(m => m.UpOperations).OfType<CreateIndexOperation>())
             {
                 var table = Assert.Single(created, t => t.Name == index.Table);
                 Assert.All(index.Columns, column => Assert.Contains(table.Columns, c => c.Name == column));
             }
         }
-        Assert.Equal(29, allTables.Count);
+        Assert.Equal(33, allTables.Count);
     }
 
     [Fact]

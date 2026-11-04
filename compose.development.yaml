@@ -3,6 +3,6 @@
 services:
   nginx:
     environment:
-      DEVKIT_IDENTITY_UPSTREAM: host.docker.internal:12512
+      DEVKIT_APPLICATION_UPSTREAM: host.docker.internal:12512
       DEVKIT_BUSINESS_UPSTREAM: host.docker.internal:12511
       DEVKIT_FILESTORAGE_UPSTREAM: host.docker.internal:12513

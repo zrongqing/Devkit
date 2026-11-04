@@ -8,17 +8,17 @@
 
 上述加载流程由 `Devkit.AspNetCore` 的 `AddDevkitExternalConfiguration` 统一实现，各宿主显式传入自己的环境变量名。`AddDevkitApi` 在 CORS 选项构建时读取允许来源；`AddDevkitDatabaseConfiguration` 统一加载数据库文件；`AddDevkitSqlServer<TContext>` 在启动时验证共享连接，再创建各自上下文。共用同一配置入口不会合并各服务的 DbContext 或实体。
 
-三个宿主加载外部配置后调用 `AddDevkitDevelopmentJwtKey`。仅 Development 环境且本服务对应密钥路径为空时，自动补充当前用户本地应用数据目录 `Devkit/development/jwt` 下的持久化密钥路径；可通过 `Jwt:DevelopmentKeyDirectory` 指定共同目录。任意服务首次启动会协调创建同一对 RSA 密钥，后续启动复用；Identity 使用私钥，Business / FileStorage 使用公钥。此默认行为不写入配置文件或 User Secrets，不覆盖显式密钥路径，不适用于其他环境。自定义密钥必须分别显式配置配对的私钥和公钥路径。详见 [Docker 发布与 Visual Studio](Docker发布与VisualStudio.md)。
+三个宿主加载外部配置后调用 `AddDevkitDevelopmentJwtKey`。仅 Development 环境且本服务对应密钥路径为空时，自动补充当前用户本地应用数据目录 `Devkit/development/jwt` 下的持久化密钥路径；可通过 `Jwt:DevelopmentKeyDirectory` 指定共同目录。任意服务首次启动会协调创建同一对 RSA 密钥，后续启动复用；Application 使用私钥，Business / FileStorage 使用公钥。此默认行为不写入配置文件或 User Secrets，不覆盖显式密钥路径，不适用于其他环境。自定义密钥必须分别显式配置配对的私钥和公钥路径。详见 [Docker 发布与 Visual Studio](Docker发布与VisualStudio.md)。
 
-| 配置项 | Identity | FileStorage | Business |
+| 配置项 | Application | FileStorage | Business |
 | --- | --- | --- | --- |
-| API 项目 / UserSecretsId | `Devkit.Identity.Api` | `Devkit.FileStorage.Api` | `Devkit.Business.Api` |
+| API 项目 / UserSecretsId | `Devkit.Application.Api` / `Devkit.Identity.Api` | `Devkit.FileStorage.Api` | `Devkit.Business.Api` |
 | 外部文件环境变量 | `DEVKIT_IDENTITY_CONFIG_FILE` | `DEVKIT_FILESTORAGE_CONFIG_FILE` | `DEVKIT_BUSINESS_CONFIG_FILE` |
 | 数据库 JSON 键 | `ConnectionStrings:Devkit` | `ConnectionStrings:Devkit` | `ConnectionStrings:Devkit` |
 | 数据库环境变量 | `ConnectionStrings__Devkit` | `ConnectionStrings__Devkit` | `ConnectionStrings__Devkit` |
 | 密钥文件键 | `Jwt:SigningPrivateKeyPath` | `Jwt:ValidationPublicKeyPath` | `Jwt:ValidationPublicKeyPath` |
 
-FileStorage 与 Business 分别读取 `Identity:BaseUrl`、`Identity:RequireHttps` 和 `Identity:TimeoutSeconds`；生产默认要求 HTTPS。只在明确受控的开发/容器内部网络中配置 `RequireHttps=false`。Identity 独自读取管理员、注册、Redis 和令牌清理配置；Business 独自读取 Workspace、Qdrant、模型和模块配置。
+FileStorage 与 Business 分别读取 `Identity:BaseUrl`、`Identity:RequireHttps` 和 `Identity:TimeoutSeconds`；生产默认要求 HTTPS。只在明确受控的开发/容器内部网络中配置 `RequireHttps=false`。Application 独自读取管理员、注册、Redis 和令牌清理配置；Business 独自读取 Workspace、Qdrant、模型和模块配置。
 
 环境变量使用双下划线映射 JSON 层级，例如 `Jwt__ValidationPublicKeyPath`。`GetConnectionString("Devkit")` 等价于读取 `ConnectionStrings:Devkit`。IOptions 在服务注册时绑定对应配置节并在启动验证；密钥文件也在接受请求之前加载验证。
 

@@ -59,7 +59,7 @@ public sealed class FileStorageSeparationTests
         Assert.Contains(fileDb.Database.GetMigrations(),x=>x.EndsWith("InitialFileStorageContext"));
         foreach(var assembly in new[]{typeof(Devkit.FileStorage.Api.Program).Assembly,typeof(FileStorageDbContext).Assembly,
             typeof(Devkit.FileStorage.Application.Files.Actor).Assembly,typeof(StoredFile).Assembly})
-            Assert.DoesNotContain(assembly.GetReferencedAssemblies(),x=>x.Name!.StartsWith("Devkit.Business.")||x.Name.StartsWith("Devkit.Identity.")||x.Name=="UglyToad.PdfPig"||x.Name=="DocumentFormat.OpenXml");
+            Assert.DoesNotContain(assembly.GetReferencedAssemblies(),x=>x.Name!.StartsWith("Devkit.Business.")||x.Name.StartsWith("Devkit.Application.")||x.Name=="UglyToad.PdfPig"||x.Name=="DocumentFormat.OpenXml");
         foreach(var assembly in new[]{typeof(Devkit.Business.Api.Program).Assembly,typeof(BusinessDbContext).Assembly,typeof(StudyService).Assembly,typeof(SourceVersion).Assembly})
             Assert.DoesNotContain(assembly.GetReferencedAssemblies(),x=>x.Name!.StartsWith("Devkit.FileStorage."));
     }
@@ -137,7 +137,7 @@ public sealed class FileStorageSeparationTests
             request.Headers.Add("X-File-Service","Business");request.Headers.Add("X-File-Key",DevkitApiFactory.FileClientKey);
             request.Headers.Authorization=gateway.DefaultRequestHeaders.Authorization;
             using var scope=factory.IdentityServices.CreateScope();
-            var userId=(await scope.ServiceProvider.GetRequiredService<Devkit.Identity.Infrastructure.Persistence.IdentityDbContext>().Users.SingleAsync(x=>x.UserName=="admin")).Id;
+            var userId=(await scope.ServiceProvider.GetRequiredService<Devkit.Application.Infrastructure.Persistence.ApplicationDbContext>().Users.SingleAsync(x=>x.UserName=="admin")).Id;
             request.Content=JsonContent.Create(new{ownerId=userId});return await client.SendAsync(request);
         }
         Guid CurrentIntent(){using var s=factory.Services.CreateScope();return s.ServiceProvider.GetRequiredService<BusinessDbContext>().Set<FileRelease>().Single().EntityId;}

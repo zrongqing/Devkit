@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { identityApi, type Account, type Role, type ModulePermission } from "../../api/examStudy";
-import { hasPermission, loadPermissions } from "../../api/session";
+import { hasMenuGrant, hasPermission, loadPermissions, permissions } from "../../api/session";
 import { useNavigationStore } from "../../stores/navigation";
 import { useOperation } from "../exam-study/shared";
 import MenuGrantDialog from "./MenuGrantDialog.vue";
@@ -13,6 +13,19 @@ const { run, busy, error } = useOperation();
 const navigation = useNavigationStore();
 const users = ref<Account[]>([]);
 const roles = ref<Role[]>([]);
+const disabledDialog = ref(false);
+const disabledUsers = ref<Pick<Account, 'id' | 'userName' | 'email'>[]>([]);
+async function showDisabled() {
+  await run(async () => { disabledUsers.value = await identityApi.disabledUsers(); disabledDialog.value = true; });
+}
+async function restoreUser(user: Pick<Account, 'id' | 'userName'>) {
+  try { await ElMessageBox.confirm(`恢复账号 ${user.userName} 及其原有角色和授权？`, '恢复账号'); } catch { return; }
+  await run(async () => {
+    await identityApi.restoreUser(user.id);
+    disabledUsers.value = await identityApi.disabledUsers();
+    await load();
+  });
+}
 const catalog = ref<ModulePermission[]>([]);
 const groups = computed(() => [...new Set(catalog.value.map(x => x.group))]);
 const permissionTab = ref("user-roles");
@@ -83,6 +96,10 @@ async function saveRole() {
     await updated();
   });
 }
+function canGrantRole(role: Role) {
+  return permissions.value?.administrator || (role.name !== 'Administrator' &&
+    role.permissions.every(hasPermission) && role.menuCodes.every(hasMenuGrant));
+}
 function assign(user: Account) {
   selected.value = user;
   roleIds.value = roles.value.filter(r => user.roles.includes(r.name)).map(r => r.id);
@@ -139,7 +156,12 @@ onMounted(() => { void run(load); });
       <el-tab-pane label="菜单访问权限" name="menus" />
     </el-tabs>
     <div v-if="page === 'users' || page === 'permissions' && ['user-roles', 'user-permissions'].includes(permissionTab)" class="study-card" v-loading="busy">
-      <div v-if="page === 'users'" class="study-toolbar"><el-button type="primary" @click="editUser()">创建用户</el-button></div>
+      <div v-if="page === 'users'" class="study-toolbar"><el-button type="primary" @click="editUser()">创建用户</el-button><el-button @click="showDisabled">已停用账号</el-button></div>
+      <el-dialog v-model="disabledDialog" title="已停用账号" width="min(680px, 94vw)">
+        <el-table :data="disabledUsers" empty-text="暂无停用账号"><el-table-column prop="userName" label="账号" /><el-table-column prop="email" label="邮箱" />
+          <el-table-column v-if="permissions?.administrator" label="操作"><template #default="{row}"><el-button link type="primary" :disabled="busy" @click="restoreUser(row)">恢复账号</el-button></template></el-table-column>
+        </el-table>
+      </el-dialog>
       <el-table :data="users">
         <el-table-column prop="userName" label="账号" min-width="120" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
@@ -177,7 +199,7 @@ onMounted(() => { void run(load); });
     </div>
     <MenuGrantDialog v-if="menuTarget" :target="menuTarget" :permission-names="permissionNames" @close="menuTarget = undefined" @saved="menusSaved" />
     <el-dialog v-model="userDialog" :title="editingUser ? '编辑用户信息' : '创建用户'" width="min(560px,94vw)" append-to-body>
-      <el-form label-position="top"><el-form-item label="账号"><el-input v-model="userForm.userName" maxlength="100" /></el-form-item><el-form-item label="邮箱"><el-input v-model="userForm.email" /></el-form-item><template v-if="!editingUser"><el-form-item label="初始密码"><el-input v-model="userForm.password" type="password" show-password autocomplete="new-password" placeholder="至少12位，包含大写、小写和数字" /></el-form-item><el-form-item v-if="canAssign" label="初始角色"><el-select v-model="userForm.roleIds" multiple style="width: 100%"><el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" /></el-select></el-form-item></template></el-form>
+      <el-form label-position="top"><el-form-item label="账号"><el-input v-model="userForm.userName" maxlength="100" /></el-form-item><el-form-item label="邮箱"><el-input v-model="userForm.email" /></el-form-item><template v-if="!editingUser"><el-form-item label="初始密码"><el-input v-model="userForm.password" type="password" show-password autocomplete="new-password" placeholder="至少12位，包含大写、小写和数字" /></el-form-item><el-form-item v-if="canAssign" label="初始角色"><el-select v-model="userForm.roleIds" multiple style="width: 100%"><el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" :disabled="!canGrantRole(r)" /></el-select></el-form-item></template></el-form>
       <template #footer><el-button @click="userDialog = false">取消</el-button><el-button type="primary" :loading="busy" @click="saveUser">保存</el-button></template>
     </el-dialog>
     <el-dialog v-model="roleDialog" :title="editingRole ? '编辑角色与权限' : '新建角色'" width="min(680px,94vw)" append-to-body>
@@ -185,7 +207,7 @@ onMounted(() => { void run(load); });
       <el-checkbox-group v-model="roleForm.permissions"><section v-for="group in groups" :key="group" class="permission-group"><h4>{{ group }}</h4><el-checkbox v-for="item in catalog.filter(x => x.group === group)" :key="item.key" :value="item.key" :disabled="!hasPermission(item.key)">{{ item.name }}</el-checkbox></section></el-checkbox-group>
       <template #footer><el-button @click="roleDialog = false">取消</el-button><el-button type="primary" :loading="busy" @click="saveRole">保存</el-button></template>
     </el-dialog>
-    <el-dialog v-model="assignDialog" :title="'用户角色 · ' + selected?.userName" width="min(540px,94vw)" append-to-body><el-select v-model="roleIds" multiple placeholder="选择角色" style="width: 100%"><el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" /></el-select><template #footer><el-button @click="assignDialog = false">取消</el-button><el-button type="primary" :loading="busy" @click="saveRoles">保存</el-button></template></el-dialog>
+    <el-dialog v-model="assignDialog" :title="'用户角色 · ' + selected?.userName" width="min(540px,94vw)" append-to-body><el-select v-model="roleIds" multiple placeholder="选择角色" style="width: 100%"><el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" :disabled="!canGrantRole(r)" /></el-select><template #footer><el-button @click="assignDialog = false">取消</el-button><el-button type="primary" :loading="busy" @click="saveRoles">保存</el-button></template></el-dialog>
     <el-dialog v-model="permissionDialog" :title="'用户直接权限 · ' + selected?.userName" width="min(680px,94vw)" append-to-body>
       <p class="study-muted">此处仅修改直接授权，角色继承的权限请在角色授权中调整。</p>
       <el-checkbox-group v-model="directPermissions"><section v-for="group in groups" :key="group" class="permission-group"><h4>{{ group }}</h4><el-checkbox v-for="item in catalog.filter(x => x.group === group)" :key="item.key" :value="item.key" :disabled="!hasPermission(item.key)">{{ item.name }}</el-checkbox></section></el-checkbox-group>

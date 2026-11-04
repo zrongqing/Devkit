@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using Devkit.Business.Application.Workspace;
 using Devkit.Business.Infrastructure.Persistence;
 using Devkit.Business.Infrastructure.Workspace;
-using Devkit.Identity.Infrastructure.Persistence;
+using Devkit.Application.Infrastructure.Persistence;
 using Devkit.FileStorage.Infrastructure.Persistence;
 using Devkit.FileStorage.Infrastructure.Files;
 using Microsoft.AspNetCore.Hosting;
@@ -47,7 +47,7 @@ internal sealed class DevkitApiFactory : IDisposable
 
     public DevkitApiFactory(bool registrationEnabled = true, bool failingCache = false,
         bool bootstrapEnabled = false, bool builtInAdmin = false,
-        Action<IdentityDbContext>? prepareDatabase = null,
+        Action<ApplicationDbContext>? prepareDatabase = null,
         IReadOnlyDictionary<string, string?>? identityConfiguration = null,
         IReadOnlyDictionary<string, string?>? businessConfiguration = null,
         IReadOnlyDictionary<string, string?>? fileConfiguration = null)
@@ -167,7 +167,7 @@ internal sealed class DevkitApiFactory : IDisposable
     }
 
     private sealed class IdentityHost(DevkitApiFactory owner, Dictionary<string, string?> config, bool failingCache,
-        Action<IdentityDbContext>? prepare) : WebApplicationFactory<Devkit.Identity.Api.Program>
+        Action<ApplicationDbContext>? prepare) : WebApplicationFactory<Devkit.Application.Api.Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -176,13 +176,13 @@ internal sealed class DevkitApiFactory : IDisposable
             builder.ConfigureServices(services =>
             {
                 services.AddDataProtection().UseEphemeralDataProtectionProvider();
-                services.RemoveAll<DbContextOptions<IdentityDbContext>>();
-                services.RemoveAll<IdentityDbContext>();
-                services.RemoveAll<IDbContextOptionsConfiguration<IdentityDbContext>>();
-                using (var setup = new IdentityDbContext(new DbContextOptionsBuilder<IdentityDbContext>()
+                services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
+                services.RemoveAll<ApplicationDbContext>();
+                services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
+                using (var setup = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
                     .UseSqlite($"Data Source={owner.IdentityDatabasePath};Pooling=False").Options))
                 { setup.Database.EnsureCreated(); prepare?.Invoke(setup); }
-                services.AddDbContext<IdentityDbContext>((provider, options) =>
+                services.AddDbContext<ApplicationDbContext>((provider, options) =>
                 {
                     options.UseSqlite($"Data Source={owner.IdentityDatabasePath};Pooling=False");
                     options.AddInterceptors(provider.GetRequiredService<Devkit.Infrastructure.Persistence.AuditingSaveChangesInterceptor>());

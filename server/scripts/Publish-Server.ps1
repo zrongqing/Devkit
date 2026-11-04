@@ -1,13 +1,14 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Identity', 'Business', 'FileStorage', 'All')][string]$Context = 'All',
+    [ValidateSet('Application', 'Identity', 'Business', 'FileStorage', 'All')][string]$Context = 'All',
     [string]$Tag = '',
     [string]$Version = '0.1.0'
 )
 $ErrorActionPreference = 'Stop'
-if ($Context -eq 'All' -and $Tag) { throw 'Use -Context Identity, Business or FileStorage when setting a custom -Tag.' }
+if ($Context -eq 'Identity') { $Context = 'Application' }
+if ($Context -eq 'All' -and $Tag) { throw 'Use -Context Application, Business or FileStorage when setting a custom -Tag.' }
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$contexts = if ($Context -eq 'All') { @('Identity', 'Business', 'FileStorage') } else { @($Context) }
+$contexts = if ($Context -eq 'All') { @('Application', 'Business', 'FileStorage') } else { @($Context) }
 foreach ($item in $contexts) {
     $image = if ($Tag) { $Tag } else { "devkit-$($item.ToLowerInvariant()):local" }
     docker build --file (Join-Path $repositoryRoot "server/src/$item/Devkit.$item.Api/Dockerfile") `

@@ -30,8 +30,8 @@ public sealed class DevelopmentJwtKeyTests : IDisposable
         files.AddDevelopmentJwtKey(signing: false);
         identity.AddDevelopmentJwtKey(signing: true);
 
-        using var issuer = new Devkit.Identity.Infrastructure.Identity.JwtKeyMaterial(Options.Create(
-            identity.Configuration.GetSection("Jwt").Get<Devkit.Identity.Infrastructure.Configuration.JwtOptions>()!));
+        using var issuer = new Devkit.Application.Infrastructure.Identity.JwtKeyMaterial(Options.Create(
+            identity.Configuration.GetSection("Jwt").Get<Devkit.Application.Infrastructure.Configuration.JwtOptions>()!));
         using var businessKeys = new Devkit.Business.Infrastructure.Identity.JwtValidationKey(Options.Create(
             business.Configuration.GetSection("Jwt").Get<Devkit.Business.Infrastructure.Configuration.JwtOptions>()!));
         using var fileKeys = new Devkit.FileStorage.Infrastructure.Identity.JwtValidationKey(Options.Create(
@@ -67,8 +67,8 @@ public sealed class DevelopmentJwtKeyTests : IDisposable
         Assert.Null(builder.Configuration[signing ? "Jwt:SigningPrivateKeyPath" : "Jwt:ValidationPublicKeyPath"]);
         Assert.False(Directory.Exists(directory));
         if (signing)
-            Assert.Throws<InvalidOperationException>(() => new Devkit.Identity.Infrastructure.Identity.JwtKeyMaterial(
-                Options.Create(new Devkit.Identity.Infrastructure.Configuration.JwtOptions())));
+            Assert.Throws<InvalidOperationException>(() => new Devkit.Application.Infrastructure.Identity.JwtKeyMaterial(
+                Options.Create(new Devkit.Application.Infrastructure.Configuration.JwtOptions())));
         else
         {
             Assert.Throws<InvalidOperationException>(() => new Devkit.Business.Infrastructure.Identity.JwtValidationKey(

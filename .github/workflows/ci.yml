@@ -85,7 +85,7 @@ jobs:
               esac
 
               case "$path" in
-                server/src/Identity/Devkit.Identity.Api/*|server/src/Business/Devkit.Business.Api/*|server/src/FileStorage/Devkit.FileStorage.Api/*)
+                server/src/Application/Devkit.Application.Api/*|server/src/Business/Devkit.Business.Api/*|server/src/FileStorage/Devkit.FileStorage.Api/*)
                   client=true
                   web=true
                   server=true
@@ -175,8 +175,8 @@ jobs:
       - name: Test server
         run: dotnet test server/Devkit.Server.slnx --configuration Release --no-build --no-restore --nologo
 
-      - name: Build identity container
-        run: docker build --file server/src/Identity/Devkit.Identity.Api/Dockerfile --tag devkit-identity:ci .
+      - name: Build application container
+        run: docker build --file server/src/Application/Devkit.Application.Api/Dockerfile --tag devkit-application:ci .
 
       - name: Build business container
         run: docker build --file server/src/Business/Devkit.Business.Api/Dockerfile --tag devkit-business:ci .

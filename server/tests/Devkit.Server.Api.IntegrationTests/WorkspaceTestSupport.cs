@@ -1,10 +1,10 @@
 using Devkit.Commons.Serialization;
-using Devkit.Identity.Application.Administration;
+using Devkit.Application.Application.Administration;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Devkit.Identity.Application.Contracts.Auth;
+using Devkit.Application.Application.Contracts.Auth;
 using Devkit.Business.Application.Workspace;
 using Devkit.Business.Domain.Workspace;
 using Xunit;

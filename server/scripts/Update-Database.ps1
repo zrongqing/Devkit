@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('Identity', 'Business', 'FileStorage')][string]$Context,
+    [Parameter(Mandatory)][ValidateSet('Application', 'Identity', 'Business', 'FileStorage')][string]$Context,
     [string]$ConnectionString = '',
     [string]$DatabaseConfigFile = $env:DEVKIT_DATABASE_CONFIG_FILE,
     [switch]$SeedBootstrapAccount,
@@ -9,7 +9,8 @@ param(
     [string]$BootstrapPassword = $env:BootstrapAccount__Password
 )
 $ErrorActionPreference = 'Stop'
-if ($SeedBootstrapAccount -and $Context -ne 'Identity') { throw 'Bootstrap accounts belong to Identity.' }
+if ($Context -eq 'Identity') { $Context = 'Application' }
+if ($SeedBootstrapAccount -and $Context -ne 'Application') { throw 'Bootstrap accounts belong to Application.' }
 $connectionVariable = "ConnectionStrings__Devkit"
 if (-not [string]::IsNullOrWhiteSpace($DatabaseConfigFile)) {
     $DatabaseConfigFile = (Resolve-Path -LiteralPath $DatabaseConfigFile).Path

@@ -12,7 +12,7 @@
 ```json
 {
   "profiles": {
-    "Devkit.Identity.Api": {
+    "Devkit.Application.Api": {
       "commandName": "Project",
       "launchBrowser": false,
       "launchUrl": "swagger",
@@ -65,7 +65,7 @@
 
 | 选择的启动配置 | 启动方式 | 地址 |
 | --- | --- | --- |
-| `Devkit.Identity.Api` | `commandName: "Project"`，使用项目自身的 Kestrel | `http://localhost:12512` |
+| `Devkit.Application.Api` | `commandName: "Project"`，使用项目自身的 Kestrel | `http://localhost:12512` |
 | `IIS Express` | `commandName: "IISExpress"`，使用 IIS Express，并应用 `iisSettings` | HTTP：`http://localhost:64640/`；HTTPS：`https://localhost:44399/` |
 
 这些是本地开发启动设置，不是生产环境的 IIS 部署配置。

@@ -1,6 +1,6 @@
 # Docker 发布与 Visual Studio
 
-服务端现在是 Identity、FileStorage、Business 三个独立宿主、一个共用的 `Devkit` 数据库、三个镜像。架构、旧库升级和故障语义见 [认证与业务分离部署](认证与业务分离部署.md)。
+服务端现在是 Application、FileStorage、Business 三个独立宿主、一个共用的 `Devkit` 数据库、三个镜像。架构、旧库升级和故障语义见 [认证与业务分离部署](认证与业务分离部署.md)。
 
 ## 前置条件
 
@@ -10,7 +10,7 @@
 
 ## 初次准备
 
-本机 Development 调试无需手动生成 JWT 密钥：当对应密钥路径未配置时，三个服务会自动在当前用户的本地应用数据目录 `Devkit/development/jwt` 下创建并复用同一对 3072 位 RSA 密钥。Windows 默认目录为 `%LOCALAPPDATA%/Devkit/development/jwt`，私钥文件为 `identity-private.pem`，公钥文件为 `validation-public.pem`。任意服务均可先启动，同时启动也会协调初始化；Identity 用私钥签发，Business 与 FileStorage 用公钥验签。重启不会更换密钥。
+本机 Development 调试无需手动生成 JWT 密钥：当对应密钥路径未配置时，三个服务会自动在当前用户的本地应用数据目录 `Devkit/development/jwt` 下创建并复用同一对 3072 位 RSA 密钥。Windows 默认目录为 `%LOCALAPPDATA%/Devkit/development/jwt`，私钥文件为 `identity-private.pem`，公钥文件为 `validation-public.pem`。任意服务均可先启动，同时启动也会协调初始化；Application 用私钥签发，Business 与 FileStorage 用公钥验签。重启不会更换密钥。
 
 如需隔离不同开发环境，可在三个项目中配置相同的 `Jwt:DevelopmentKeyDirectory`（建议绝对路径）。已显式设置的 `Jwt:SigningPrivateKeyPath` / `Jwt:ValidationPublicKeyPath` 优先，不会被自动生成逻辑覆盖，即使文件缺失也会报错。使用自定义私钥时，另两个服务仍需显式配置与其配对的公钥；不要混用手动密钥与自动生成密钥。
 
@@ -28,24 +28,24 @@ openssl pkey -in 'D:/.server data/devkit/keys/identity-private.pem' -pubout -out
 
 ## VS 本机断点调试
 
-1. 打开 `server/Devkit.Server.slnx`，解决方案配置启动项目，将 `Devkit.Identity.Api`、`Devkit.FileStorage.Api`、`Devkit.Business.Api` 都设为启动。各自已有 Project 类型 launch profile，HTTP 端口分别为 12512、12513、12511。
-2. 数据库统一使用 `server/database.json` 或 `DEVKIT_DATABASE_CONFIG_FILE` 指定的仓库外文件；先迁移已有 User Secrets 中的数据库设置，并在启动 VS 前设置统一路径。右击各自 API 项目 → 管理用户机密，配置其余选项：Identity 配置 `Redis:ConnectionString`；Business 配置 `FileService:ApiKey`；FileStorage 配置 `FileStorage:DataRoot` 和同值的 `FileStorage:Clients:Business:ApiKey`（至少 32 UTF-8 字节的随机密钥）。JWT 密钥路径可省略以使用上述自动生成的本机密钥；使用自定义密钥时，Identity 配置 `Jwt:SigningPrivateKeyPath`，另两个服务分别配置对应的 `Jwt:ValidationPublicKeyPath`。默认开发环境 `Identity:BaseUrl=http://localhost:12512`、`Identity:RequireHttps=false`。
-3. Identity 的首次管理员通过自己的 `BootstrapAccount` 用户机密配置姓名、邮箱和强密码；不要在源码中存储生产管理员密码。Business 没有管理员播种或登录服务。
+1. 打开 `server/Devkit.Server.slnx`，解决方案配置启动项目，将 `Devkit.Application.Api`、`Devkit.FileStorage.Api`、`Devkit.Business.Api` 都设为启动。各自已有 Project 类型 launch profile，HTTP 端口分别为 12512、12513、12511。
+2. 数据库统一使用 `server/database.json` 或 `DEVKIT_DATABASE_CONFIG_FILE` 指定的仓库外文件；先迁移已有 User Secrets 中的数据库设置，并在启动 VS 前设置统一路径。右击各自 API 项目 → 管理用户机密，配置其余选项：Application 配置 `Redis:ConnectionString`；Business 配置 `FileService:ApiKey`；FileStorage 配置 `FileStorage:DataRoot` 和同值的 `FileStorage:Clients:Business:ApiKey`（至少 32 UTF-8 字节的随机密钥）。JWT 密钥路径可省略以使用上述自动生成的本机密钥；使用自定义密钥时，Application 配置 `Jwt:SigningPrivateKeyPath`，另两个服务分别配置对应的 `Jwt:ValidationPublicKeyPath`。默认开发环境 `Identity:BaseUrl=http://localhost:12512`、`Identity:RequireHttps=false`。
+3. Application 的首次管理员通过自己的 `BootstrapAccount` 用户机密配置姓名、邮箱和强密码；不要在源码中存储生产管理员密码。Business 没有管理员播种或登录服务。
 4. 从仓库根目录启动开发依赖（先确保 Redis 绑定目录存在），再迁移三个调试数据库：
 
 ```powershell
 ./server/scripts/Start-Development.ps1 -DependenciesOnly
-./server/scripts/Update-Database.ps1 -Context Identity
+./server/scripts/Update-Database.ps1 -Context Application
 ./server/scripts/Update-Database.ps1 -Context FileStorage
 ./server/scripts/Update-Database.ps1 -Context Business
 ```
 
-5. 按 F5。认证 Swagger 为 `http://localhost:12512/swagger`，文件 Swagger 为 `http://localhost:12513/swagger`，业务 Swagger 为 `http://localhost:12511/swagger`。也可分别执行 `dotnet run --project server/src/Identity/Devkit.Identity.Api` 与 `dotnet run --project server/src/Business/Devkit.Business.Api`，再附加对应进程。
+5. 按 F5。认证 Swagger 为 `http://localhost:12512/swagger`，文件 Swagger 为 `http://localhost:12513/swagger`，业务 Swagger 为 `http://localhost:12511/swagger`。也可分别执行 `dotnet run --project server/src/Application/Devkit.Application.Api` 与 `dotnet run --project server/src/Business/Devkit.Business.Api`，再附加对应进程。
 
 文件服务的密钥生成、配置与已有文件数据复制参见 [文件服务独立部署](文件服务独立部署.md)。仅使用 User Secrets 配置时，也可通过以下命令设置 RSA 密钥路径：
 
 ```powershell
-dotnet user-secrets set 'Jwt:SigningPrivateKeyPath' 'D:/.server data/devkit/keys/identity-private.pem' --project server/src/Identity/Devkit.Identity.Api
+dotnet user-secrets set 'Jwt:SigningPrivateKeyPath' 'D:/.server data/devkit/keys/identity-private.pem' --project server/src/Application/Devkit.Application.Api
 dotnet user-secrets set 'Jwt:ValidationPublicKeyPath' 'D:/.server data/devkit/keys/business-public.pem' --project server/src/Business/Devkit.Business.Api
 ```
 
@@ -78,35 +78,35 @@ docker compose ps
 | --- | --- |
 | Web 与统一网关 | `http://127.0.0.1:8081` |
 | Business Swagger | `http://127.0.0.1:8080/swagger` |
-| Identity Swagger | `http://127.0.0.1:8082/swagger` |
+| Application Swagger | `http://127.0.0.1:8082/swagger` |
 | FileStorage Swagger | `http://127.0.0.1:8083/swagger` |
 
 Nginx 只读挂载 `web/dist` 与 `web/nginx.conf`。生产 Web 构建使用同源 API 地址 `/`，各服务的 OpenAPI 不由网关聚合。公网入口需配置 HTTPS。
 
-后端改动后执行 `docker compose up -d --build devkit-identity devkit-files devkit-server`；只改其中一侧时可选择对应服务。VS 的“生成解决方案”不会更新正在运行的 Compose 镜像。Web 改动后重新构建静态文件并刷新页面。
+后端改动后执行 `docker compose up -d --build devkit-application devkit-files devkit-server`；只改其中一侧时可选择对应服务。VS 的“生成解决方案”不会更新正在运行的 Compose 镜像。Web 改动后重新构建静态文件并刷新页面。
 
 单独构建/发布镜像：
 
 ```powershell
-./server/scripts/Publish-Server.ps1 -Context Identity -Tag 'devkit-identity:0.1.0' -Version '0.1.0'
+./server/scripts/Publish-Server.ps1 -Context Application -Tag 'devkit-application:0.1.0' -Version '0.1.0'
 ./server/scripts/Publish-Server.ps1 -Context Business -Tag 'devkit-business:0.1.0' -Version '0.1.0'
 ./server/scripts/Publish-Server.ps1 -Context FileStorage -Tag 'devkit-filestorage:0.1.0' -Version '0.1.0'
 ```
 
-该脚本只构建本机镜像；远程发布需使用目标仓库标签执行 `docker push`，目标主机再拉取镜像并配置 Compose、数据库、密钥和静态文件。`.env` 中的 `DEVKIT_IDENTITY_IMAGE`、`DEVKIT_FILESTORAGE_IMAGE` 与 `DEVKIT_BUSINESS_IMAGE` 可分别固定版本。
+该脚本只构建本机镜像；远程发布需使用目标仓库标签执行 `docker push`，目标主机再拉取镜像并配置 Compose、数据库、密钥和静态文件。`.env` 中的 `DEVKIT_APPLICATION_IMAGE`、`DEVKIT_FILESTORAGE_IMAGE` 与 `DEVKIT_BUSINESS_IMAGE` 可分别固定版本。
 
 ## 附加容器调试与排错
 
-Compose 启动后，在 VS 选择 调试 → 附加到进程 → Docker (Linux Container)，查找 `devkit-identity`、`devkit-files` 或 `devkit-server` 的实际容器，附加对应 `dotnet` 进程。源码/PDB 必须匹配镜像；当前镜像为 Release，单步和变量查看可能受优化影响。
+Compose 启动后，在 VS 选择 调试 → 附加到进程 → Docker (Linux Container)，查找 `devkit-application`、`devkit-files` 或 `devkit-server` 的实际容器，附加对应 `dotnet` 进程。源码/PDB 必须匹配镜像；当前镜像为 Release，单步和变量查看可能受优化影响。
 
 本次提供独立 Project F5 与 Compose 附加调试；没有额外引入 VS Container Tools targets 或承诺 Docker Fast Mode 一键 F5。
 
 ```powershell
-docker compose logs -f devkit-identity devkit-files devkit-server
+docker compose logs -f devkit-application devkit-files devkit-server
 docker compose ps
 docker compose down
 ```
 
-普通更新不要使用 `down --volumes`，该选项会删除命名卷中的持久化数据。Identity 的 readiness 检查数据库和 Redis；FileStorage 的 readiness 检查文件数据库与身份服务；Business 的 readiness 检查业务数据库、身份服务与文件服务依赖。API 不会自动执行数据库迁移。
+普通更新不要使用 `down --volumes`，该选项会删除命名卷中的持久化数据。Application 的 readiness 检查数据库和 Redis；FileStorage 的 readiness 检查文件数据库与身份服务；Business 的 readiness 检查业务数据库、身份服务与文件服务依赖。API 不会自动执行数据库迁移。
 
 Nginx 现在默认启用，Compose 项目固定命名为 `devkit`。配置以官方模板机制注入上游地址，Docker DNS 在请求时解析，因此 API 容器尚未启动或重建更换 IP 时无需手动改网关。Redis、Qdrant 默认使用 `latest`，可通过 `DEVKIT_REDIS_IMAGE`、`DEVKIT_QDRANT_IMAGE` 覆盖；标签不会自动更新运行容器，需要显式 pull 和 up。详见 [统一网关与 Docker 维护](统一网关与Docker维护.md)。

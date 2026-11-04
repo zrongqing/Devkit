@@ -5,6 +5,7 @@ on:
     tags:
       - "client-v*"
       - "server-v*"
+      - "application-v*"
       - "identity-v*"
       - "business-v*"
       - "filestorage-v*"
@@ -57,11 +58,11 @@ jobs:
               client=true
               title="Devkit Client $version"
               ;;
-            identity-v*)
-              version="${tag#identity-v}"
+            application-v*|identity-v*)
+              version="${tag#*-v}"
               server=true
-              server_contexts='["Identity"]'
-              title="Devkit Identity $version"
+              server_contexts='["Application"]'
+              title="Devkit Application $version"
               ;;
             business-v*)
               version="${tag#business-v}"
@@ -78,7 +79,7 @@ jobs:
             server-v*)
               version="${tag#server-v}"
               server=true
-              server_contexts='["Identity","Business","FileStorage"]'
+              server_contexts='["Application","Business","FileStorage"]'
               title="Devkit Server $version"
               ;;
             web-v*)
@@ -91,7 +92,7 @@ jobs:
               client=true
               server=true
               web=true
-              server_contexts='["Identity","Business","FileStorage"]'
+              server_contexts='["Application","Business","FileStorage"]'
               title="Devkit $version"
               ;;
             *)

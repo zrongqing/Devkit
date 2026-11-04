@@ -1,4 +1,4 @@
-using Devkit.Business.Application.Contracts;
+using Devkit.Commons.Runtime;
 
 namespace Devkit.Business.Application.Abstractions;
 

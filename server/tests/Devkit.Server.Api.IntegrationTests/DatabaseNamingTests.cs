@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Devkit.Business.Infrastructure.Persistence;
 using Devkit.FileStorage.Infrastructure.Persistence;
-using Devkit.Identity.Infrastructure.Persistence;
+using Devkit.Application.Infrastructure.Persistence;
 using Devkit.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -24,7 +24,7 @@ public sealed class DatabaseNamingTests
         => Assert.Equal(expected, DatabaseNamingExtensions.ToSnakeCase(original));
 
     [Theory]
-    [InlineData("identity", "sys_user sys_role sys_user_role sys_user_claim sys_role_claim sys_user_login sys_user_token sys_refresh_token sys_menu sys_menu_state")]
+    [InlineData("identity", "sys_user sys_role sys_user_role sys_user_claim sys_role_claim sys_user_login sys_user_token sys_refresh_token sys_menu sys_menu_state sys_department sys_position sys_occupancy sys_administration_event")]
     [InlineData("files", "file_stored_file file_reference file_migration_item file_storage_location file_storage_job")]
     [InlineData("business", "module_instance module_buffered_command module_command_sequence study_knowledge_base study_source study_source_version study_chunk study_project study_question study_attempt study_mistake study_query_history workspace_job workspace_file_release_outbox")]
     public void Physical_names_and_migrations_match_the_module_contract(string module, string expectedTables)
@@ -103,7 +103,7 @@ public sealed class DatabaseNamingTests
 
     private static DbContext CreateContext(string module) => module switch
     {
-        "identity" => new IdentityDbContext(new DbContextOptionsBuilder<IdentityDbContext>().UseSqlServer().Options),
+        "identity" => new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer().Options),
         "files" => new FileStorageDbContext(new DbContextOptionsBuilder<FileStorageDbContext>().UseSqlServer().Options),
         "business" => new BusinessDbContext(new DbContextOptionsBuilder<BusinessDbContext>().UseSqlServer().Options),
         _ => throw new ArgumentOutOfRangeException(nameof(module))

@@ -13,7 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/FileStorage/Devkit.FileStorage.Api/Devkit.FileStorage.Api.csproj" />
-    <ProjectReference Include="../../src/Identity/Devkit.Identity.Api/Devkit.Identity.Api.csproj" />
+    <ProjectReference Include="../../src/Application/Devkit.Application.Api/Devkit.Application.Api.csproj" />
     <ProjectReference Include="../../src/Business/Devkit.Business.Api/Devkit.Business.Api.csproj" />
   </ItemGroup>
 </Project>
