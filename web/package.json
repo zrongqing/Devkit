@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --mode direct",
+    "dev:direct": "vite --mode direct",
+    "dev:gateway": "vite --mode gateway",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview"
   },

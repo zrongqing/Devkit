@@ -3,12 +3,35 @@
 ## 启动
 
 ```powershell
-Copy-Item .env.example .env.local
 npm install
 npm run dev
 ```
 
-默认开发 API 统一入口为 Nginx `http://localhost:8081`，Vite 只需设置 `VITE_DEV_API_TARGET`。VS 模式先运行 `server/scripts/Start-Development.ps1 -DependenciesOnly`，再启动各 API。服务端 Development 配置允许来自 `localhost:5173` 和 `127.0.0.1:5173` 的请求；如端口或域名不同，请同步调整 Web 环境变量和服务端 CORS 白名单。
+可通过启动命令选择完整的代理配置，无需修改 `.env.local`：
+
+| 命令（在 `web` 目录执行） | API 转发目标 | 前置条件 |
+| --- | --- | --- |
+| `npm run dev`（默认）或 `npm run dev:direct` | Business `12511`、Application `12512`、FileStorage `12513` | 从 VS Project / `dotnet run` 启动三个 API |
+| `npm run dev:gateway` | Nginx `8081`，由网关分发三个 API | 完整 Compose 部署，或开发网关加本机三个 API |
+
+开发网关模式先运行 `server/scripts/Start-Development.ps1 -DependenciesOnly`，再启动各 API；完整容器部署使用仓库根目录的 `docker compose up -d --build`。`.env.direct`、`.env.gateway` 提供模式预设并覆盖 `.env.local` 中的同名地址；自定义地址分别写入忽略提交的 `.env.direct.local`、`.env.gateway.local`。切换模式时停止当前 Vite，再执行对应命令。生产构建仍使用同源 Nginx 网关。
+
+服务端 Development 配置允许来自 `localhost:5173` 和 `127.0.0.1:5173` 的请求；如端口或域名不同，请同步调整 Web 环境变量和服务端 CORS 白名单。
+
+默认本机模式由 `.env.direct` 提供以下地址，无需复制环境文件：
+
+```dotenv
+VITE_API_BASE_URL=/
+VITE_DEV_API_TARGET=http://localhost:12511
+VITE_DEV_AUTH_TARGET=http://localhost:12512
+VITE_DEV_FILE_TARGET=http://localhost:12513
+```
+
+三个地址分别对应 Business、Application 和 FileStorage 的 Project 启动配置。浏览器仍访问 Vite 的 `5173` 端口，Vite 保留 `/api/v1/...` 路径并转发到对应服务。三个后端均需启动，登录、权限和菜单依赖 Application。
+
+连接 Docker 时停止当前 Vite，然后执行 `npm run dev:gateway`；切回本机执行 `npm run dev`。如果 Docker 网关部署在其他机器或使用了不同端口，只需在 `web/.env.gateway.local` 中配置 `VITE_DEV_API_TARGET=http://<宿主机地址>:<网关端口>`。浏览器 API 地址仍保持同源相对路径，不必修改调用代码。
+
+`.env.example` 仅作配置参考，Vite 不会直接加载它；修改模式对应的 `.local` 文件后重启开发服务器。本机配置文件已被 Git 忽略。
 
 生产构建使用：
 

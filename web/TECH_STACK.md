@@ -10,7 +10,7 @@
 - 备考业务：`src/modules/exam-study`；文件存储：`src/modules/file-storage`；权限管理：`src/modules/identity`。沿用现有 UI、路由、Pinia，不新增依赖。
 - 登录会话：原生 fetch + 单次刷新令牌队列；会话和未提交答案暂存在 sessionStorage。请求及菜单分别检查权限，服务端承担最终访问控制。
 - 备考 HTTP 契约：`src/api/examStudy.ts` 对应服务端 `/api/v1/exam-study`、`/files`、`/storage`、`/identity`。部署与使用说明见 `../server/docs/知识库与备考系统.md`。
-- 部署：本机执行 `npm run build`，Compose 的 `nginx:stable-alpine` 只读挂载 `dist` 和 `nginx.conf`，同源反向代理 `/api/` 到后端；Nginx 日志使用命名卷持久化。`VITE_API_BASE_URL=/` 在生产构建时写入页面，开发环境由 Vite 代理并通过 `.env.local` 的 `VITE_DEV_API_TARGET` 指向当前调试后端。
+- 部署：本机执行 `npm run build`，Compose 的 `nginx:stable-alpine` 只读挂载 `dist` 和 `nginx.conf`，同源反向代理 `/api/` 到后端；Nginx 日志使用命名卷持久化。`VITE_API_BASE_URL=/` 在生产构建时写入页面。开发默认 `npm run dev` 使用 `.env.direct` 直连本机三个 API；`npm run dev:gateway` 使用 `.env.gateway` 切换至 Docker/Nginx 网关，自定义地址分别写入 `.env.direct.local`、`.env.gateway.local`。
 
 - 模块导航：项目维护、检索、刷题分路由复用业务组件；用户、角色与权限分页面。权限目录由服务端下发，用户直接授权与角色授权合并，沿用现有依赖。系统监控调用 `/api/v1/system/runtime`。
 

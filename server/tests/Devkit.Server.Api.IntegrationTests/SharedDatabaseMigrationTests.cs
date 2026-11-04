@@ -13,6 +13,23 @@ namespace Devkit.Server.Api.IntegrationTests;
 public sealed class SharedDatabaseMigrationTests
 {
     [Fact]
+    public void Organization_upgrade_script_only_adds_organization_and_audit_tables()
+    {
+        using var context = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer().Options);
+        var script = context.GetService<IMigrator>().GenerateScript(
+            "20261102154500_InitialIdentityContext", "20261102163454_OrganizationAdministration",
+            MigrationsSqlGenerationOptions.Idempotent);
+        foreach (var table in new[] { "sys_administration_event", "sys_department", "sys_position", "sys_occupancy" })
+            Assert.Contains($"CREATE TABLE [{table}]", script);
+        Assert.DoesNotContain("CREATE TABLE [sys_user]", script);
+        Assert.DoesNotContain("DROP TABLE", script);
+        Assert.DoesNotContain("DELETE FROM", script);
+        Assert.DoesNotContain("20261102154500_InitialIdentityContext", script);
+        Assert.Contains("20261102163454_OrganizationAdministration", script);
+        Assert.Contains("IF NOT EXISTS", script);
+    }
+
+    [Fact]
     public void Baselines_create_and_drop_only_their_owned_tables_with_unique_migration_ids()
     {
         using var identity = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer().Options);
