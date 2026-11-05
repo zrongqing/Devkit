@@ -2,7 +2,10 @@ using Devkit.Application.Application.Authorization;
 
 namespace Devkit.Application.Application.Administration;
 
-public sealed record AccountView(Guid Id, string UserName, string Email, string[] Roles, string[] Permissions, string[] EffectivePermissions, string[] MenuCodes, string[] EffectiveMenuCodes);
+public sealed record AccountView(Guid Id, string UserName, string Email, string[] Roles, string[] Permissions, string[] EffectivePermissions, string[] MenuCodes, string[] EffectiveMenuCodes)
+{
+    public Guid[] RoleIds { get; init; } = [];
+}
 public sealed record DisabledAccountView(Guid Id, string UserName, string Email);
 public sealed record RoleView(Guid Id, string Name, string[] Permissions, string[] MenuCodes);
 public sealed record AccountRequest(string UserName, string Email, string Password, Guid[] RoleIds);

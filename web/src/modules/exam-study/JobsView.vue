@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DataTable from "../../components/DataTable";
+import { tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
 import { onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
@@ -35,7 +36,7 @@ const tableValues = {
       </div>
     </header>
     <div class="study-card" v-loading="busy">
-      <DataTable table-key="study-jobs" :load-page="tableQueries.jobs" :data="jobs"
+      <DataTable table-key="study-jobs" :filter-schema="tableFilterSchemas.jobs" :load-page="tableQueries.jobs" :data="jobs"
         ><el-table-column :table-value="tableValues.kind" prop="kind" label="任务" width="180"
           ><template #default="{ row }">{{
             label(row.kind)

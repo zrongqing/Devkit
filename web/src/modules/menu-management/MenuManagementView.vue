@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DataTable from "../../components/DataTable";
+import { queryDictionaries, optionLabel, tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -24,7 +25,7 @@ const editing = ref<MenuView>()
 const editOpen = ref(false)
 const editVersion = ref(0)
 const form = ref({ menuCode: '', title: '', parentCode: null as string | null, iconKey: '', order: 0, enabled: true })
-const statuses: Record<string, string> = { new: '未同步', synced: '已同步', changed: '前端声明变更', missing: '当前前端缺失', manual: '后台自建目录' }
+const statuses: Record<string, string> = Object.fromEntries(queryDictionaries.menuStatus.map(option => [option.value, option.label]))
 const fields = [
   { key: 'title', name: '名称' }, { key: 'parentCode', name: '父目录' }, { key: 'iconKey', name: '图标' }, { key: 'order', name: '排序' },
   { key: 'type', name: '菜单类型' }, { key: 'routeKey', name: '页面路由' }, { key: 'requiredPermissions', name: '所需业务权限' },
@@ -91,7 +92,7 @@ const selectable = (row: MenuDifference) => row.local !== null
 onMounted(() => { void run(load) })
 
 const tableValues = {
-  menuType: ({ type }: { type: string }) => type === 'directory' ? '目录' : '模块',
+  menuType: ({ type }: { type: string }) => optionLabel(queryDictionaries.menuType, type),
   enabled: ({ enabled }: { enabled: boolean }) => enabled ? '已启用' : '已停用',
   syncStatus: ({ status }: { status: string }) => statuses[status],
   localValue: ({ key }: { key: string }) => fieldValue(details.value?.local, key),
@@ -107,11 +108,11 @@ const tableValues = {
     <el-tabs v-model="tab">
       <el-tab-pane label="菜单配置" name="tree">
         <div class="study-card" v-loading="busy">
-          <DataTable table-key="menu-tree" :load-page="tableQueries.menuTree" :data="nodes" row-key="menuCode" default-expand-all>
+          <DataTable table-key="menu-tree" :filter-schema="tableFilterSchemas.menu" :load-page="tableQueries.menuTree" :data="nodes" row-key="menuCode" default-expand-all>
             <template #actions><el-button type="primary" :disabled="legacyDatabase" @click="edit()">新增目录</el-button></template>
             <el-table-column prop="title" label="菜单名称" min-width="220" />
             <el-table-column prop="menuCode" label="唯一编码" min-width="200" />
-            <el-table-column :table-value="tableValues.menuType" prop="type" label="类型" width="90"><template #default="{ row }"><el-tag :type="row.type === 'directory' ? 'info' : 'primary'">{{ row.type === 'directory' ? '目录' : '模块' }}</el-tag></template></el-table-column>
+            <el-table-column :table-value="tableValues.menuType" prop="type" label="类型" width="90"><template #default="{ row }"><el-tag :type="row.type === 'directory' ? 'info' : 'primary'">{{ optionLabel(queryDictionaries.menuType, row.type) }}</el-tag></template></el-table-column>
             <el-table-column prop="order" label="排序" width="70" />
             <el-table-column :table-value="tableValues.enabled" prop="enabled" label="启用" width="80"><template #default="{ row }"><el-switch :model-value="row.enabled" :disabled="busy || legacyDatabase || protectedCodes.has(row.menuCode)" @change="(v: string | number | boolean) => toggle(row, Boolean(v))" /></template></el-table-column>
             <el-table-column column-key="actions" label="操作" width="140"><template #default="{ row }"><el-button link type="primary" :disabled="legacyDatabase" @click="edit(row)">编辑</el-button><el-button v-if="row.type === 'directory' && !tree.menus.some(m => m.parentCode === row.menuCode) && !protectedCodes.has(row.menuCode)" link type="danger" :disabled="legacyDatabase" @click="remove(row)">删除</el-button></template></el-table-column>
@@ -122,7 +123,7 @@ const tableValues = {
         <el-alert title="仅同步菜单信息，不上传页面代码。未同步的页面不会出现在业务导航；后台调整不会被默认覆盖。" type="info" :closable="false" class="study-error" />
         <div class="study-card" v-loading="busy">
           <div class="sync-options"><span>将前端默认值应用到已入库菜单：</span><el-checkbox-group v-model="applyFields"><el-checkbox v-for="field in fields.slice(0, 4)" :key="field.key" :value="field.key">{{ field.name }}</el-checkbox></el-checkbox-group><small class="study-muted">默认不勾选：仅更新声明快照，保留后台名称、层级、图标、排序及启用状态。缺失的父目录会自动创建。</small></div>
-          <DataTable table-key="menu-differences" :external-filters="filter ? [{ key: 'syncStatus', label: '同步状态', value: statuses[filter] }] : []" @remove-filter="filter = ''" @reset-filters="filter = ''" :load-page="tableQueries.menuDiffs(menuManifest, filter)" :query-context="filter" :data="comparison.items" row-key="menuCode" @selection-change="(rows: MenuDifference[]) => selected = rows">
+          <DataTable table-key="menu-differences" :filter-schema="tableFilterSchemas.menuComparison" :external-filters="filter ? [{ key: 'syncStatus', label: '同步状态', value: statuses[filter] }] : []" @remove-filter="filter = ''" @reset-filters="filter = ''" :load-page="tableQueries.menuDiffs(menuManifest, filter)" :query-context="filter" :data="comparison.items" row-key="menuCode" @selection-change="(rows: MenuDifference[]) => selected = rows">
             <template #filters><el-select v-model="filter" clearable placeholder="全部同步状态" aria-label="筛选同步状态"><el-option v-for="(label, key) in statuses" :key="key" :value="key" :label="label" /></el-select></template>
             <template #actions><el-button type="primary" :disabled="!selected.length" :loading="busy" @click="synchronize">同步所选 {{ selected.length || '' }}</el-button></template>
             <el-table-column type="selection" width="45" :selectable="selectable" />

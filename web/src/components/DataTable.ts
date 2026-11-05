@@ -1,8 +1,9 @@
 import { cloneVNode, Comment, defineComponent, Fragment, h, isVNode, nextTick, onBeforeUnmount, ref, watch, type PropType, type VNode } from 'vue'
-import { ElAlert, ElButton, ElPagination, ElTable, type TableColumnCtx, type TableInstance } from 'element-plus'
+import { ElAlert, ElButton, ElMessage, ElPagination, ElTable, type TableColumnCtx, type TableInstance } from 'element-plus'
 import type { FieldSort, PageLoader, PageQuery } from '../api/tableQueries'
 import TableToolbar from './TableToolbar.vue'
-import type { ColumnOption, ColumnPin, TableFilterTag } from './tablePresentation'
+import type { ColumnOption, ColumnPin, FilterDraft, FilterOption, TableFilterSchema, TableFilterTag } from './tablePresentation'
+import { buildFilter, copyDrafts, filterLabel, hasFilter } from './tableFilters'
 import TableColumnHeader from './TableColumnHeader.vue'
 
 type Row = Record<string, any>
@@ -22,6 +23,7 @@ export default defineComponent({
     queryContext: { type: String, default: '' },
     searchField: String,
     externalFilters: { type: Array as PropType<TableFilterTag[]>, default: () => [] },
+    filterSchema: { type: Object as PropType<TableFilterSchema>, default: () => ({}) },
   },
   setup(props, { attrs, slots, expose, emit }) {
     const page = ref(1), pageSize = ref(20), total = ref(0)
@@ -31,7 +33,8 @@ export default defineComponent({
     const widths = ref<Record<string, number>>({})
     const measuredMinimums = ref<Record<string, number>>({})
     const minimumWidths = new Map<string, number>()
-    const drafts = ref<Record<string, string>>({}), filters = ref<Record<string, string>>({})
+    const drafts = ref<Record<string, FilterDraft>>({}), filters = ref<Record<string, FilterDraft>>({})
+    const optionLabels = ref<Record<string, FilterOption[]>>({})
     const sorts = ref<FieldSort[]>([]), pins = ref<Record<string, ColumnPin>>({})
     const hidden = ref<Record<string, boolean>>({}), viewportWidth = ref(0)
     const storageKey = () => `devkit:table-pins:v1:${props.tableKey}`
@@ -72,7 +75,7 @@ export default defineComponent({
       controller?.abort(); controller = new AbortController()
       const current = ++sequence
       const query: PageQuery = { page: page.value, pageSize: pageSize.value,
-        filters: Object.entries(filters.value).filter(([, value]) => value.trim()).map(([field, value]) => ({ field, value: value.trim() })),
+        filters: Object.entries(filters.value).flatMap(([field, value]) => buildFilter(field, value, props.filterSchema[field])),
         sorts: [...sorts.value],
       }
       loading.value = true; error.value = ''
@@ -98,7 +101,11 @@ export default defineComponent({
         }
       }
     }
-    function submit() { filters.value = { ...drafts.value }; page.value = 1; void reload() }
+    function submit() {
+      try { Object.entries(drafts.value).forEach(([field, value]) => buildFilter(field, value, props.filterSchema[field])) }
+      catch (e) { ElMessage.warning(e instanceof Error ? e.message : String(e)); return }
+      filters.value = copyDrafts(drafts.value); page.value = 1; void reload()
+    }
     async function resetFilters() {
       controller?.abort()
       const current = ++sequence
@@ -178,6 +185,7 @@ export default defineComponent({
     }
     watch(() => props.tableKey, () => {
       pins.value = {}; drafts.value = {}; filters.value = {}; sorts.value = []; page.value = 1
+      optionLabels.value = {}
       hidden.value = {}; widths.value = {}; measuredMinimums.value = {}; minimumWidths.clear()
       try {
         const saved: unknown = JSON.parse(localStorage.getItem(storageKey()) ?? '{}')
@@ -237,10 +245,16 @@ export default defineComponent({
           'render-header': () => {
             const orderIndex = sortIndex(field)
             const order = orderIndex < 0 ? 0 : sorts.value[orderIndex].direction === 'asc' ? 1 : -1
+            const config = field ? props.filterSchema[field] : undefined
+            const selected = field ? drafts.value[field] : undefined
             return h(TableColumnHeader, { label: original.label, searchable: !!field,
-              filter: field ? drafts.value[field] ?? '' : '', active: !!(field && filters.value[field]), order,
+              filter: field ? drafts.value[field] ?? '' : '', config: config?.loadOptions ? { ...config,
+                options: [...(config.options ?? []), ...(optionLabels.value[field!] ?? []).filter(o => Array.isArray(selected) && selected.includes(o.value))],
+              } : config,
+              active: !!(field && hasFilter(filters.value[field])), order,
               priority: orderIndex < 0 ? 0 : orderIndex + 1,
-              onFilter: (value: string) => { if (field) drafts.value[field] = value }, onSubmit: submit,
+              onFilter: (value: FilterDraft) => { if (field) drafts.value[field] = value }, onSubmit: submit,
+              onOptions: (values: FilterOption[]) => { if (field) optionLabels.value[field] = values },
               onMinimumWidth: (width: number) => {
                 if (measuredMinimums.value[key] !== width) measuredMinimums.value[key] = width
               },
@@ -256,8 +270,9 @@ export default defineComponent({
       const requestedRowKey = attrs['row-key'] ?? attrs.rowKey
       const rowKey = typeof requestedRowKey === 'string' ? requestedRowKey : (row: Row) =>
         String(typeof requestedRowKey === 'function' ? requestedRowKey(row) : row.id ?? row.menuCode ?? row.key)
-      const tags: TableFilterTag[] = Object.entries(filters.value).filter(([, value]) => value.trim()).map(([key, value]) => ({
-        key, label: options.find(c => c.field === key)?.label ?? key, value,
+      const tags: TableFilterTag[] = Object.entries(filters.value).filter(([, value]) => hasFilter(value)).map(([key, value]) => ({
+        key, label: options.find(c => c.field === key)?.label ?? key,
+        value: filterLabel(value, [...(props.filterSchema[key]?.options ?? []), ...(optionLabels.value[key] ?? [])]),
       })).concat(props.externalFilters.map(tag => ({ ...tag, external: true })))
       return h('div', { class: ['data-table', { 'data-table--pending': loading.value }], 'aria-busy': loading.value }, [
         h(TableToolbar, {

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { Filter } from '@element-plus/icons-vue'
-defineProps<{ label: string; filter: string; active: boolean; order: number; priority: number; searchable: boolean }>()
-const emit = defineEmits<{ filter: [value: string]; submit: []; sort: [direction: number]; minimumWidth: [width: number] }>()
+import TableFilterInput from './TableFilterInput.vue'
+import type { ColumnFilterConfig, FilterDraft, FilterOption } from './tablePresentation'
+defineProps<{ label: string; filter: FilterDraft; config?: ColumnFilterConfig; active: boolean; order: number; priority: number; searchable: boolean }>()
+const emit = defineEmits<{ filter: [value: FilterDraft]; options: [options: FilterOption[]]; submit: []; sort: [direction: number]; minimumWidth: [width: number] }>()
 const heading = ref<HTMLElement>()
 const open = ref(false)
 let observer: ResizeObserver | undefined
@@ -34,15 +36,13 @@ onBeforeUnmount(() => observer?.disconnect())
 <template>
   <div ref="heading" class="data-table-heading">
     <span class="data-table-heading__label" :title="label">{{ label }}</span>
-    <el-popover v-if="searchable" v-model:visible="open" trigger="click" placement="bottom" :width="240">
+    <el-popover v-if="searchable" v-model:visible="open" trigger="click" placement="bottom" :width="320">
       <template #reference>
         <el-button class="data-table-heading__button" :class="{ 'is-active': active || open }" text :type="active ? 'primary' : undefined" :icon="Filter"
           :aria-label="`筛选${label}`" :title="`筛选${label}`" :aria-pressed="active" />
       </template>
-      <el-input :model-value="filter" clearable :placeholder="`筛选${label}`" :aria-label="`筛选${label}的内容`"
-        @update:model-value="$emit('filter', $event)" @keyup.enter="$emit('submit')">
-        <template #append><el-button :icon="Filter" aria-label="提交全部列筛选" title="提交全部列筛选" @click="$emit('submit')" /></template>
-      </el-input>
+      <TableFilterInput v-if="open" :label="label" :model-value="filter" :config="config"
+        @update:model-value="$emit('filter', $event)" @options="$emit('options', $event)" @submit="$emit('submit')" />
     </el-popover>
     <span v-if="searchable" class="data-table-sort" :class="{ 'is-active': order !== 0 }">
       <span class="caret-wrapper">

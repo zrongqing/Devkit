@@ -1,7 +1,7 @@
 import { request } from './session'
 import type { MenuDeclaration } from '../types/navigation'
 
-export interface FieldFilter { field: string; value: string; operator?: 'contains' | 'eq' | 'gte' | 'lte' }
+export interface FieldFilter { field: string; value?: string; values?: string[]; operator?: 'contains' | 'eq' | 'gte' | 'lte' | 'in' | 'anyOf' }
 export interface FieldSort { field: string; direction: 'asc' | 'desc' }
 export interface PageQuery { page: number; pageSize: number; filters: FieldFilter[]; sorts: FieldSort[] }
 export interface PageResult<T = Record<string, any>> { items: T[]; total: number; page: number; pageSize: number }
@@ -12,7 +12,7 @@ export const tableQueries = {
   projects: (all: boolean): PageLoader => (q, signal) => query(`${study}/projects/query?all=${all}`, q, signal),
   sources: (id: string): PageLoader => (q, signal) => query(`${study}/knowledge-bases/${id}/sources/query`, q, signal),
   questions: (all: boolean, kb: string, search: string, status: string): PageLoader => (q, signal) => query(`${study}/questions/query?all=${all}${kb ? `&knowledgeBaseId=${encodeURIComponent(kb)}` : ''}`, {
-    ...q, filters: [...q.filters, ...(search ? [{ field: 'stem', value: search }] : []), ...(status ? [{ field: 'status', value: status }] : [])],
+    ...q, filters: [...q.filters, ...(search ? [{ field: 'stem', value: search }] : []), ...(status ? [{ field: 'status', operator: 'in' as const, values: [status] }] : [])],
   }, signal),
   jobs: ((q, signal) => query(`${study}/jobs/query`, q, signal)) as PageLoader,
   mistakes: (id: string): PageLoader => (q, signal) => query(`${study}/projects/${id}/mistakes/query`, q, signal),
@@ -38,7 +38,7 @@ export const tableQueries = {
     return { ...page, items: roots }
   }) as PageLoader,
   menuDiffs: (declarations: MenuDeclaration[], status: string): PageLoader => (q, signal) => query(`${menus}/compare/query`, {
-    menus: declarations, query: { ...q, filters: [...q.filters, ...(status ? [{ field: 'status', value: status }] : [])] },
+    menus: declarations, query: { ...q, filters: [...q.filters, ...(status ? [{ field: 'status', operator: 'in' as const, values: [status] }] : [])] },
   }, signal),
   menuFields: (declarations: MenuDeclaration[], code: string): PageLoader => (q, signal) => query(`${menus}/fields/query`, { menus: declarations, menuCode: code, query: q }, signal),
 }

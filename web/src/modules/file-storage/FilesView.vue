@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ArrowDown, Document, Upload } from "@element-plus/icons-vue";
 import DataTable from "../../components/DataTable";
+import { tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from "vue";
 import { permissions } from "../../api/session";
@@ -72,7 +73,7 @@ const tableValues = {
       :closable="false"
     />
     <div class="study-card" v-loading="busy">
-      <DataTable table-key="files" @reset-filters="resetTableFilters" :external-filters="externalFilters" @remove-filter="archived = false" :load-page="tableQueries.files('', archived)" :query-context="String(archived)" :data="files"
+      <DataTable table-key="files" :filter-schema="tableFilterSchemas.files" @reset-filters="resetTableFilters" :external-filters="externalFilters" @remove-filter="archived = false" :load-page="tableQueries.files('', archived)" :query-context="String(archived)" :data="files"
         >
         <template #filters><el-switch v-model="archived" active-text="仅无引用文件" /></template>
         <template #actions><el-button type="primary" :icon="Upload" @click="uploadInput?.click()">上传文件</el-button><input ref="uploadInput" type="file" hidden @change="upload" /></template>

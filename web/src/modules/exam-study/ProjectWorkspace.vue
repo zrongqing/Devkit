@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DataTable from "../../components/DataTable";
+import { tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
@@ -714,7 +715,7 @@ const tableValues = {
               >重练错题</el-button
             >
           </div>
-          <DataTable table-key="study-mistakes" :load-page="tableQueries.mistakes(project.id)" :query-context="project.id" :data="progress.mistakes"
+          <DataTable table-key="study-mistakes" :filter-schema="tableFilterSchemas.mistakes" :load-page="tableQueries.mistakes(project.id)" :query-context="project.id" :data="progress.mistakes"
             ><el-table-column column-key="question" :table-value="tableValues.question" label="题目" min-width="250"
               ><template #default="{ row }">{{
                 questionNames[row.questionId] ?? "题目已归档，可在历史试卷查看"
@@ -737,7 +738,7 @@ const tableValues = {
         </div>
         <div class="study-card">
           <h3>学习记录</h3>
-          <DataTable table-key="study-attempts" :load-page="tableQueries.attempts(project.id)" :query-context="project.id" :data="progress.attempts"
+          <DataTable table-key="study-attempts" :filter-schema="tableFilterSchemas.attempts" :load-page="tableQueries.attempts(project.id)" :query-context="project.id" :data="progress.attempts"
             ><el-table-column :table-value="tableValues.startedAt" prop="createdAtUtc" label="开始时间" min-width="185"
               ><template #default="{ row }">{{
                 date(row.createdAtUtc)

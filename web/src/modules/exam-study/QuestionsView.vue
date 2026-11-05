@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DataTable from "../../components/DataTable";
+import { tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
@@ -198,7 +199,7 @@ const tableValues = {
       :closable="false"
     />
     <div class="study-card" v-loading="busy">
-      <DataTable table-key="study-questions" @reset-filters="resetTableFilters" search-field="stem" :external-filters="externalFilters" @remove-filter="removeTableFilter" :load-page="tableQueries.questions(all, kb, '', status)" :query-context="JSON.stringify([all, kb, status])" :data="questions"
+      <DataTable table-key="study-questions" :filter-schema="tableFilterSchemas.questions" @reset-filters="resetTableFilters" search-field="stem" :external-filters="externalFilters" @remove-filter="removeTableFilter" :load-page="tableQueries.questions(all, kb, '', status)" :query-context="JSON.stringify([all, kb, status])" :data="questions"
         >
         <template #filters><el-select v-model="kb" clearable placeholder="全部知识库" aria-label="筛选知识库"><el-option v-for="b in bases" :key="b.id" :label="b.name" :value="b.id" /></el-select>
           <el-select v-model="status" clearable placeholder="全部状态" aria-label="筛选题目状态"><el-option v-for="s in ['draft', 'approved', 'stale', 'disabled']" :key="s" :value="s" :label="label(s)" /></el-select></template>

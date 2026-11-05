@@ -14,7 +14,8 @@ public sealed class StudyPageService(IWorkspaceStore store, StudyService study)
         ["ingest"]="提取与关键词索引", ["dense"]="语义增强", ["generate"]="AI 出题", ["remove-index"]="移除索引",
         ["single"]="单选", ["multiple"]="多选", ["boolean"]="判断", ["practice"]="练习", ["exam"]="模拟考试", ["active"]="进行中", ["submitted"]="已交卷",
     };
-    private static object Label(string value) => value + " " + Labels.GetValueOrDefault(value, value);
+    private static PageQuery Options(PageQuery query, string field, params string[] values) =>
+        PageQueries.WithOptions(query, field, values.ToDictionary(v => v, v => Labels.GetValueOrDefault(v, v)));
     private static PageQuery DefaultOrder(PageQuery query) => (query.Sorts?.Length ?? 0) == 0 ? query with { Sorts = [new("createdAtUtc", "desc")] } : query;
     public Task<PageResult<KnowledgeBase>> BasesAsync(Actor actor, PageQuery query, bool all, CancellationToken ct)
     { actor.Require("exam-study.access"); return store.PageAsync<KnowledgeBase>(DefaultOrder(query), x => actor.Administrator && all || x.OwnerId == actor.Id, ct); }
@@ -30,34 +31,33 @@ public sealed class StudyPageService(IWorkspaceStore store, StudyService study)
     public async Task<PageResult<KnowledgeSource>> SourcesAsync(Actor actor, Guid id, PageQuery query, CancellationToken ct)
     {
         PageQueries.Validate(query); await study.GetAsync<KnowledgeBase>(actor, id, ct);
-        if (!(query.Filters ?? []).Any(f => f.Field == "status")) return await store.PageAsync<KnowledgeSource>(DefaultOrder(query), x => x.KnowledgeBaseId == id, ct);
-        return PageQueries.Snapshot(await study.SourcesAsync(actor, id, ct), DefaultOrder(query), new Dictionary<string, Func<KnowledgeSource, object?>> { ["status"] = x => Label(x.Status) });
+        query = Options(query, "status", "queued", "running", "ready", "failed", "waiting");
+        return await store.PageAsync<KnowledgeSource>(DefaultOrder(query), x => x.KnowledgeBaseId == id, ct);
     }
     public async Task<PageResult<Question>> QuestionsAsync(Actor actor, Guid? id, PageQuery query, bool all, CancellationToken ct)
     {
         PageQueries.Validate(query); actor.Require("exam-study.access");
         if (id.HasValue) await study.GetAsync<KnowledgeBase>(actor, id.Value, ct);
-        if (!(query.Filters ?? []).Any(f => f.Field is "status" or "type"))
-            return await store.PageAsync<Question>(DefaultOrder(query), x => (actor.Administrator && all || x.OwnerId == actor.Id) && (!id.HasValue || x.KnowledgeBaseId == id), ct);
-        return PageQueries.Snapshot(await study.QuestionsAsync(actor, id, all, ct), DefaultOrder(query), new Dictionary<string, Func<Question, object?>> { ["status"] = x => Label(x.Status), ["type"] = x => Label(x.Type) });
+        query = Options(Options(query, "status", "draft", "approved", "stale", "disabled"), "type", "single", "multiple", "boolean");
+        return await store.PageAsync<Question>(DefaultOrder(query), x => (actor.Administrator && all || x.OwnerId == actor.Id) && (!id.HasValue || x.KnowledgeBaseId == id), ct);
     }
     public async Task<PageResult<WorkJob>> JobsAsync(Actor actor, PageQuery query, CancellationToken ct)
     {
         PageQueries.Validate(query); actor.Require("study.jobs.view");
-        if (!(query.Filters ?? []).Any(f => f.Field is "status" or "kind"))
-            return await store.PageAsync<WorkJob>(DefaultOrder(query), x => (actor.Administrator || x.OwnerId == actor.Id) && x.Kind != "migrate" && x.Kind != "cleanup", ct);
-        var rows = await store.ListAsync<WorkJob>(x => (actor.Administrator || x.OwnerId == actor.Id) && x.Kind != "migrate" && x.Kind != "cleanup", ct);
-        return PageQueries.Snapshot(rows, DefaultOrder(query), new Dictionary<string, Func<WorkJob, object?>> { ["status"] = x => Label(x.Status), ["kind"] = x => Label(x.Kind) });
+        query = Options(Options(query, "status", "queued", "running", "completed", "waiting", "failed"), "kind", "ingest", "dense", "generate", "remove-index");
+        return await store.PageAsync<WorkJob>(DefaultOrder(query), x => (actor.Administrator || x.OwnerId == actor.Id) && x.Kind != "migrate" && x.Kind != "cleanup", ct);
     }
     public async Task<PageResult<Mistake>> MistakesAsync(Actor actor, Guid id, PageQuery query, CancellationToken ct)
     {
         PageQueries.Validate(query); actor.Require("study.practice"); var progress = await study.ProgressAsync(actor, id, ct);
+        query = PageQueries.WithOptions(query, "mastered", new Dictionary<string, string> { ["true"] = "已掌握", ["false"] = "未掌握" });
         return PageQueries.Snapshot(progress.Mistakes, query, new Dictionary<string, Func<Mistake, object?>>
-        { ["question"] = x => progress.QuestionNames.GetValueOrDefault(x.QuestionId, "题目已归档，可在历史试卷查看"), ["mastered"] = x => x.Mastered ? "true 已掌握" : "false 未掌握" });
+        { ["question"] = x => progress.QuestionNames.GetValueOrDefault(x.QuestionId, "题目已归档，可在历史试卷查看") });
     }
     public async Task<PageResult<AttemptSummary>> AttemptsAsync(Actor actor, Guid id, PageQuery query, CancellationToken ct)
     {
         PageQueries.Validate(query); actor.Require("study.practice"); var progress = await study.ProgressAsync(actor, id, ct);
-        return PageQueries.Snapshot(progress.Attempts, DefaultOrder(query), new Dictionary<string, Func<AttemptSummary, object?>> { ["status"] = x => Label(x.Status), ["mode"] = x => Label(x.Mode) });
+        query = Options(Options(query, "status", "active", "submitted"), "mode", "practice", "exam");
+        return PageQueries.Snapshot(progress.Attempts, DefaultOrder(query));
     }
 }

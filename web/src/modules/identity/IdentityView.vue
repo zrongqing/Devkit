@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import DataTable from "../../components/DataTable";
+import type { TableFilterSchema } from "../../components/tablePresentation";
+import { tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -15,6 +17,9 @@ const { run, busy, error } = useOperation();
 const navigation = useNavigationStore();
 const users = ref<Account[]>([]);
 const roles = ref<Role[]>([]);
+const userFilterSchema = computed<TableFilterSchema>(() => ({
+  roles: { type: 'select', field: 'roleIds', operator: 'anyOf', options: roles.value.map(role => ({ value: role.id, label: role.name })) },
+}));
 const disabledDialog = ref(false);
 const disabledUsers = ref<Pick<Account, 'id' | 'userName' | 'email'>[]>([]);
 async function showDisabled() {
@@ -173,7 +178,7 @@ const tableValues = {
           <el-table-column column-key="actions" v-if="permissions?.administrator" label="操作"><template #default="{row}"><el-button link type="primary" :disabled="busy" @click="restoreUser(row)">恢复账号</el-button></template></el-table-column>
         </DataTable>
       </el-dialog>
-      <DataTable table-key="identity-users" :load-page="tableQueries.users()" :query-context="page + permissionTab" :data="users">
+      <DataTable table-key="identity-users" :filter-schema="userFilterSchema" :load-page="tableQueries.users()" :query-context="page + permissionTab" :data="users">
         <template v-if="page === 'users'" #actions><el-button @click="showDisabled">已停用账号</el-button><el-button type="primary" @click="editUser()">创建用户</el-button></template>
         <el-table-column prop="userName" label="账号" min-width="120" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
@@ -198,9 +203,9 @@ const tableValues = {
     <div v-if="page === 'permissions' && permissionTab === 'modules'" class="study-card" v-loading="busy">
       <div class="study-toolbar"><span>选择业务权限</span><el-select v-model="moduleKey" style="width: 330px"><el-option-group v-for="group in groups" :key="group" :label="group"><el-option v-for="item in catalog.filter(x => x.group === group)" :key="item.key" :label="item.name" :value="item.key" /></el-option-group></el-select></div>
       <h3>按用户授权</h3>
-      <DataTable table-key="identity-module-users" :load-page="tableQueries.users(moduleKey)" :query-context="moduleKey" :data="users"><el-table-column prop="userName" label="用户" /><el-table-column column-key="directModuleGrant" :table-value="tableValues.directModuleGrant" label="直接授权"><template #default="{ row }"><el-switch :model-value="expand(row.permissions).includes(moduleKey)" :disabled="busy || row.roles.includes('Administrator') || !hasPermission(moduleKey)" @change="(v: string | number | boolean) => toggleModule(row, false, Boolean(v))" /></template></el-table-column><el-table-column column-key="effectiveModuleGrant" :table-value="tableValues.effectiveModuleGrant" label="最终访问权限"><template #default="{ row }"><el-tag :type="row.effectivePermissions.includes(moduleKey) ? 'success' : 'info'">{{ row.effectivePermissions.includes(moduleKey) ? '可访问' : '未授权' }}</el-tag></template></el-table-column></DataTable>
+      <DataTable table-key="identity-module-users" :filter-schema="tableFilterSchemas.moduleUsers" :load-page="tableQueries.users(moduleKey)" :query-context="moduleKey" :data="users"><el-table-column prop="userName" label="用户" /><el-table-column column-key="directModuleGrant" :table-value="tableValues.directModuleGrant" label="直接授权"><template #default="{ row }"><el-switch :model-value="expand(row.permissions).includes(moduleKey)" :disabled="busy || row.roles.includes('Administrator') || !hasPermission(moduleKey)" @change="(v: string | number | boolean) => toggleModule(row, false, Boolean(v))" /></template></el-table-column><el-table-column column-key="effectiveModuleGrant" :table-value="tableValues.effectiveModuleGrant" label="最终访问权限"><template #default="{ row }"><el-tag :type="row.effectivePermissions.includes(moduleKey) ? 'success' : 'info'">{{ row.effectivePermissions.includes(moduleKey) ? '可访问' : '未授权' }}</el-tag></template></el-table-column></DataTable>
       <h3>按角色授权</h3>
-      <DataTable table-key="identity-module-roles" :load-page="tableQueries.roles(moduleKey)" :query-context="moduleKey" :data="roles"><el-table-column prop="name" label="角色" /><el-table-column column-key="roleModuleGrant" :table-value="tableValues.roleModuleGrant" label="授予业务权限"><template #default="{ row }"><el-switch :model-value="row.name === 'Administrator' || expand(row.permissions).includes(moduleKey)" :disabled="busy || row.name === 'Administrator' || !hasPermission(moduleKey)" @change="(v: string | number | boolean) => toggleModule(row, true, Boolean(v))" /></template></el-table-column></DataTable>
+      <DataTable table-key="identity-module-roles" :filter-schema="tableFilterSchemas.moduleRoles" :load-page="tableQueries.roles(moduleKey)" :query-context="moduleKey" :data="roles"><el-table-column prop="name" label="角色" /><el-table-column column-key="roleModuleGrant" :table-value="tableValues.roleModuleGrant" label="授予业务权限"><template #default="{ row }"><el-switch :model-value="row.name === 'Administrator' || expand(row.permissions).includes(moduleKey)" :disabled="busy || row.name === 'Administrator' || !hasPermission(moduleKey)" @change="(v: string | number | boolean) => toggleModule(row, true, Boolean(v))" /></template></el-table-column></DataTable>
     </div>
     <div v-if="page === 'permissions' && permissionTab === 'menus'" class="study-card" v-loading="busy">
       <el-alert title="菜单访问权与业务权限分别配置；授予菜单不会自动授予接口权限。" type="info" :closable="false" />

@@ -179,6 +179,7 @@ export interface Account {
   userName: string;
   email: string;
   roles: string[];
+  roleIds: string[];
   permissions: string[];
   effectivePermissions: string[];
   menuCodes: string[];

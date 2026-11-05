@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DataTable from "../../components/DataTable";
+import { tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -224,7 +225,7 @@ const tableValues = {
               >
             </div>
           </div>
-          <DataTable table-key="knowledge-sources" :load-page="tableQueries.sources(selected!.id)" :query-context="selected?.id ?? ''" :data="sources"
+          <DataTable table-key="knowledge-sources" :filter-schema="tableFilterSchemas.sources" :load-page="tableQueries.sources(selected!.id)" :query-context="selected?.id ?? ''" :data="sources"
             >
             <template #actions><el-button type="primary" @click="run(() => editSource())">上传资料 / 手动补充</el-button></template>
             <el-table-column

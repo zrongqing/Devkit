@@ -43,7 +43,7 @@ internal sealed class AccountAdministration(ApplicationDbContext db, UserProfile
             var effective = roles.Any(x => x.Name == "Administrator") ? PermissionCatalog.All : PermissionCatalog.Expand(direct.Concat(roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue)));
             return new AccountView(user.Id, user.UserName, user.Email, roles.Select(x => x.Name).ToArray(), direct, effective,
                 user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue).Distinct().ToArray(),
-                roles.Any(x => x.Name == "Administrator") ? allMenus : user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue).Concat(roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue)).Distinct().ToArray());
+                roles.Any(x => x.Name == "Administrator") ? allMenus : user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue).Concat(roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue)).Distinct().ToArray()) { RoleIds = roles.Select(x => x.Id).ToArray() };
         }).ToArray();
     }
     public async Task<IReadOnlyList<RoleView>> RolesAsync(AuthorizationSubject actor, CancellationToken ct)
