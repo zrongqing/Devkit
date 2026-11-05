@@ -203,6 +203,7 @@ public class ApiUpdateServer : IApiUpdateServer
                 .Where(entity => request.LookupKind == ApiLookupKind.Code
                                      ? entity.STR_CODE == request.Identifier
                                      : entity.STR_NAME == request.Identifier)
+                .Where(entity => entity.IS_DELETE == 0)
                 .Select(entity => entity.ID)
                 .ToList();
 
