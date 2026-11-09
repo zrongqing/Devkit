@@ -43,13 +43,23 @@ docker compose up -d --build
 
 `web/nginx.conf` 作为 `/etc/nginx/templates/default.conf.template` 挂载，由官方 Nginx 镜像入口脚本替换上游环境变量。Docker DNS 在请求时解析，网关可以先于 API 启动，API 重建更换地址后也会重新解析。三个 API 的 Swagger 仍分别位于其独立端口，未进行 OpenAPI 聚合。
 
-## Redis / Qdrant 镜像策略
+## Nginx / Redis / Qdrant 镜像策略
 
-默认使用官方 `redis:latest`、`qdrant/qdrant:latest`。可在 `.env` 覆盖 `DEVKIT_REDIS_IMAGE`、`DEVKIT_QDRANT_IMAGE` 来固定版本。`latest` 是可移动标签，不会后台替换正在运行的容器；更新时显式拉取并重建：
+2026-11-10 按当前运行容器的实际镜像固化以下基线；Compose 默认使用仓库 digest，不再跟随 `latest` 或 `stable-alpine` 浮动标签。
+
+| 服务 | 实际版本 | 固定镜像 |
+| --- | --- | --- |
+| Nginx | 1.30.5（Alpine） | `nginx@sha256:985220252f3863977e468f611ef118ebd01421289dd86ee1ae99cb068c3bce2b` |
+| Redis | 8.10.2 | `redis@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6` |
+| Qdrant | 1.19.2 | `qdrant/qdrant@sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad` |
+
+`.env.example` 与 Compose 默认值保持一致。已有 `.env` 中的 `DEVKIT_REDIS_IMAGE`、`DEVKIT_QDRANT_IMAGE` 会覆盖默认值；如仍为浮动标签，应删除该覆盖或改为上述 digest。自研服务仍使用本地构建标签 `local`，不属于本次三个运行容器的固化范围。
+
+升级时先核对目标版本与兼容性，更新 `compose.yaml`、`.env.example` 及本页基线；存在 `.env` 覆盖时同步更新。然后显式拉取并重建（仅 pull 原 digest 不会升级）：
 
 ```powershell
-docker compose pull redis qdrant
-docker compose up -d redis qdrant
+docker compose pull nginx redis qdrant
+docker compose up -d --no-deps nginx redis qdrant
 ```
 
 VS 调试模式下，up 命令继续同时指定两个 Compose 文件。升级前备份持久化数据并核对实际版本；Qdrant 跨次版本升级按[官方升级顺序](https://qdrant.tech/documentation/operations/upgrades/)执行，避免跳过要求的中间版本。Redis 镜像标签见[官方镜像说明](https://hub.docker.com/_/redis)，Qdrant 的 latest 配置见[官方安装说明](https://qdrant.tech/documentation/installation/)。

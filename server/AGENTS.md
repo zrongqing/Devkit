@@ -3,6 +3,7 @@
 - `server` 是服务端根目录，业务源码位于 `server/src`，解决方案入口为 `server/Devkit.Server.slnx`。
 - 服务端开发文档默认写入 `server/docs`；用户明确指定其他位置时按用户要求执行，不主动迁移已有文档。
 - 开始服务端任务前读取仓库根目录的 `.agents/harness/server.md`。
+- 处理 WMS（制造业仓储管理系统）任务时，先读取 [WMS 协作规则](docs/projects/wms/AGENTS.md)。WMS 专题文档统一写入 `server/docs/projects/wms/`。
 - 分层依赖只允许 `Api -> Infrastructure -> Application -> Domain`；Domain 不依赖任何基础设施。
 - HTTP 契约在 `Api/Contracts` 与 OpenAPI 端点中维护；修改后同步通知 Web 与 Desktop。
 - 新增持久化实现必须先保留 Domain 抽象。

@@ -2,7 +2,8 @@ name: devkit
 
 services:
   nginx:
-    image: nginx:stable-alpine
+    # Nginx 1.30.5 (Alpine); pin the currently verified image content.
+    image: nginx@sha256:985220252f3863977e468f611ef118ebd01421289dd86ee1ae99cb068c3bce2b
     restart: unless-stopped
     ports:
       - "${DEVKIT_WEB_HOST_IP:-127.0.0.1}:${DEVKIT_WEB_HOST_PORT:-8081}:80"
@@ -168,7 +169,8 @@ services:
       - "host.docker.internal:host-gateway"
 
   redis:
-    image: ${DEVKIT_REDIS_IMAGE:-redis:latest}
+    # Redis 8.10.2; update the digest deliberately when upgrading.
+    image: ${DEVKIT_REDIS_IMAGE:-redis@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6}
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
@@ -191,7 +193,8 @@ services:
         max-file: "3"
 
   qdrant:
-    image: ${DEVKIT_QDRANT_IMAGE:-qdrant/qdrant:latest}
+    # Qdrant 1.19.2; update the digest deliberately when upgrading.
+    image: ${DEVKIT_QDRANT_IMAGE:-qdrant/qdrant@sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad}
     restart: unless-stopped
     ports:
       - "127.0.0.1:${DEVKIT_QDRANT_HTTP_PORT:-6333}:6333"

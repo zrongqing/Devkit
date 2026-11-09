@@ -109,4 +109,4 @@ docker compose down
 
 普通更新不要使用 `down --volumes`，该选项会删除命名卷中的持久化数据。Application 的 readiness 检查数据库和 Redis；FileStorage 的 readiness 检查文件数据库与身份服务；Business 的 readiness 检查业务数据库、身份服务与文件服务依赖。API 不会自动执行数据库迁移。
 
-Nginx 现在默认启用，Compose 项目固定命名为 `devkit`。配置以官方模板机制注入上游地址，Docker DNS 在请求时解析，因此 API 容器尚未启动或重建更换 IP 时无需手动改网关。Redis、Qdrant 默认使用 `latest`，可通过 `DEVKIT_REDIS_IMAGE`、`DEVKIT_QDRANT_IMAGE` 覆盖；标签不会自动更新运行容器，需要显式 pull 和 up。详见 [统一网关与 Docker 维护](统一网关与Docker维护.md)。
+Nginx 现在默认启用，Compose 项目固定命名为 `devkit`。配置以官方模板机制注入上游地址，Docker DNS 在请求时解析，因此 API 容器尚未启动或重建更换 IP 时无需手动改网关。Nginx 1.30.5、Redis 8.10.2、Qdrant 1.19.2 默认通过 digest 锁定镜像内容；Redis、Qdrant 仍可通过 `DEVKIT_REDIS_IMAGE`、`DEVKIT_QDRANT_IMAGE` 显式覆盖。升级需先更新镜像引用，再 pull 和 up。详见 [统一网关与 Docker 维护](统一网关与Docker维护.md)。
