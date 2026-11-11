@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Devkit.Application.Infrastructure.Authorization;
 
-public sealed class CurrentIdentity(ApplicationDbContext db, IHttpContextAccessor context, WebMenuService menus) : ICurrentIdentity
+public sealed class CurrentIdentity(ApplicationDbContext db, IHttpContextAccessor context, WebMenuService menus, DeploymentPermissions catalog) : ICurrentIdentity
 {
     private AuthorizationSubject? cached;
     public async Task<AuthorizationSubject> CurrentAsync(CancellationToken ct = default)
@@ -25,11 +25,11 @@ public sealed class CurrentIdentity(ApplicationDbContext db, IHttpContextAccesso
             ?? throw new IdentityException(401, "unauthorized", "账号已不可用。");
         var roles = user.UserRoles.Where(x => !x.IsDeleted && !x.Role.IsDeleted).Select(x => x.Role).ToArray();
         var admin = roles.Any(x => x.Name == "Administrator");
-        return cached = new AuthorizationSubject(id, admin, admin ? PermissionCatalog.All : PermissionCatalog.Expand(roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue).Concat(user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue))), admin ? menuSnapshot.Menus.Where(x => x.Type == "module").Select(x => x.MenuCode).ToArray() : roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue).Concat(user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue)).Distinct().ToArray());
+        return cached = new AuthorizationSubject(id, admin, admin ? catalog.All : PermissionCatalog.Expand(roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue).Concat(user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue))), admin ? menuSnapshot.Menus.Where(x => x.Type == "module").Select(x => x.MenuCode).ToArray() : roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue).Concat(user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue)).Distinct().ToArray());
     }
 }
 
-internal sealed class AccountAdministration(ApplicationDbContext db, UserProfileCache cache, WebMenuService menus) : IAccountAdministration
+internal sealed class AccountAdministration(ApplicationDbContext db, UserProfileCache cache, WebMenuService menus, DeploymentPermissions catalog) : IAccountAdministration
 {
     public async Task<IReadOnlyList<AccountView>> UsersAsync(AuthorizationSubject actor, CancellationToken ct)
     {
@@ -40,7 +40,7 @@ internal sealed class AccountAdministration(ApplicationDbContext db, UserProfile
         {
             var roles = user.UserRoles.Where(x => !x.IsDeleted && !x.Role.IsDeleted).Select(x => x.Role).ToArray();
             var direct = user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue).Distinct().ToArray();
-            var effective = roles.Any(x => x.Name == "Administrator") ? PermissionCatalog.All : PermissionCatalog.Expand(direct.Concat(roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue)));
+            var effective = roles.Any(x => x.Name == "Administrator") ? catalog.All : PermissionCatalog.Expand(direct.Concat(roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue)));
             return new AccountView(user.Id, user.UserName, user.Email, roles.Select(x => x.Name).ToArray(), direct, effective,
                 user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue).Distinct().ToArray(),
                 roles.Any(x => x.Name == "Administrator") ? allMenus : user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue).Concat(roles.SelectMany(x => x.RoleClaims).Where(x => !x.IsDeleted && x.ClaimType == WebMenuService.ClaimType).Select(x => x.ClaimValue)).Distinct().ToArray()) { RoleIds = roles.Select(x => x.Id).ToArray() };
@@ -50,7 +50,7 @@ internal sealed class AccountAdministration(ApplicationDbContext db, UserProfile
     {
         actor.RequireAny("system.roles.manage", "system.users.manage", "system.permissions.manage");
         var allMenus = (await menus.SnapshotAsync(ct)).Menus.Where(x => x.Type == "module").Select(x => x.MenuCode).ToArray();
-        return (await db.Roles.Include(x => x.RoleClaims).ToListAsync(ct)).Select(x => new RoleView(x.Id, x.Name, x.Name == "Administrator" ? PermissionCatalog.All : x.RoleClaims.Where(c => !c.IsDeleted && c.ClaimType == "permission").Select(c => c.ClaimValue).ToArray(), x.Name == "Administrator" ? allMenus : x.RoleClaims.Where(c => !c.IsDeleted && c.ClaimType == WebMenuService.ClaimType).Select(c => c.ClaimValue).Distinct().ToArray())).ToArray();
+        return (await db.Roles.Include(x => x.RoleClaims).ToListAsync(ct)).Select(x => new RoleView(x.Id, x.Name, x.Name == "Administrator" ? catalog.All : x.RoleClaims.Where(c => !c.IsDeleted && c.ClaimType == "permission").Select(c => c.ClaimValue).ToArray(), x.Name == "Administrator" ? allMenus : x.RoleClaims.Where(c => !c.IsDeleted && c.ClaimType == WebMenuService.ClaimType).Select(c => c.ClaimValue).Distinct().ToArray())).ToArray();
     }
     public async Task<Guid> CreateAsync(AuthorizationSubject actor, AccountRequest r, CancellationToken ct)
     {
@@ -83,7 +83,7 @@ internal sealed class AccountAdministration(ApplicationDbContext db, UserProfile
     public async Task<Guid> SaveRoleAsync(AuthorizationSubject actor, Guid? id, RoleRequest r, CancellationToken ct)
     {
         actor.RequireAny("system.roles.manage", "system.permissions.manage");
-        if (string.IsNullOrWhiteSpace(r.Name) || r.Permissions is null || r.Name.Length > 100 || r.Permissions.Except(PermissionCatalog.All).Any()) throw new IdentityException(400, "invalid_role", "角色名称或权限无效。");
+        if (string.IsNullOrWhiteSpace(r.Name) || r.Permissions is null || r.Name.Length > 100 || r.Permissions.Except(catalog.All).Any()) throw new IdentityException(400, "invalid_role", "角色名称或权限无效。");
         var role = id.HasValue ? await db.Roles.Include(x => x.RoleClaims).SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw new IdentityException(404, "not_found", "角色不存在。") : new Role();
         if (role.Name == "Administrator" || r.Name.Trim().Equals("Administrator", StringComparison.OrdinalIgnoreCase)) throw new IdentityException(409, "builtin_role", "内置管理员角色拥有全部权限，不能编辑。");
         EnsureCanGrant(actor, r.Permissions.Concat(role.RoleClaims.Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue)));
@@ -179,7 +179,7 @@ internal sealed class AccountAdministration(ApplicationDbContext db, UserProfile
     public async Task AssignPermissionsAsync(AuthorizationSubject actor, Guid userId, string[] permissions, CancellationToken ct)
     {
         actor.Require("system.permissions.manage");
-        if (permissions is null || permissions.Except(PermissionCatalog.All).Any())
+        if (permissions is null || permissions.Except(catalog.All).Any())
             throw new IdentityException(400, "invalid_permission", "权限列表包含无效权限。");
         var user = await EditableUserAsync(actor, userId, ct);
         EnsureCanGrant(actor, permissions.Concat(user.UserClaims.Where(x => !x.IsDeleted && x.ClaimType == "permission").Select(x => x.ClaimValue)));

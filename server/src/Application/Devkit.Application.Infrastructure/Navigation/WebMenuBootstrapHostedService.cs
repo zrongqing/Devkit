@@ -9,7 +9,7 @@ internal sealed class WebMenuBootstrapHostedService(IServiceScopeFactory scopes)
     public async Task StartAsync(CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<WebMenuService>().SnapshotAsync(ct);
+        await scope.ServiceProvider.GetRequiredService<WebMenuService>().InitializeAsync(ct);
     }
     public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
 }

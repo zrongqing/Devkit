@@ -83,7 +83,7 @@ public sealed class SharedDatabaseMigrationTests
             var modelTables = context.GetService<IDesignTimeModel>().Model.GetRelationalModel().Tables.ToArray();
             var tableMigrations = migrations.Where(m => m.UpOperations.Any(operation => operation is CreateTableOperation)).ToArray();
             var created = migrations.SelectMany(m => m.UpOperations).OfType<CreateTableOperation>().ToArray();
-            var dropped = tableMigrations.SelectMany(m => m.DownOperations).Select(operation => Assert.IsType<DropTableOperation>(operation)).ToArray();
+            var dropped = tableMigrations.SelectMany(m => m.DownOperations).Where(operation => operation is not DropForeignKeyOperation).Select(operation => Assert.IsType<DropTableOperation>(operation)).ToArray();
             Assert.Equal(modelTables.Select(t => t.Name).Order(), created.Select(t => t.Name).Order());
             Assert.Equal(created.Select(t => t.Name).Order(), dropped.Select(t => t.Name).Order());
             // Express the new schema directly, without historical table-adoption SQL.
@@ -107,7 +107,7 @@ public sealed class SharedDatabaseMigrationTests
                 Assert.All(index.Columns, column => Assert.Contains(table.Columns, c => c.Name == column));
             }
         }
-        Assert.Equal(33, allTables.Count);
+        Assert.Equal(38, allTables.Count);
     }
 
     [Fact]

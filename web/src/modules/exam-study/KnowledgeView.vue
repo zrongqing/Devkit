@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageDialog from '../../components/PageDialog.vue'
 import DataTable from "../../components/DataTable";
 import { tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
@@ -273,11 +274,10 @@ const tableValues = {
         <el-empty description="选择知识库，开始整理你的制度资料" />
       </div>
     </div>
-    <el-dialog
+    <PageDialog
       v-model="baseDialog"
       title="知识库信息"
-      width="min(540px,94vw)"
-      append-to-body
+      :width="540"
       ><el-form label-position="top" class="study-form"
         ><el-form-item label="名称"
           ><el-input v-model="baseForm.name" maxlength="200" /></el-form-item
@@ -295,13 +295,12 @@ const tableValues = {
         ><el-button type="primary" :loading="busy" @click="saveBase"
           >保存</el-button
         ></template
-      ></el-dialog
+      ></PageDialog
     >
-    <el-dialog
+    <PageDialog
       v-model="sourceDialog"
       :title="sourceEditing ? '更新资料 · 保留旧版本' : '丰富知识库'"
-      width="min(720px,96vw)"
-      append-to-body
+      :width="720"
       ><el-form label-position="top"
         ><el-form-item label="标题"
           ><el-input v-model="sourceForm.title" maxlength="200" /></el-form-item
@@ -334,7 +333,7 @@ const tableValues = {
         ><el-button type="primary" :loading="busy" @click="saveSource"
           >保存并建立索引</el-button
         ></template
-      ></el-dialog
+      ></PageDialog
     >
     <el-drawer
       v-model="previewOpen"

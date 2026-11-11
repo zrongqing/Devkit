@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageDialog from '../../components/PageDialog.vue'
 import DataTable from "../../components/DataTable";
 import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from "vue";
@@ -140,11 +141,10 @@ const tableValues = {
     <div v-else class="study-card study-empty" v-loading="busy">
       <el-empty description="请选择项目；项目及关联资料可在项目管理中维护" />
     </div>
-    <el-dialog
+    <PageDialog
       v-model="dialog"
       title="项目管理"
-      width="min(620px,94vw)"
-      append-to-body
+      :width="620"
       ><el-form label-position="top"
         ><el-form-item label="项目名称"
           ><el-input v-model="form.name" maxlength="200" /></el-form-item
@@ -181,7 +181,7 @@ const tableValues = {
         ><el-button type="primary" :loading="busy" @click="save"
           >保存</el-button
         ></template
-      ></el-dialog
+      ></PageDialog
     >
   </main>
 </template>

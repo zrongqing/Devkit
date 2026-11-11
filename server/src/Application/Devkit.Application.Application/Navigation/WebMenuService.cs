@@ -8,6 +8,7 @@ namespace Devkit.Application.Application.Navigation;
 public sealed class WebMenuService(IWebMenuStore store, IWebMenuDefaults defaults)
 {
     public const string ClaimType = "menu:web";
+    private const string CodeRulesMenu = "system.coderules";
     private static readonly string[] EditableFields = ["title", "parentCode", "iconKey", "order"];
     private static IdentityException Invalid(string message) => new(400, "invalid_menu", message);
     private static IdentityException Conflict() => new(409, "menu_conflict", "菜单已变更，请重新比较或刷新。");
@@ -19,12 +20,39 @@ public sealed class WebMenuService(IWebMenuStore store, IWebMenuDefaults default
         var menus = defaults.Create();
         ValidateTree(menus); Protect(menus);
         var grants = PermissionCatalog.All.ToDictionary(p => p, p => menus
-            .Where(m => m.Type == "module" && m.MenuCode != "system.menus" && !m.IsPublic
+            .Where(m => m.Type == "module" && m.MenuCode is not ("system.menus" or CodeRulesMenu) && !m.IsPublic
                 && JsonData.Read<string[]>(m.RequiredPermissionsJson).All(PermissionCatalog.Expand([p]).Contains))
             .Select(m => m.MenuCode).ToArray());
         try { await store.CommitAsync(0, menus, grants, ct); }
         catch (IdentityException e) when (e.Code == "menu_conflict") { /* Another request initialized the same database. */ }
         return await store.ReadAsync(ct);
+    }
+
+    // A host upgrade installs the new built-in page once. User-edited menus and grants stay authoritative.
+    public async Task InitializeAsync(CancellationToken ct)
+    {
+        var snapshot = await SnapshotAsync(ct);
+        if (snapshot.Menus.Any(m => m.MenuCode == CodeRulesMenu)) return;
+        var configured = defaults.Create().ToDictionary(m => m.MenuCode);
+        if (!configured.TryGetValue(CodeRulesMenu, out var page)) return;
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            var menus = snapshot.Menus.ToDictionary(m => m.MenuCode);
+            if (menus.ContainsKey(CodeRulesMenu) || menus.Values.Any(m => m.RouteKey == page.RouteKey)) return;
+            var addition = page;
+            while (menus.TryAdd(addition.MenuCode, addition) && addition.ParentCode is { } parent && !menus.ContainsKey(parent))
+                addition = configured[parent];
+            try
+            {
+                await store.CommitAsync(snapshot.Version, menus.Values.ToArray(), null, ct);
+                return;
+            }
+            catch (IdentityException e) when (e.Code == "menu_conflict")
+            {
+                snapshot = await store.ReadAsync(ct);
+            }
+        }
     }
 
     public async Task<MenuTreeView> ListAsync(AuthorizationSubject actor, CancellationToken ct)

@@ -5,4 +5,5 @@ public abstract class ServiceException(int status, string code, string message) 
 {
     public int Status { get; } = status;
     public string Code { get; } = code;
+    public string? Field { get; init; }
 }

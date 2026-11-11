@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageDialog from '../../components/PageDialog.vue'
 import DataTable from "../../components/DataTable";
 import type { TableFilterSchema } from "../../components/tablePresentation";
 import { tableFilterSchemas } from "../../api/queryOptions";
@@ -173,11 +174,11 @@ const tableValues = {
       <el-tab-pane label="菜单访问权限" name="menus" />
     </el-tabs>
     <div v-if="page === 'users' || page === 'permissions' && ['user-roles', 'user-permissions'].includes(permissionTab)" class="study-card" v-loading="busy">
-      <el-dialog v-model="disabledDialog" title="已停用账号" width="min(680px, 94vw)">
+      <PageDialog v-model="disabledDialog" title="已停用账号" :width="680">
         <DataTable v-if="disabledDialog" table-key="identity-disabled-users" :load-page="tableQueries.disabledUsers" :data="disabledUsers" empty-text="暂无停用账号"><el-table-column prop="userName" label="账号" /><el-table-column prop="email" label="邮箱" />
           <el-table-column column-key="actions" v-if="permissions?.administrator" label="操作"><template #default="{row}"><el-button link type="primary" :disabled="busy" @click="restoreUser(row)">恢复账号</el-button></template></el-table-column>
         </DataTable>
-      </el-dialog>
+      </PageDialog>
       <DataTable table-key="identity-users" :filter-schema="userFilterSchema" :load-page="tableQueries.users()" :query-context="page + permissionTab" :data="users">
         <template v-if="page === 'users'" #actions><el-button @click="showDisabled">已停用账号</el-button><el-button type="primary" @click="editUser()">创建用户</el-button></template>
         <el-table-column prop="userName" label="账号" min-width="120" />
@@ -215,21 +216,21 @@ const tableValues = {
       <DataTable table-key="identity-menu-roles" :load-page="tableQueries.roles()" :data="roles"><el-table-column prop="name" label="角色" /><el-table-column column-key="roleMenuCount" :table-value="tableValues.roleMenuCount" label="授权数量"><template #default="{ row }">{{ row.menuCodes.length }}</template></el-table-column><el-table-column column-key="actions" label="操作"><template #default="{ row }"><el-button v-if="row.name !== 'Administrator'" link type="primary" @click="editRoleMenus(row)">配置菜单</el-button><span v-else>全部菜单</span></template></el-table-column></DataTable>
     </div>
     <MenuGrantDialog v-if="menuTarget" :target="menuTarget" :permission-names="permissionNames" @close="menuTarget = undefined" @saved="menusSaved" />
-    <el-dialog v-model="userDialog" :title="editingUser ? '编辑用户信息' : '创建用户'" width="min(560px,94vw)" append-to-body>
+    <PageDialog v-model="userDialog" :title="editingUser ? '编辑用户信息' : '创建用户'">
       <el-form label-position="top"><el-form-item label="账号"><el-input v-model="userForm.userName" maxlength="100" /></el-form-item><el-form-item label="邮箱"><el-input v-model="userForm.email" /></el-form-item><template v-if="!editingUser"><el-form-item label="初始密码"><el-input v-model="userForm.password" type="password" show-password autocomplete="new-password" placeholder="至少12位，包含大写、小写和数字" /></el-form-item><el-form-item v-if="canAssign" label="初始角色"><el-select v-model="userForm.roleIds" multiple style="width: 100%"><el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" :disabled="!canGrantRole(r)" /></el-select></el-form-item></template></el-form>
       <template #footer><el-button @click="userDialog = false">取消</el-button><el-button type="primary" :loading="busy" @click="saveUser">保存</el-button></template>
-    </el-dialog>
-    <el-dialog v-model="roleDialog" :title="editingRole ? '编辑角色与权限' : '新建角色'" width="min(680px,94vw)" append-to-body>
+    </PageDialog>
+    <PageDialog v-model="roleDialog" :title="editingRole ? '编辑角色与权限' : '新建角色'" :width="680">
       <el-form label-position="top"><el-form-item label="角色名称"><el-input v-model="roleForm.name" maxlength="100" /></el-form-item></el-form>
       <el-checkbox-group v-model="roleForm.permissions"><section v-for="group in groups" :key="group" class="permission-group"><h4>{{ group }}</h4><el-checkbox v-for="item in catalog.filter(x => x.group === group)" :key="item.key" :value="item.key" :disabled="!hasPermission(item.key)">{{ item.name }}</el-checkbox></section></el-checkbox-group>
       <template #footer><el-button @click="roleDialog = false">取消</el-button><el-button type="primary" :loading="busy" @click="saveRole">保存</el-button></template>
-    </el-dialog>
-    <el-dialog v-model="assignDialog" :title="'用户角色 · ' + selected?.userName" width="min(540px,94vw)" append-to-body><el-select v-model="roleIds" multiple placeholder="选择角色" style="width: 100%"><el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" :disabled="!canGrantRole(r)" /></el-select><template #footer><el-button @click="assignDialog = false">取消</el-button><el-button type="primary" :loading="busy" @click="saveRoles">保存</el-button></template></el-dialog>
-    <el-dialog v-model="permissionDialog" :title="'用户直接权限 · ' + selected?.userName" width="min(680px,94vw)" append-to-body>
+    </PageDialog>
+    <PageDialog v-model="assignDialog" :title="'用户角色 · ' + selected?.userName" :width="540"><el-select v-model="roleIds" multiple placeholder="选择角色" style="width: 100%"><el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" :disabled="!canGrantRole(r)" /></el-select><template #footer><el-button @click="assignDialog = false">取消</el-button><el-button type="primary" :loading="busy" @click="saveRoles">保存</el-button></template></PageDialog>
+    <PageDialog v-model="permissionDialog" :title="'用户直接权限 · ' + selected?.userName" :width="680">
       <p class="study-muted">此处仅修改直接授权，角色继承的权限请在角色授权中调整。</p>
       <el-checkbox-group v-model="directPermissions"><section v-for="group in groups" :key="group" class="permission-group"><h4>{{ group }}</h4><el-checkbox v-for="item in catalog.filter(x => x.group === group)" :key="item.key" :value="item.key" :disabled="!hasPermission(item.key)">{{ item.name }}</el-checkbox></section></el-checkbox-group>
       <template #footer><el-button @click="permissionDialog = false">取消</el-button><el-button type="primary" :loading="busy" @click="savePermissions">保存</el-button></template>
-    </el-dialog>
+    </PageDialog>
   </main>
 </template>
 <style scoped>

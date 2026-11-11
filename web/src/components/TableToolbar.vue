@@ -21,7 +21,8 @@ function command(value: string) {
 <template>
   <div class="data-table-tools">
     <div class="data-table-toolbar">
-      <div v-if="$slots.filters || $slots.query" class="data-table-toolbar__query">
+      <div v-if="$slots.actions || $slots.filters || $slots.query" class="data-table-toolbar__query">
+        <slot name="actions" />
         <slot name="filters" />
         <slot name="query" />
       </div>
@@ -36,7 +37,6 @@ function command(value: string) {
             <el-dropdown-item command="reset" divided>重置表格</el-dropdown-item>
           </el-dropdown-menu></template>
         </el-dropdown>
-        <slot name="actions" />
       </div>
     </div>
     <div v-if="tags.length" class="data-table-filter-tags">

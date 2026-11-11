@@ -22,6 +22,303 @@ namespace Devkit.Business.Infrastructure.Persistence.Migrations.SqlServer
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Devkit.Business.Domain.CodeSystem.CodeCounter", b =>
+                {
+                    b.Property<Guid>("RuleId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("rule_id");
+
+                    b.Property<string>("PeriodKey")
+                        .HasMaxLength(8)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(8)")
+                        .HasColumnName("period_key")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<long>("LastValue")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_value");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("RuleId", "PeriodKey")
+                        .HasName("pk_sys_code_counter");
+
+                    b.ToTable("sys_code_counter", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sys_code_counter_value", "last_value BETWEEN 1 AND 999999999999");
+                        });
+                });
+
+            modelBuilder.Entity("Devkit.Business.Domain.CodeSystem.CodeEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("actor_id");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("occurred_at_utc");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("reason");
+
+                    b.Property<long>("Revision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("revision");
+
+                    b.Property<Guid>("RuleId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("rule_id");
+
+                    b.Property<int?>("VersionNo")
+                        .HasColumnType("int")
+                        .HasColumnName("version_no");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sys_code_event");
+
+                    b.HasIndex("RuleId", "Revision")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_code_event_rule_id_revision");
+
+                    b.HasIndex("RuleId", "VersionNo")
+                        .HasDatabaseName("ix_sys_code_event_rule_id_version_no");
+
+                    b.HasIndex("RuleId", "OccurredAtUtc", "Id")
+                        .HasDatabaseName("ix_sys_code_event_rule_id_occurred_at_utc_id");
+
+                    b.ToTable("sys_code_event", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sys_code_event_action", "action IN ('create','save_draft','publish','disable','enable')");
+                        });
+                });
+
+            modelBuilder.Entity("Devkit.Business.Domain.CodeSystem.CodeIssue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("business_id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("code")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTime>("IssuedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("issued_at_utc");
+
+                    b.Property<Guid>("IssuedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("issued_by");
+
+                    b.Property<string>("PeriodKey")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(8)")
+                        .HasColumnName("period_key")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("request_id");
+
+                    b.Property<Guid>("RuleId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("rule_id");
+
+                    b.Property<long>("SequenceValue")
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence_value");
+
+                    b.Property<int>("VersionNo")
+                        .HasColumnType("int")
+                        .HasColumnName("version_no");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sys_code_issue");
+
+                    b.HasIndex("RuleId", "BusinessId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_code_issue_rule_id_business_id");
+
+                    b.HasIndex("RuleId", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_code_issue_rule_id_code");
+
+                    b.HasIndex("RuleId", "RequestId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_code_issue_rule_id_request_id");
+
+                    b.HasIndex("RuleId", "VersionNo")
+                        .HasDatabaseName("ix_sys_code_issue_rule_id_version_no");
+
+                    b.HasIndex("RuleId", "IssuedAtUtc", "Id")
+                        .HasDatabaseName("ix_sys_code_issue_rule_id_issued_at_utc_id");
+
+                    b.HasIndex("RuleId", "PeriodKey", "SequenceValue")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_code_issue_rule_id_period_key_sequence_value");
+
+                    b.ToTable("sys_code_issue", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sys_code_issue_value", "sequence_value BETWEEN 1 AND 999999999999");
+                        });
+                });
+
+            modelBuilder.Entity("Devkit.Business.Domain.CodeSystem.CodeRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<int?>("ActiveVersionNo")
+                        .HasColumnType("int")
+                        .HasColumnName("active_version_no");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("DraftJson")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("draft_json");
+
+                    b.Property<string>("ModuleKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("module_key")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("name");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("revision");
+
+                    b.Property<string>("RuleKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("rule_key")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sys_code_rule");
+
+                    b.HasIndex("RuleKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sys_code_rule_rule_key");
+
+                    b.HasIndex("Id", "ActiveVersionNo")
+                        .HasDatabaseName("ix_sys_code_rule_id_active_version_no");
+
+                    b.HasIndex("ModuleKey", "Status", "UpdatedAtUtc", "Id")
+                        .HasDatabaseName("ix_sys_code_rule_module_key_status_updated_at_utc_id");
+
+                    b.ToTable("sys_code_rule", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sys_code_rule_draft", "draft_json IS NULL OR ISJSON(draft_json) = 1");
+
+                            t.HasCheckConstraint("ck_sys_code_rule_revision", "revision >= 1");
+
+                            t.HasCheckConstraint("ck_sys_code_rule_status", "(status = 'unpublished' AND active_version_no IS NULL) OR (status IN ('enabled','disabled') AND active_version_no IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Devkit.Business.Domain.CodeSystem.CodeVersion", b =>
+                {
+                    b.Property<Guid>("RuleId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("rule_id");
+
+                    b.Property<int>("VersionNo")
+                        .HasColumnType("int")
+                        .HasColumnName("version_no");
+
+                    b.Property<string>("DefinitionJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("definition_json");
+
+                    b.Property<DateTime>("PublishedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("published_at_utc");
+
+                    b.Property<Guid>("PublishedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("published_by");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("reason");
+
+                    b.HasKey("RuleId", "VersionNo")
+                        .HasName("pk_sys_code_version");
+
+                    b.ToTable("sys_code_version", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sys_code_version_definition", "ISJSON(definition_json) = 1");
+
+                            t.HasCheckConstraint("ck_sys_code_version_number", "version_no >= 1");
+                        });
+                });
+
             modelBuilder.Entity("Devkit.Business.Domain.Modules.BufferedModuleCommand", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1138,6 +1435,68 @@ namespace Devkit.Business.Infrastructure.Persistence.Migrations.SqlServer
                         .HasDatabaseName("ix_workspace_job_status_lease_until_utc");
 
                     b.ToTable("workspace_job", (string)null);
+                });
+
+            modelBuilder.Entity("Devkit.Business.Domain.CodeSystem.CodeCounter", b =>
+                {
+                    b.HasOne("Devkit.Business.Domain.CodeSystem.CodeRule", null)
+                        .WithMany()
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_code_counter_sys_code_rule_rule_id");
+                });
+
+            modelBuilder.Entity("Devkit.Business.Domain.CodeSystem.CodeEvent", b =>
+                {
+                    b.HasOne("Devkit.Business.Domain.CodeSystem.CodeRule", null)
+                        .WithMany()
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_code_event_sys_code_rule_rule_id");
+
+                    b.HasOne("Devkit.Business.Domain.CodeSystem.CodeVersion", null)
+                        .WithMany()
+                        .HasForeignKey("RuleId", "VersionNo")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_sys_code_event_sys_code_version_rule_id_version_no");
+                });
+
+            modelBuilder.Entity("Devkit.Business.Domain.CodeSystem.CodeIssue", b =>
+                {
+                    b.HasOne("Devkit.Business.Domain.CodeSystem.CodeCounter", null)
+                        .WithMany()
+                        .HasForeignKey("RuleId", "PeriodKey")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_code_issue_sys_code_counter_rule_id_period_key");
+
+                    b.HasOne("Devkit.Business.Domain.CodeSystem.CodeVersion", null)
+                        .WithMany()
+                        .HasForeignKey("RuleId", "VersionNo")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_code_issue_sys_code_version_rule_id_version_no");
+                });
+
+            modelBuilder.Entity("Devkit.Business.Domain.CodeSystem.CodeRule", b =>
+                {
+                    b.HasOne("Devkit.Business.Domain.CodeSystem.CodeVersion", null)
+                        .WithMany()
+                        .HasForeignKey("Id", "ActiveVersionNo")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_sys_code_rule_sys_code_version_id_active_version_no");
+                });
+
+            modelBuilder.Entity("Devkit.Business.Domain.CodeSystem.CodeVersion", b =>
+                {
+                    b.HasOne("Devkit.Business.Domain.CodeSystem.CodeRule", null)
+                        .WithMany()
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sys_code_version_sys_code_rule_rule_id");
                 });
 
             modelBuilder.Entity("Devkit.Business.Domain.Workspace.KnowledgeChunk", b =>

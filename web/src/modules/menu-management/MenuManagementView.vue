@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageDialog from '../../components/PageDialog.vue'
 import DataTable from "../../components/DataTable";
 import { queryDictionaries, optionLabel, tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
@@ -136,14 +137,14 @@ const tableValues = {
         </div>
       </el-tab-pane>
     </el-tabs>
-    <el-dialog v-model="editOpen" :title="editing ? '编辑菜单配置' : '新增目录'" width="min(600px,94vw)" append-to-body>
+    <PageDialog v-model="editOpen" :title="editing ? '编辑菜单配置' : '新增目录'" :width="600">
       <el-form label-position="top"><el-form-item label="唯一编码"><el-input v-model="form.menuCode" :disabled="!!editing" maxlength="120" placeholder="使用小写业务编码，以点分段，每段以字母开头" /></el-form-item><el-form-item label="名称"><el-input v-model="form.title" maxlength="120" /></el-form-item><el-form-item label="父目录"><el-select v-model="form.parentCode" clearable placeholder="顶层菜单" style="width: 100%" :disabled="editing?.menuCode === 'home'"><el-option v-for="parent in parents" :key="parent.menuCode" :value="parent.menuCode" :label="`${parent.title}（${parent.menuCode}）`" /></el-select></el-form-item><el-form-item label="图标编码"><el-input v-model="form.iconKey" maxlength="80" placeholder="例如 book、settings、users、menu" /></el-form-item><el-form-item label="排序"><el-input-number v-model="form.order" :min="-100000" :max="100000" /></el-form-item><el-form-item v-if="editing" label="启用"><el-switch v-model="form.enabled" :disabled="protectedCodes.has(editing.menuCode)" /></el-form-item></el-form>
       <template #footer><el-button @click="editOpen = false">取消</el-button><el-button type="primary" :loading="busy" @click="save">保存</el-button></template>
-    </el-dialog>
-    <el-dialog v-model="detailOpen" :title="`菜单比较 · ${details?.menuCode ?? ''}`" width="min(960px,96vw)" append-to-body>
+    </PageDialog>
+    <PageDialog v-model="detailOpen" :title="`菜单比较 · ${details?.menuCode ?? ''}`" :width="960">
       <DataTable v-if="detailOpen" table-key="menu-field-comparison" :load-page="tableQueries.menuFields(menuManifest, details!.menuCode)" :query-context="details?.menuCode ?? ''" :data="fields"><el-table-column prop="name" label="字段" width="125" /><el-table-column column-key="localValue" :table-value="tableValues.localValue" label="前端默认值" min-width="180"><template #default="{ row }">{{ fieldValue(details?.local, row.key) }}</template></el-table-column><el-table-column column-key="lastSyncedValue" :table-value="tableValues.lastSyncedValue" label="上次同步值" min-width="180"><template #default="{ row }">{{ fieldValue(details?.current?.lastDeclaration, row.key) }}</template></el-table-column><el-table-column column-key="currentValue" :table-value="tableValues.currentValue" label="后台当前值" min-width="180"><template #default="{ row }">{{ fieldValue(details?.current, row.key) }}</template></el-table-column></DataTable>
       <p class="study-muted">后台自建目录不会被同步删除；当前前端缺失的模块可保留或在菜单配置中停用。</p>
-    </el-dialog>
+    </PageDialog>
   </main>
 </template>
 <style scoped>

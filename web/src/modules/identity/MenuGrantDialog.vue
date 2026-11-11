@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageDialog from '../../components/PageDialog.vue'
 import { computed, onMounted, ref } from 'vue'
 import { menuApi } from '../../api/menuManagement'
 import { hasMenuGrant } from '../../api/session'
@@ -38,7 +39,7 @@ async function save() {
 onMounted(() => { void run(async () => { menus.value = (await menuApi.list()).menus }) })
 </script>
 <template>
-  <el-dialog :model-value="true" :title="`菜单授权 · ${target.name}`" width="min(760px,94vw)" append-to-body @close="emit('close')">
+  <PageDialog :model-value="true" :title="`菜单授权 · ${target.name}`" :width="760" @update:model-value="emit('close')">
     <el-alert v-if="error" :title="error" type="error" :closable="false" class="study-error" />
     <p class="study-muted">{{ target.role ? '勾选目录会批量选择模块菜单。' : '此处仅编辑用户直接菜单授权；取消勾选不会移除角色继承权限。' }} 菜单授权不会自动改变业务权限，公共入口无需授权。</p>
     <el-tree ref="treeRef" v-loading="busy" :data="nodes" node-key="menuCode" :props="{ label: 'title', children: 'children', disabled: 'disabled' }" show-checkbox default-expand-all :default-checked-keys="target.menuCodes" @check="changed">
@@ -46,7 +47,7 @@ onMounted(() => { void run(async () => { menus.value = (await menuApi.list()).me
     </el-tree>
     <div v-if="missing.length" class="grant-missing"><strong>以下页面尚缺少业务权限</strong><p v-for="item in missing" :key="item.menu">{{ item.menu }}：{{ item.permissions.map(p => permissionNames[p] ?? p).join('、') }}</p><small>可以保存菜单授权；用户进入这些页面时会看到受限提示，请另行配置业务权限。</small></div>
     <template #footer><el-button @click="emit('close')">取消</el-button><el-button type="primary" :loading="busy" @click="save">保存菜单授权</el-button></template>
-  </el-dialog>
+  </PageDialog>
 </template>
 <style scoped>
 .grant-tag { margin-left: 8px; }

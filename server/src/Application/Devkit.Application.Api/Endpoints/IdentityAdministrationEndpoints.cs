@@ -25,7 +25,7 @@ public sealed class IdentityAdministrationEndpoints : IEndpointModule
         identity.MapPost("/roles/query", (HttpContext c, AdministrationPageService s, PageQuery q, string? module) => Run(c, a => s.RolesAsync(a, q, module, c.RequestAborted)));
         identity.MapPost("/users/disabled/query", (HttpContext c, AdministrationPageService s, PageQuery q) => Run(c, a => s.DisabledAsync(a, q, c.RequestAborted)));
         identity.MapGet("/users",(HttpContext c,IAccountAdministration s)=>Run(c,a=>s.UsersAsync(a,c.RequestAborted)));
-        identity.MapGet("/permissions", (HttpContext c, ICurrentIdentity access) => Run(c, a => { a.RequireAny("system.users.manage", "system.roles.manage", "system.permissions.manage"); return Task.FromResult(PermissionCatalog.Modules); }));
+        identity.MapGet("/permissions", (HttpContext c, ICurrentIdentity access, DeploymentPermissions catalog) => Run(c, a => { a.RequireAny("system.users.manage", "system.roles.manage", "system.permissions.manage"); return Task.FromResult(catalog.Modules); }));
         identity.MapPut("/users/{id:guid}", (HttpContext c, IAccountAdministration s, Guid id, AccountUpdateRequest r) => Run(c, a => s.UpdateAsync(a, id, r, c.RequestAborted)));
         identity.MapPut("/users/{id:guid}/permissions", (HttpContext c, IAccountAdministration s, Guid id, AssignPermissionsRequest r) => Run(c, a => s.AssignPermissionsAsync(a, id, r.Permissions, c.RequestAborted)));
         identity.MapPost("/users",(HttpContext c,IAccountAdministration s,AccountRequest r)=>Run(c,a=>s.CreateAsync(a,r,c.RequestAborted)));

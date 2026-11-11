@@ -1,32 +1,32 @@
 <Solution>
-  <Folder Name="/src/Commons/">
-    <Project Path="src/Commons/Devkit.AspNetCore/Devkit.AspNetCore.csproj" />
-    <Project Path="src/Commons/Devkit.Commons/Devkit.Commons.csproj" />
-    <Project Path="src/Commons/Devkit.DomainCommons/Devkit.DomainCommons.csproj" />
-    <Project Path="src/Commons/Devkit.Infrastructure/Devkit.Infrastructure.csproj" />
+  <Folder Name="/src/Application Common/">
+    <Project Path="D:/source/repos/github/Devkit/server/src/Commons/Devkit.AspNetCore/Devkit.AspNetCore.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Commons/Devkit.Commons/Devkit.Commons.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Commons/Devkit.DomainCommons/Devkit.DomainCommons.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Commons/Devkit.Infrastructure/Devkit.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Application/">
-    <Project Path="src/Application/Devkit.Application.Api/Devkit.Application.Api.csproj" />
-    <Project Path="src/Application/Devkit.Application.Application/Devkit.Application.Application.csproj" />
-    <Project Path="src/Application/Devkit.Application.Domain/Devkit.Application.Domain.csproj" />
-    <Project Path="src/Application/Devkit.Application.Infrastructure/Devkit.Application.Infrastructure.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Application/Devkit.Application.Api/Devkit.Application.Api.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Application/Devkit.Application.Application/Devkit.Application.Application.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Application/Devkit.Application.Domain/Devkit.Application.Domain.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Application/Devkit.Application.Infrastructure/Devkit.Application.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/Business/">
-    <Project Path="src/Business/Devkit.Business.Api/Devkit.Business.Api.csproj" />
-    <Project Path="src/Business/Devkit.Business.Application/Devkit.Business.Application.csproj" />
-    <Project Path="src/Business/Devkit.Business.Domain/Devkit.Business.Domain.csproj" />
-    <Project Path="src/Business/Devkit.Business.Infrastructure/Devkit.Business.Infrastructure.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Business/Devkit.Business.Api/Devkit.Business.Api.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Business/Devkit.Business.Application/Devkit.Business.Application.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Business/Devkit.Business.Domain/Devkit.Business.Domain.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/Business/Devkit.Business.Infrastructure/Devkit.Business.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/FileStorage/">
-    <Project Path="src/FileStorage/Devkit.FileStorage.Api/Devkit.FileStorage.Api.csproj" />
-    <Project Path="src/FileStorage/Devkit.FileStorage.Application/Devkit.FileStorage.Application.csproj" />
-    <Project Path="src/FileStorage/Devkit.FileStorage.Domain/Devkit.FileStorage.Domain.csproj" />
-    <Project Path="src/FileStorage/Devkit.FileStorage.Infrastructure/Devkit.FileStorage.Infrastructure.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/FileStorage/Devkit.FileStorage.Api/Devkit.FileStorage.Api.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/FileStorage/Devkit.FileStorage.Application/Devkit.FileStorage.Application.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/FileStorage/Devkit.FileStorage.Domain/Devkit.FileStorage.Domain.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/src/FileStorage/Devkit.FileStorage.Infrastructure/Devkit.FileStorage.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Devkit.Server.Api.IntegrationTests/Devkit.Server.Api.IntegrationTests.csproj" />
-    <Project Path="tests/Devkit.Server.Application.Tests/Devkit.Server.Application.Tests.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/tests/Devkit.Server.Api.IntegrationTests/Devkit.Server.Api.IntegrationTests.csproj" />
+    <Project Path="D:/source/repos/github/Devkit/server/tests/Devkit.Server.Application.Tests/Devkit.Server.Application.Tests.csproj" />
   </Folder>
   <Folder Name="/解决方案项/">
     <File Path="database.json" />

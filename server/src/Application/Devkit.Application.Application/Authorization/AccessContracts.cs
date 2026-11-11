@@ -41,10 +41,11 @@ public static class PermissionCatalog
         new("system.roles.manage", "角色管理", "系统管理", "system-roles"),
         new("system.permissions.manage", "权限管理", "系统管理", "system-identity")
     ];
-    public static readonly string[] All = ["exam-study.access", "system.identity.manage", .. Modules.Select(x => x.Key)];
+    public static readonly string[] All = ["exam-study.access", "system.identity.manage", Devkit.DomainCommons.Authorization.CodePermissions.MenuRead, .. Modules.Select(x => x.Key)];
     public static string[] Expand(IEnumerable<string> permissions)
     {
         var result = permissions.ToHashSet(StringComparer.Ordinal);
+        result.UnionWith(Devkit.DomainCommons.Authorization.CodePermissions.Expand(result.ToArray()));
         if (result.Contains("exam-study.access")) result.UnionWith(Modules.Where(x => x.Key.StartsWith("study.")).Select(x => x.Key));
         if (result.Contains("system.identity.manage")) result.UnionWith(["system.users.manage", "system.roles.manage", "system.permissions.manage"]);
         return result.ToArray();

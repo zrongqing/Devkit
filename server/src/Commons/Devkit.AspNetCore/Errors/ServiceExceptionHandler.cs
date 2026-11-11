@@ -21,8 +21,10 @@ public sealed class ServiceExceptionHandler : IExceptionHandler
             _ => null
         };
         if (failure is not { } error) return false;
+        var extensions = new Dictionary<string, object?> { ["code"] = error.Code, ["traceId"] = context.TraceIdentifier };
+        if (exception is ServiceException { Field: not null } validation) extensions["field"] = validation.Field;
         await Results.Problem(statusCode: error.Status, title: error.Message,
-            extensions: new Dictionary<string, object?> { ["code"] = error.Code, ["traceId"] = context.TraceIdentifier })
+            extensions: extensions)
             .ExecuteAsync(context);
         return true;
     }

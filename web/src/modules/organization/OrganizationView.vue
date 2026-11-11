@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageDialog from '../../components/PageDialog.vue'
 import DataTable from "../../components/DataTable";
 import { tableQueries } from "../../api/tableQueries";
 import { computed, onMounted, ref } from 'vue'
@@ -95,7 +96,7 @@ const tableValues = {
         </template>
       </el-card>
     </div>
-    <el-dialog :model-value="!!dialog" @close="dialog = ''" :title="dialog === 'member' ? '添加任职人员' : dialog === 'position' ? '职位信息' : '部门信息'" width="min(480px, 95vw)">
+    <PageDialog :model-value="!!dialog" @update:model-value="dialog = ''" :title="dialog === 'member' ? '添加任职人员' : dialog === 'position' ? '职位信息' : '部门信息'" :width="480">
       <el-form label-position="top" @submit.prevent="save">
         <el-form-item v-if="dialog === 'member'" :label="form.name"><el-select v-model="form.userId" filterable placeholder="选择人员">
           <el-option v-for="u in available" :key="u.id" :value="u.id" :label="u.name" />
@@ -110,7 +111,7 @@ const tableValues = {
       </el-form>
       <template #footer><el-button @click="dialog = ''">取消</el-button>
         <el-button type="primary" :loading="busy" :disabled="dialog === 'member' ? !form.userId : !form.name.trim()" @click="save">保存</el-button></template>
-    </el-dialog>
+    </PageDialog>
   </section>
 </template>
 <style scoped>

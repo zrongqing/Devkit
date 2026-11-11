@@ -63,8 +63,14 @@ button, input { font: inherit; }
 .permission-warning span { margin-right: auto; }
 .workspace-tabs { min-width: 0; min-height: 0; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .workspace-tabs > .el-tabs__header { flex: 0 0 auto; margin: 0; padding: 12px 18px 0; background: #fff; }
-.workspace-tabs > .el-tabs__content { min-width: 0; min-height: 0; flex: 1; overflow: auto; }
-.workspace-tabs > .el-tabs__content > .el-tab-pane { min-width: 0; min-height: 100%; width: 100%; padding: 24px; display: flex; flex-direction: column; }
+.workspace-tabs.el-tabs--card > .el-tabs__header .el-tabs__item.is-closable { padding-inline: 20px; }
+.workspace-tabs.el-tabs--card > .el-tabs__header .el-tabs__item .is-icon-close { width: 14px; flex-shrink: 0; transition: color .2s, background-color .2s; }
+.workspace-tab-label { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.workspace-tabs > .el-tabs__content { min-width: 0; min-height: 0; flex: 1; overflow: hidden; }
+.workspace-tabs > .el-tabs__content > .el-tab-pane { position: relative; isolation: isolate; min-width: 0; height: 100%; }
+.workspace-page-scroll { isolation: isolate; height: 100%; overflow: auto; }
+.workspace-page-content { min-width: 0; min-height: 100%; padding: 24px; display: flex; flex-direction: column; }
+.workspace-page-dialogs { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
 
 .page-shell { width: 100%; max-width: none; min-width: 0; min-height: 0; flex: 1; margin: 0; }
 .page-hero { padding: 34px 38px; color: white; border-radius: 20px; background: linear-gradient(128deg, #2949b2, #5275e9 62%, #2abca0); box-shadow: 0 18px 42px rgba(49,87,213,.2); }
@@ -105,7 +111,7 @@ button, input { font: inherit; }
   .system-header .session-username, .system-header .refresh-permission-label { display: none; }
   .system-header > .el-button span { display: none; }
   .workspace-tabs > .el-tabs__header { padding-left: 10px; padding-right: 10px; }
-  .workspace-tabs > .el-tabs__content > .el-tab-pane { padding: 16px; }
+  .workspace-page-content { padding: 16px; }
   .page-heading { align-items: flex-start; flex-direction: column; }
   .page-hero { padding: 28px 24px; }
 }

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageDialog from '../../components/PageDialog.vue'
 import DataTable from "../../components/DataTable";
 import { tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
@@ -766,11 +767,10 @@ const tableValues = {
         </div></el-tab-pane
       ></el-tabs
     >
-    <el-dialog
+    <PageDialog
       v-model="attemptDialog"
       :title="attemptForm.mode === 'exam' ? '创建模拟考试' : '开始练习'"
-      width="min(540px,94vw)"
-      append-to-body
+      :width="540"
       ><el-form label-position="top"
         ><el-form-item label="抽题范围"
           ><el-checkbox-group v-model="attemptForm.types"
@@ -809,7 +809,7 @@ const tableValues = {
         ><el-button type="primary" :loading="busy" @click="start"
           >开始</el-button
         ></template
-      ></el-dialog
+      ></PageDialog
     >
   </section>
 </template>

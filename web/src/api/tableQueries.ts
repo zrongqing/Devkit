@@ -9,6 +9,9 @@ export type PageLoader = (query: PageQuery, signal: AbortSignal) => Promise<Page
 const query = (path: string, body: unknown, signal: AbortSignal) => request<PageResult>(path, { method: 'POST', body: JSON.stringify(body), signal })
 const study = '/api/v1/exam-study', identity = '/api/v1/identity', menus = '/api/v1/web/menu-management'
 export const tableQueries = {
+  codeRules: ((q, signal) => query('/api/v1/code-system/rules/query', q, signal)) as PageLoader,
+  codeHistory: (id: string, kind: 'versions' | 'events' | 'issues'): PageLoader =>
+    (q, signal) => query(`/api/v1/code-system/rules/${id}/${kind}/query`, q, signal),
   projects: (all: boolean): PageLoader => (q, signal) => query(`${study}/projects/query?all=${all}`, q, signal),
   sources: (id: string): PageLoader => (q, signal) => query(`${study}/knowledge-bases/${id}/sources/query`, q, signal),
   questions: (all: boolean, kb: string, search: string, status: string): PageLoader => (q, signal) => query(`${study}/questions/query?all=${all}${kb ? `&knowledgeBaseId=${encodeURIComponent(kb)}` : ''}`, {

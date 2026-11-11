@@ -33,6 +33,8 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton(sp => new DeploymentPermissions(sp.GetRequiredService<IConfiguration>().GetSection("CodeSystem:Modules").Get<string[]>() ?? []));
+        services.AddScoped<CodeRoleBootstrap>();
         services.AddSingleton<JwtKeyMaterial>();
         services.AddHttpContextAccessor();
 

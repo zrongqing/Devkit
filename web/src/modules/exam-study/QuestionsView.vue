@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageDialog from '../../components/PageDialog.vue'
 import DataTable from "../../components/DataTable";
 import { tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
@@ -266,11 +267,10 @@ const tableValues = {
         ></DataTable
       >
     </div>
-    <el-dialog
+    <PageDialog
       v-model="dialog"
       :title="editing ? '编辑题目' : '手动录题'"
-      width="min(840px,96vw)"
-      append-to-body
+      :width="840"
       ><el-form label-position="top" class="study-form"
         ><div class="study-toolbar">
           <el-select
@@ -397,13 +397,12 @@ const tableValues = {
         ><el-button type="primary" :loading="busy" @click="save"
           >保存待审核</el-button
         ></template
-      ></el-dialog
+      ></PageDialog
     >
-    <el-dialog
+    <PageDialog
       v-model="generationDialog"
       title="AI 辅助出题"
-      width="min(530px,94vw)"
-      append-to-body
+      :width="530"
       ><el-form label-position="top"
         ><el-form-item label="知识库"
           ><el-select v-model="generation.knowledgeBaseId"
@@ -437,7 +436,7 @@ const tableValues = {
         ><el-button type="primary" :loading="busy" @click="startGeneration"
           >开始生成</el-button
         ></template
-      ></el-dialog
+      ></PageDialog
     >
   </main>
 </template>

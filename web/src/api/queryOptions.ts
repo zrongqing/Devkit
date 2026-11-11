@@ -34,6 +34,9 @@ export const label = (value: string) => labels[value] ?? value;
 const options = (...values: string[]): FilterOption[] => values.map(value => ({ value, label: label(value) }))
 const booleanOptions = (yes: string, no: string): FilterOption[] => [{ value: 'true', label: yes }, { value: 'false', label: no }]
 export const queryDictionaries = {
+  codeStatus: [{ value: 'unpublished', label: '未发布' }, { value: 'enabled', label: '启用' }, { value: 'disabled', label: '停用' }],
+  codeAction: [{value:'create',label:'创建'}, {value:'save_draft',label:'保存草稿'}, {value:'publish',label:'发布'},
+    {value:'enable',label:'恢复'}, {value:'disable',label:'停用'}],
   menuType: [{ value: 'module', label: '模块' }, { value: 'directory', label: '目录' }],
   menuStatus: [{ value: 'new', label: '未同步' }, { value: 'synced', label: '已同步' }, { value: 'changed', label: '前端声明变更' }, { value: 'missing', label: '当前前端缺失' }, { value: 'manual', label: '后台自建目录' }],
   enabled: booleanOptions('已启用', '已停用'),

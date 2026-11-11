@@ -39,6 +39,7 @@ internal sealed class WebMenuDefaults(INavigationMenuService navigation) : IWebM
         "system-menus" => "system.menus",
         "system-files" => "system.files",
         "system-storage" => "system.storage",
+        "system-code-rules" => "system.coderules",
         "system-status" => "system.monitor.status",
         "settings" => "system.settings",
         "about" => "system.about",

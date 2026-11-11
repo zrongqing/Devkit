@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageDialog from '../../components/PageDialog.vue'
 import { ArrowDown, Document, Upload } from "@element-plus/icons-vue";
 import DataTable from "../../components/DataTable";
 import { tableFilterSchemas } from "../../api/queryOptions";
@@ -138,11 +139,10 @@ const tableValues = {
         ></DataTable
       >
     </div>
-    <el-dialog
+    <PageDialog
       v-model="referenceDialog"
       title="业务引用"
-      width="min(760px,94vw)"
-      append-to-body
+      :width="760"
       ><DataTable v-if="referenceDialog" table-key="file-references" :load-page="tableQueries.references(referenceFileId)" :query-context="referenceFileId" :data="references"
         ><el-table-column
           prop="module"
@@ -151,7 +151,7 @@ const tableValues = {
           prop="entityId"
           label="资料版本 ID"
           min-width="280" /></DataTable
-    ></el-dialog>
+    ></PageDialog>
   </main>
 </template>
 

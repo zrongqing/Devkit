@@ -16,9 +16,11 @@ export interface NavigationMenuNode extends WebNavigationMenuItem {
 
 export interface OpenTab {
   id: string
+  menuCode: string
   title: string
   routeKey: string
   isClosable: boolean
+  locked: boolean
 }
 
 export interface MenuDeclaration {

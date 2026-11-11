@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { computed, nextTick, onMounted, ref, shallowRef, watch } from "vue";
+import { ElMessage, type DropdownInstance } from "element-plus";
 import {
   ArrowLeft,
   Fold,
   Expand,
   Hide,
   Grid,
+  Lock,
   Menu as MenuIcon,
   Refresh,
 } from "@element-plus/icons-vue";
@@ -14,7 +15,7 @@ import { useRoute, useRouter } from "vue-router";
 import RecursiveMenuItem from "../components/navigation/RecursiveMenuItem.vue";
 import PageAccessView from "../components/PageAccessView.vue";
 import { useNavigationStore } from "../stores/navigation";
-import { useTabsStore } from "../stores/tabs";
+import { canCloseTab, useTabsStore } from "../stores/tabs";
 import { session, saveSession, loadPermissions, permissionDenied } from "../api/session";
 import { logout } from "../api/auth";
 
@@ -37,6 +38,10 @@ function setNavigationMode(mode: NavigationMode) {
 const mobileMenuOpen = ref(false);
 const initialized = ref(false);
 const refreshingPermissions = ref(false);
+const tabMenu = ref<DropdownInstance>();
+const tabMenuTarget = ref("");
+const tabMenuAnchor = shallowRef<{ getBoundingClientRect: () => DOMRect }>();
+const contextTab = computed(() => tabs.find(tabMenuTarget.value));
 
 const openedDirectories = computed(() =>
   navigation.items.filter((item) => item.type === "directory").map((item) => item.id),
@@ -104,11 +109,17 @@ watch(
   () => navigation.items,
   () => {
     if (!initialized.value) return;
-    for (const tab of [...tabs.tabs]) {
+    const unavailable: string[] = [];
+    for (const tab of tabs.tabs) {
       const menu = navigation.findByRouteKey(tab.routeKey);
-      if (menu) tab.title = menu.title;
-      else if (tab.routeKey !== "home") tabs.close(tab.id);
+      if (menu) {
+        tab.title = menu.title;
+        tab.isClosable = tab.routeKey !== "home" && menu.isClosable;
+      } else if (tab.routeKey !== "home") {
+        unavailable.push(tab.id);
+      }
     }
+    if (unavailable.length) tabs.remove(unavailable);
     const active = tabs.find(tabs.activeId);
     if (active && !navigation.findByRouteKey(String(route.params.routeKey ?? "home")))
       navigateTo(active.routeKey, true);
@@ -157,8 +168,42 @@ function changeTab(name: string | number) {
 }
 
 function removeTab(name: string | number) {
-  const next = tabs.close(String(name));
-  navigateTo(next.routeKey, true);
+  tabs.close(String(name));
+  syncActiveTabRoute();
+}
+
+function syncActiveTabRoute() {
+  const active = tabs.find(tabs.activeId);
+  if (active) navigateTo(active.routeKey, true);
+}
+
+async function openTabMenu(event: MouseEvent | KeyboardEvent) {
+  if (event instanceof KeyboardEvent && event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+  const item = event.target instanceof Element ? event.target.closest<HTMLElement>('[role="tab"]') : null;
+  if (!item || item.closest(".el-tabs") !== event.currentTarget) return;
+
+  const id = item.querySelector<HTMLElement>("[data-workspace-tab]")?.dataset.workspaceTab;
+  if (!id || !tabs.find(id)) return;
+
+  event.preventDefault();
+  tabMenuTarget.value = id;
+  const point = event instanceof MouseEvent && (event.clientX || event.clientY)
+    ? new DOMRect(event.clientX, event.clientY, 0, 0)
+    : item.getBoundingClientRect();
+  tabMenuAnchor.value = { getBoundingClientRect: () => point };
+  await nextTick();
+  tabMenu.value?.handleOpen();
+}
+
+function runTabCommand(command: "lock" | "close" | "left" | "right") {
+  const tab = contextTab.value;
+  if (!tab) return;
+  if (command === "lock") tabs.toggleLock(tab.id);
+  else if (command === "close") removeTab(tab.id);
+  else {
+    tabs.closeSide(tab.id, command);
+    syncActiveTabRoute();
+  }
 }
 
 async function retryMenus() {
@@ -301,20 +346,51 @@ function navigateTo(routeKey: string, replace = false) {
         class="workspace-tabs"
         @tab-change="changeTab"
         @tab-remove="removeTab"
+        @contextmenu="openTabMenu"
+        @keydown="openTabMenu"
       >
         <el-tab-pane
           v-for="tab in tabs.tabs"
           :key="tab.id"
           :name="tab.id"
           :label="tab.title"
-          :closable="tab.isClosable"
+          :closable="canCloseTab(tab)"
           lazy
         >
+          <template #label>
+            <span class="workspace-tab-label" :data-workspace-tab="tab.id">
+              <el-icon v-if="tab.locked" title="已锁定" aria-label="已锁定"><Lock /></el-icon>
+              {{ tab.title }}
+            </span>
+          </template>
           <PageAccessView
             :route-key="tab.routeKey"
           />
         </el-tab-pane>
       </el-tabs>
+      <el-dropdown
+        ref="tabMenu"
+        virtual-triggering
+        :virtual-ref="tabMenuAnchor"
+        trigger="contextmenu"
+        placement="bottom-start"
+        :show-arrow="false"
+        @command="runTabCommand"
+      >
+        <template #dropdown>
+          <el-dropdown-menu v-if="contextTab">
+            <el-dropdown-item command="lock" :disabled="contextTab.routeKey === 'home'">
+              {{ contextTab.locked ? '解锁标签' : '锁定标签' }}
+            </el-dropdown-item>
+            <el-dropdown-item command="close" :disabled="!canCloseTab(contextTab)" divided>关闭当前标签</el-dropdown-item>
+            <el-dropdown-item command="left" :disabled="!tabs.tabsOnSide(contextTab.id, 'left').length">关闭左边标签</el-dropdown-item>
+            <el-dropdown-item command="right" :disabled="!tabs.tabsOnSide(contextTab.id, 'right').length">关闭右边标签</el-dropdown-item>
+            <el-dropdown-item disabled divided>
+              <small>页面编码 <code>{{ contextTab.menuCode }}</code></small>
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </section>
   </div>
 </template>

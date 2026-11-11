@@ -5,6 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Devkit.Business.Application.Abstractions;
 using Devkit.Business.Infrastructure;
+using Devkit.Business.Infrastructure.CodeSystem;
 using Devkit.Business.Infrastructure.Workspace;
 using Devkit.Business.Infrastructure.Configuration;
 using Devkit.Business.Infrastructure.Identity;
@@ -26,6 +27,7 @@ public partial class Program
         builder.Services.AddBusinessInfrastructure(builder.Configuration,
             new ServerRuntimeOptions("Devkit Business", version, builder.Environment.EnvironmentName));
         builder.Services.AddWorkspace(builder.Configuration);
+        builder.Services.AddCodeSystem(builder.Configuration);
         builder.Services.AddControllers();
         builder.Services.AddEndpoints(builder.Configuration, typeof(Program).Assembly);
 
@@ -62,6 +64,7 @@ public partial class Program
         // Fail at startup for missing or unsuitable key files, before accepting any traffic.
         _ = app.Services.GetRequiredService<JwtValidationKey>();
         app.UseDevkitApi();
+        Devkit.Business.Api.Endpoints.CodeSystemEndpoints.UseBindingProblems(app);
         app.MapDevkitApi("Devkit Business API");
         app.MapControllers();
         app.Run();

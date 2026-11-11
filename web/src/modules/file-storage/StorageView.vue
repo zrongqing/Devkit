@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageDialog from '../../components/PageDialog.vue'
 import DataTable from "../../components/DataTable";
 import { tableFilterSchemas } from "../../api/queryOptions";
 import { tableQueries } from "../../api/tableQueries";
@@ -177,11 +178,10 @@ const tableValues = {
         虚拟磁盘和数据库使用各自的离线迁移流程。
       </p>
     </div>
-    <el-dialog
+    <PageDialog
       v-model="add"
       title="登记存储位置"
-      width="min(620px,94vw)"
-      append-to-body
+      :width="620"
       ><el-form label-position="top"
         ><el-form-item label="名称"
           ><el-input
@@ -198,13 +198,12 @@ const tableValues = {
         ><el-button type="primary" :loading="busy" @click="addLocation"
           >登记</el-button
         ></template
-      ></el-dialog
+      ></PageDialog
     >
-    <el-dialog
+    <PageDialog
       v-model="dialog"
       title="迁移文件"
-      width="min(620px,94vw)"
-      append-to-body
+      :width="620"
       ><el-form label-position="top"
         ><el-form-item label="源位置"
           ><el-select v-model="source" style="width: 100%"
@@ -231,7 +230,7 @@ const tableValues = {
           @click="migrate"
           >开始迁移</el-button
         ></template
-      ></el-dialog
+      ></PageDialog
     >
   </main>
 </template>

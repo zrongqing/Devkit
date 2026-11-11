@@ -26,6 +26,60 @@ public sealed class WebMenuEndpointTests
     private static async Task<MenuComparison> CompareCore(HttpClient c, MenuDeclaration[] manifest) => await Data<MenuComparison>(await c.PostAsJsonAsync(Root + "/compare",new MenuManifestRequest(manifest)));
     private static async Task<MenuTreeView> Sync(HttpClient c,int version,MenuDeclaration[] manifest,params MenuSyncItem[] items) => await Data<MenuTreeView>(await c.PostAsJsonAsync(Root + "/sync",new MenuSyncRequest(version,manifest,items)));
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Code_rules_is_visible_to_admin_after_startup_on_fresh_and_existing_databases(bool upgrade)
+    {
+        const string code = "system.coderules";
+        const string route = "system-code-rules";
+        using var factory = new DevkitApiFactory(builtInAdmin: true, prepareDatabase: db =>
+        {
+            if (!upgrade) return;
+            // An initialized database with the previous release and a customized system directory.
+            db.Set<WebMenuState>().Single().Version = 7;
+            db.Add(WebMenuService.FromDeclaration(new("home", "module", null, "首页", "home", null, 0, [], false)));
+            db.Add(WebMenuService.FromDeclaration(new("system.management", "directory", null, "管理工作台", null, null, 41, [])));
+            db.Add(WebMenuService.FromDeclaration(new("system.menus", "module", "system.management", "菜单管理",
+                "system-menus", null, 1, ["system.menus.manage"])));
+            db.SaveChanges();
+        });
+        using var admin = factory.CreateClient();
+        await Login(admin);
+        const string navigation = "/api/v1/web/navigation/menus";
+        var visible = await Data<JsonElement>(await admin.GetAsync(navigation));
+        var entry = Assert.Single(visible.EnumerateArray(), m => m.GetProperty("menuCode").GetString() == code);
+        Assert.Equal("system.management", entry.GetProperty("parentId").GetString());
+        Assert.Equal(route, entry.GetProperty("routeKey").GetString());
+        Assert.Equal("编码规则", entry.GetProperty("title").GetString());
+        var tree = await Tree(admin);
+        var menu = Assert.Single(tree.Menus, m => m.MenuCode == code);
+        Assert.False(menu.IsPublic);
+        Assert.Equal(["code.rules.view"], menu.RequiredPermissions);
+        if (upgrade)
+        {
+            Assert.Equal(8, tree.Version);
+            Assert.Equal("管理工作台", tree.Menus.Single(m => m.MenuCode == "system.management").Title);
+        }
+        using var other = factory.CreateClient();
+        Assert.DoesNotContain(route, (await Data<JsonElement>(await other.GetAsync(navigation))).ToString());
+        await StudyUser(admin, "ordinary");
+        await Login(other, "ordinary", "StrongPassword123");
+        Assert.DoesNotContain(route, (await Data<JsonElement>(await other.GetAsync(navigation))).ToString());
+
+        var changed = await Data<MenuTreeView>(await admin.PutAsJsonAsync(Root + "/menus/" + code,
+            new MenuEditRequest(tree.Version, "自定义编码", "system.management", "book", 17, false)));
+        using var scope = factory.IdentityServices.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<WebMenuService>().InitializeAsync(default);
+        tree = await Tree(admin);
+        Assert.Equal(changed.Version, tree.Version);
+        var kept = Assert.Single(tree.Menus, m => m.MenuCode == code);
+        Assert.Equal("自定义编码", kept.Title);
+        Assert.Equal(17, kept.Order);
+        Assert.False(kept.Enabled);
+        Assert.DoesNotContain(route, (await Data<JsonElement>(await admin.GetAsync(navigation))).ToString());
+    }
+
     [Fact]
     public async Task Initial_tree_has_requested_three_level_hierarchy_and_stable_codes()
     {

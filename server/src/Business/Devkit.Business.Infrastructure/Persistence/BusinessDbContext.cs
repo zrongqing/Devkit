@@ -13,6 +13,7 @@ public sealed class BusinessDbContext(DbContextOptions<BusinessDbContext> option
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(BusinessDbContext).Assembly);
+        CodeSystem.CodeModel.Configure(modelBuilder, Database.IsSqlServer());
         modelBuilder.UseSnakeCaseDatabaseNames();
     }
 }
