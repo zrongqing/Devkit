@@ -91,25 +91,18 @@ const tableValues = {
 </script>
 <template>
   <main class="study-page">
-    <header class="study-heading">
-      <div>
-        <h2>存储与迁移</h2>
-        <p>文件位置可更换，文件 ID 和业务引用持续有效。</p>
-      </div>
-      <div class="study-actions">
-        <el-button @click="run(load)">刷新</el-button
-        ><el-button @click="add = true">登记存储位置</el-button
-        ><el-button
-          type="primary"
-          @click="
-            source = locations.find((x) => x.writable)?.id ?? '';
-            target = '';
-            dialog = true;
-          "
-          >迁移文件</el-button
-        >
-      </div>
-    </header>
+    <div class="study-toolbar">
+      <el-button @click="add = true">登记存储位置</el-button>
+      <el-button
+        type="primary"
+        @click="
+          source = locations.find((x) => x.writable)?.id ?? '';
+          target = '';
+          dialog = true;
+        "
+      >迁移文件</el-button>
+      <el-button @click="run(load)">刷新</el-button>
+    </div>
     <el-alert
       v-if="error"
       :title="error"
@@ -220,7 +213,7 @@ const tableValues = {
               :label="l.name + ' · ' + l.rootPath"
               :value="l.id" /></el-select
         ></el-form-item>
-        <p>复制 → SHA-256 校验 → 切换读取位置 → 单独清理旧副本。</p></el-form
+        <p>复制 → SHA-256 校验 → 切换读取位置 → 单独清理旧副本。迁移后文件 ID 和业务引用保持有效。</p></el-form
       ><template #footer
         ><el-button @click="dialog = false">取消</el-button
         ><el-button

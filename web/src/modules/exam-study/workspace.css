@@ -85,6 +85,10 @@
   flex-wrap: wrap;
   margin-bottom: 18px;
 }
+.study-toolbar > .el-button + .el-button,
+.study-actions > .el-button + .el-button {
+  margin-left: 0;
+}
 .study-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));

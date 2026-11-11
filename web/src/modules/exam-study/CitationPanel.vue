@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import PageDialog from "../../components/PageDialog.vue";
 import {
   studyApi,
   fileApi,
@@ -32,11 +33,10 @@ async function show(c: Citation) {
       >[{{ i + 1 }}] {{ c.title }} · {{ c.location }}</el-button
     >
   </div>
-  <el-drawer
+  <PageDialog
     v-model="open"
-    :title="selected?.title"
-    size="min(780px, 96vw)"
-    append-to-body
+    :title="selected?.title ?? '引用原文'"
+    :width="780"
     ><template v-if="selected"
       ><p class="study-muted">
         {{ selected.location }} · 原文版本 {{ selected.versionId.slice(0, 8) }}
@@ -54,6 +54,6 @@ async function show(c: Citation) {
           "原文暂时不可访问，以上保留引用时的证据片段。"
         }}
       </div></template
-    ></el-drawer
+    ></PageDialog
   >
 </template>

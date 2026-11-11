@@ -15,8 +15,6 @@ import ProjectWorkspace from "./ProjectWorkspace.vue";
 const props = defineProps<{ routeKey: string }>();
 const managing = computed(() => props.routeKey === "study-project-management");
 const workspaceMode = computed(() => props.routeKey === "study-progress" ? "progress" : props.routeKey === "study-practice" ? "attempt" : "search");
-const title = computed(() => managing.value ? "项目管理" : workspaceMode.value === "search" ? "知识检索" : workspaceMode.value === "attempt" ? "刷题与模拟考" : "错题与学习记录");
-const description = computed(() => managing.value ? "管理项目基本信息及关联知识库，统一维护项目资料范围。" : workspaceMode.value === "search" ? "选择项目，在关联知识库中快速定位原文和出处。" : "按项目开展制度学习、模拟考试和错题复习。");
 const route = useRoute();
 const router = useRouter();
 const { run, busy, error } = useOperation();
@@ -83,20 +81,6 @@ const tableValues = {
 </script>
 <template>
   <main class="study-page">
-    <header class="study-heading">
-      <div>
-        <h2>{{ title }}</h2>
-        <p>{{ description }}</p>
-      </div>
-      <div class="study-actions">
-        <el-switch
-          v-if="permissions?.administrator"
-          v-model="all"
-          active-text="全部用户"
-          @change="run(load)"
-        />
-      </div>
-    </header>
     <el-alert
       v-if="error"
       :title="error"
@@ -117,11 +101,16 @@ const tableValues = {
           :key="p.id"
           :value="p.id"
           :label="p.name" /></el-select
-      ><el-button @click="run(load)">刷新</el-button>
+      >
+      <el-switch v-if="permissions?.administrator" v-model="all" active-text="全部用户" @change="run(load)" />
+      <el-button @click="run(load)">刷新</el-button>
     </div>
     <div v-if="managing" class="study-card" v-loading="busy">
       <DataTable table-key="study-projects" :load-page="tableQueries.projects(all)" :query-context="String(all)" :data="projects" empty-text="暂无项目，点击新建项目开始配置">
         <template #actions><el-button type="primary" @click="edit()">新建项目</el-button></template>
+        <template v-if="permissions?.administrator" #toolbar>
+          <el-switch v-model="all" active-text="全部用户" @change="run(load)" />
+        </template>
         <el-table-column prop="name" label="项目名称" min-width="160" />
         <el-table-column prop="description" label="说明" min-width="200" />
         <el-table-column column-key="knowledgeBases" :table-value="tableValues.knowledgeBases" label="关联知识库" min-width="200"><template #default="{ row }">

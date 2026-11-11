@@ -103,7 +103,9 @@ const tableValues = {
 </script>
 <template>
   <main class="study-page">
-    <header class="study-heading"><div><h2>菜单管理</h2><p>维护多级菜单，对比并同步当前 Web 提供的页面。页面编码不随名称或目录变化。</p></div><el-button :loading="busy" @click="run(load)">刷新 / 重新比较</el-button></header>
+    <div class="study-toolbar">
+      <el-button :loading="busy" @click="run(load)">刷新 / 重新比较</el-button>
+    </div>
     <el-alert v-if="error" :title="error" type="error" :closable="false" class="study-error" />
     <el-alert v-if="legacyDatabase" title="菜单编码升级尚未完成，现有菜单仍可访问。请完成数据库迁移并重启新版服务后，再配置或同步菜单。" type="warning" :closable="false" class="study-error" />
     <el-tabs v-model="tab">

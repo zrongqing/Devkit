@@ -63,12 +63,13 @@ const tableValues = {
 </script>
 <template>
   <section class="page-shell" v-loading="busy">
-    <div class="page-heading"><div><p class="page-kicker">系统管理</p><h2>组织架构</h2></div>
-      <el-button @click="run(refresh)">刷新</el-button></div>
+    <div class="study-toolbar">
+      <el-button type="primary" @click="editDepartment()">新增部门</el-button>
+      <el-button @click="run(refresh)">刷新</el-button>
+    </div>
     <el-alert v-if="error" :title="error" type="error" />
     <div class="org-layout">
       <el-card shadow="never"><template #header>部门目录</template>
-        <el-button type="primary" plain @click="editDepartment()">新增部门</el-button>
         <el-tree :data="tree" node-key="id" :current-node-key="selected" highlight-current default-expand-all
           :props="{ label: 'name', children: 'children' }" empty-text="尚未创建部门" @node-click="(node: TreeNode) => selected = node.id" />
       </el-card>
@@ -88,8 +89,8 @@ const tableValues = {
                 @close="remove('移除该人员的任职？', () => directoryApi.member(row.id, m.userId, false))">{{ names.get(m.userId) }}</el-tag>
             </template></el-table-column>
             <el-table-column column-key="actions" label="操作" width="170"><template #default="{row}">
-              <el-button link type="primary" @click="assign(row)">添加人员</el-button>
-              <el-button link @click="editPosition(row)">编辑</el-button>
+              <el-button link type="primary" @click="editPosition(row)">编辑</el-button>
+              <el-button link @click="assign(row)">添加人员</el-button>
               <el-button link type="danger" @click="remove('删除该职位？', () => directoryApi.remove('positions', row.id))">删除</el-button>
             </template></el-table-column>
           </DataTable>

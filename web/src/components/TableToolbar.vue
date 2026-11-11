@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ArrowDown, Refresh, Setting } from '@element-plus/icons-vue'
+import PageDialog from './PageDialog.vue'
 import type { ColumnOption, ColumnPin, TableFilterTag } from './tablePresentation'
 defineProps<{
   columns: ColumnOption[]; tags: TableFilterTag[]
@@ -45,7 +46,7 @@ function command(value: string) {
       <el-button link type="primary" @click="emit('resetFilters')">清空筛选</el-button>
     </div>
   </div>
-  <el-drawer v-model="columnsOpen" title="列设置" size="min(440px, 95vw)" append-to-body>
+  <PageDialog v-model="columnsOpen" title="列设置" :width="440">
     <p class="data-table-settings-hint">选择显示的列与固定位置。拖动列间边界调整宽度，设置会自动保存。</p>
     <div class="data-table-column-options">
       <div v-for="column in columns" :key="column.key" class="data-table-column-option">
@@ -58,5 +59,5 @@ function command(value: string) {
       </div>
     </div>
     <template #footer><el-button @click="emit('autoFit')" :disabled="querying">自动适应列宽</el-button><el-button type="primary" @click="columnsOpen = false">完成</el-button></template>
-  </el-drawer>
+  </PageDialog>
 </template>

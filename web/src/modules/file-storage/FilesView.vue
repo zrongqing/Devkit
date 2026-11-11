@@ -60,12 +60,6 @@ const tableValues = {
 </script>
 <template>
   <main class="study-page">
-    <header class="study-heading">
-      <div>
-        <h2>文件管理</h2>
-        <p>统一管理全服务的上传文件。业务资料归档后，原件仍保留在这里。</p>
-      </div>
-    </header>
     <el-alert
       v-if="error"
       :title="error"

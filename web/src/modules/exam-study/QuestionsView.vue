@@ -178,20 +178,6 @@ const tableValues = {
 </script>
 <template>
   <main class="study-page">
-    <header class="study-heading">
-      <div>
-        <h2>题库管理</h2>
-        <p>题目跟随知识库复用，审核后即可参与项目练习和模拟考试。</p>
-      </div>
-      <div class="study-actions">
-        <el-switch
-          v-if="permissions?.administrator"
-          v-model="all"
-          active-text="全部用户"
-          @change="run(load)"
-        />
-      </div>
-    </header>
     <el-alert
       v-if="error"
       :title="error"
@@ -204,7 +190,13 @@ const tableValues = {
         >
         <template #filters><el-select v-model="kb" clearable placeholder="全部知识库" aria-label="筛选知识库"><el-option v-for="b in bases" :key="b.id" :label="b.name" :value="b.id" /></el-select>
           <el-select v-model="status" clearable placeholder="全部状态" aria-label="筛选题目状态"><el-option v-for="s in ['draft', 'approved', 'stale', 'disabled']" :key="s" :value="s" :label="label(s)" /></el-select></template>
-        <template #actions><el-button @click="generate">AI 辅助出题</el-button><el-button type="primary" @click="run(() => edit())">手动录题</el-button></template>
+        <template #actions>
+          <el-button type="primary" @click="run(() => edit())">手动录题</el-button>
+          <el-button @click="generate">AI 辅助出题</el-button>
+        </template>
+        <template v-if="permissions?.administrator" #toolbar>
+          <el-switch v-model="all" active-text="全部用户" @change="run(load)" />
+        </template>
         <el-table-column type="expand"
           ><template #default="{ row }"
             ><div style="padding: 16px 35px">

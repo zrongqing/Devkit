@@ -16,8 +16,7 @@ const tableValues = {
 </script>
 <template>
   <section class="page-shell">
-    <div class="page-heading"><div><p class="page-kicker">系统监控</p><h2>管理操作审计</h2></div></div>
-    <p>按时间倒序查看已保存的账号、授权、菜单和组织变更。请求标识可用于关联服务日志。</p>
+    <p class="study-muted">请求标识可用于关联服务日志。</p>
     <el-alert v-if="error" :title="error" type="error" />
     <DataTable table-key="organization-audit" :filter-schema="tableFilterSchemas.audit" :load-page="tableQueries.audit" :data="rows" v-loading="busy" empty-text="暂无管理操作">
       <el-table-column :table-value="tableValues.occurredAt" prop="occurredUtc" label="时间" width="180"><template #default="{row}">{{ date(row.occurredUtc) }}</template></el-table-column>

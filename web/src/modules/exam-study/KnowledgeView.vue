@@ -170,20 +170,15 @@ const tableValues = {
 </script>
 <template>
   <main class="study-page">
-    <header class="study-heading">
-      <div>
-        <h2>知识库管理</h2>
-        <p>按制度领域整理资料，让每次查询和每道题都有出处。</p>
-      </div>
-      <div class="study-actions">
-        <el-switch
-          v-if="permissions?.administrator"
-          v-model="all"
-          active-text="全部用户"
-          @change="run(load)"
-        /><el-button type="primary" @click="editBase()">新建知识库</el-button>
-      </div>
-    </header>
+    <div class="study-toolbar">
+      <el-button type="primary" @click="editBase()">新建知识库</el-button>
+      <el-switch
+        v-if="permissions?.administrator"
+        v-model="all"
+        active-text="全部用户"
+        @change="run(load)"
+      />
+    </div>
     <el-alert
       v-if="error"
       class="study-error"
@@ -219,16 +214,14 @@ const tableValues = {
               <h2>{{ selected.name }}</h2>
               <p>{{ selected.description }}</p>
             </div>
-            <div class="study-actions">
-              <el-button @click="editBase(selected)">编辑</el-button
-              ><el-button type="danger" text @click="removeBase"
-                >归档</el-button
-              >
-            </div>
           </div>
           <DataTable table-key="knowledge-sources" :filter-schema="tableFilterSchemas.sources" :load-page="tableQueries.sources(selected!.id)" :query-context="selected?.id ?? ''" :data="sources"
             >
-            <template #actions><el-button type="primary" @click="run(() => editSource())">上传资料 / 手动补充</el-button></template>
+            <template #actions>
+              <el-button type="primary" @click="run(() => editSource())">上传资料 / 手动补充</el-button>
+              <el-button @click="editBase(selected)">编辑知识库</el-button>
+              <el-button type="danger" plain @click="removeBase">归档知识库</el-button>
+            </template>
             <el-table-column
               prop="title"
               label="资料名称"
@@ -335,11 +328,10 @@ const tableValues = {
         ></template
       ></PageDialog
     >
-    <el-drawer
+    <PageDialog
       v-model="previewOpen"
-      :title="preview?.source.title"
-      size="min(850px,96vw)"
-      append-to-body
+      :title="preview?.source.title ?? '资料预览'"
+      :width="850"
       ><template v-if="preview"
         ><el-alert
           v-if="preview.source.warning"
@@ -377,7 +369,7 @@ const tableValues = {
             </div></el-tab-pane
           ></el-tabs
         ></template
-      ></el-drawer
+      ></PageDialog
     >
   </main>
 </template>

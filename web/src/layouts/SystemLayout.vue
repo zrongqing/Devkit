@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, shallowRef, watch } from "vue";
-import { ElMessage, type DropdownInstance } from "element-plus";
+import { ElMessage, type DropdownInstance, type MenuInstance } from "element-plus";
 import {
   ArrowLeft,
+  CopyDocument,
   Fold,
   Expand,
   Hide,
@@ -18,6 +19,7 @@ import { useNavigationStore } from "../stores/navigation";
 import { canCloseTab, useTabsStore } from "../stores/tabs";
 import { session, saveSession, loadPermissions, permissionDenied } from "../api/session";
 import { logout } from "../api/auth";
+import type { NavigationMenuNode } from "../types/navigation";
 
 const route = useRoute();
 const router = useRouter();
@@ -43,9 +45,49 @@ const tabMenuTarget = ref("");
 const tabMenuAnchor = shallowRef<{ getBoundingClientRect: () => DOMRect }>();
 const contextTab = computed(() => tabs.find(tabMenuTarget.value));
 
-const openedDirectories = computed(() =>
-  navigation.items.filter((item) => item.type === "directory").map((item) => item.id),
-);
+const directoryStorageKey = "devkit.navigation-closed-directories";
+const menu = ref<MenuInstance>();
+const closedDirectories = ref(restoreClosedDirectories());
+const directoryIds = computed(() => collectDirectoryIds(navigation.nodes));
+const openedDirectories = computed(() => directoryIds.value.filter((id) => !closedDirectories.value.has(id)));
+let restoringDirectories = false;
+
+function restoreClosedDirectories(): Set<string> {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(directoryStorageKey) ?? "null");
+    if (Array.isArray(value) && value.every((id): id is string => typeof id === "string")) return new Set(value);
+  } catch { /* Storage can be unavailable or invalid. */ }
+  return new Set();
+}
+
+function collectDirectoryIds(nodes: NavigationMenuNode[]): string[] {
+  return nodes.flatMap((node) => node.type === "directory" ? [node.id, ...collectDirectoryIds(node.children)] : []);
+}
+
+function saveDirectoryState(id: string, open: boolean) {
+  if (collapsed.value || restoringDirectories) return;
+  const changed = open ? closedDirectories.value.delete(id) : !closedDirectories.value.has(id);
+  if (!changed) return;
+  if (!open) closedDirectories.value.add(id);
+  try {
+    localStorage.setItem(directoryStorageKey, JSON.stringify([...closedDirectories.value]));
+  } catch { /* Keep the current state even if storage is unavailable. */ }
+}
+
+watch([directoryIds, collapsed], async ([ids, isCollapsed], _, onCleanup) => {
+  let stale = false;
+  onCleanup(() => { stale = true; });
+  restoringDirectories = true;
+  // Wait for Element Plus to register the submenus and apply its active item.
+  await nextTick();
+  if (stale) return;
+  if (!isCollapsed && menu.value) {
+    for (const id of openedDirectories.value) menu.value.open(id);
+    // Opening a child also opens its ancestors. Restore closed parents last.
+    for (const id of ids) if (closedDirectories.value.has(id)) menu.value.close(id);
+  }
+  restoringDirectories = false;
+}, { immediate: true });
 
 onMounted(async () => {
   tabs.reset();
@@ -195,10 +237,17 @@ async function openTabMenu(event: MouseEvent | KeyboardEvent) {
   tabMenu.value?.handleOpen();
 }
 
-function runTabCommand(command: "lock" | "close" | "left" | "right") {
+async function runTabCommand(command: "lock" | "close" | "left" | "right" | "copyCode") {
   const tab = contextTab.value;
   if (!tab) return;
-  if (command === "lock") tabs.toggleLock(tab.id);
+  if (command === "copyCode") {
+    try {
+      await navigator.clipboard.writeText(tab.menuCode);
+      ElMessage.success("已复制页面编码");
+    } catch {
+      ElMessage.warning("无法复制页面编码");
+    }
+  } else if (command === "lock") tabs.toggleLock(tab.id);
   else if (command === "close") removeTab(tab.id);
   else {
     tabs.closeSide(tab.id, command);
@@ -236,11 +285,14 @@ function navigateTo(routeKey: string, replace = false) {
 
       <el-scrollbar class="sidebar-scroll">
         <el-menu
+          ref="menu"
           :default-active="tabs.activeId"
           :default-openeds="openedDirectories"
           :collapse="collapsed"
           :collapse-transition="false"
           class="navigation-menu"
+          @open="saveDirectoryState($event, true)"
+          @close="saveDirectoryState($event, false)"
           @select="selectMenu"
         >
           <RecursiveMenuItem
@@ -385,8 +437,8 @@ function navigateTo(routeKey: string, replace = false) {
             <el-dropdown-item command="close" :disabled="!canCloseTab(contextTab)" divided>关闭当前标签</el-dropdown-item>
             <el-dropdown-item command="left" :disabled="!tabs.tabsOnSide(contextTab.id, 'left').length">关闭左边标签</el-dropdown-item>
             <el-dropdown-item command="right" :disabled="!tabs.tabsOnSide(contextTab.id, 'right').length">关闭右边标签</el-dropdown-item>
-            <el-dropdown-item disabled divided>
-              <small>页面编码 <code>{{ contextTab.menuCode }}</code></small>
+            <el-dropdown-item command="copyCode" :icon="CopyDocument" divided title="复制页面编码">
+              <small class="workspace-tab-code">页面编码 <code>{{ contextTab.menuCode }}</code></small>
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -394,3 +446,12 @@ function navigateTo(routeKey: string, replace = false) {
     </section>
   </div>
 </template>
+
+<style scoped>
+.workspace-tab-code {
+  max-width: min(360px, 65vw);
+  font-size: 12px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+</style>

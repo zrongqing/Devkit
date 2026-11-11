@@ -29,12 +29,6 @@ const tableValues = {
 </script>
 <template>
   <main class="study-page">
-    <header class="study-heading">
-      <div>
-        <h2>处理任务</h2>
-        <p>查看资料解析、检索索引、AI 出题及文件迁移进度。</p>
-      </div>
-    </header>
     <div class="study-card" v-loading="busy">
       <DataTable table-key="study-jobs" :filter-schema="tableFilterSchemas.jobs" :load-page="tableQueries.jobs" :data="jobs"
         ><el-table-column :table-value="tableValues.kind" prop="kind" label="任务" width="180"

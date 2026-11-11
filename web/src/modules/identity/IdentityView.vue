@@ -13,7 +13,6 @@ import { useOperation } from "../exam-study/shared";
 import MenuGrantDialog from "./MenuGrantDialog.vue";
 const props = defineProps<{ routeKey: string }>();
 const page = computed(() => props.routeKey === "system-users" ? "users" : props.routeKey === "system-roles" ? "roles" : "permissions");
-const title = computed(() => ({ users: "用户管理", roles: "角色管理", permissions: "权限管理" })[page.value]);
 const { run, busy, error } = useOperation();
 const navigation = useNavigationStore();
 const users = ref<Account[]>([]);
@@ -160,10 +159,9 @@ const tableValues = {
 </script>
 <template>
   <main class="study-page">
-    <header class="study-heading">
-      <div><h2>{{ title }}</h2><p>{{ page === 'users' ? '维护用户账号、邮箱及角色信息。' : page === 'roles' ? '维护角色信息及角色拥有的模块权限。' : '管理用户角色、用户直接权限、角色权限及独立菜单授权。' }}</p></div>
+    <div class="study-toolbar">
       <el-button :loading="busy" @click="run(load)">刷新</el-button>
-    </header>
+    </div>
     <el-alert v-if="error" :title="error" type="error" class="study-error" :closable="false" />
     <el-alert v-if="page === 'permissions'" title="有效权限 = 用户直接授权 + 所有角色授权。取消直接授权不会移除角色继承权限；Administrator 始终拥有全部权限。" type="info" :closable="false" show-icon class="study-error" />
     <el-tabs v-if="page === 'permissions'" v-model="permissionTab">
@@ -180,7 +178,7 @@ const tableValues = {
         </DataTable>
       </PageDialog>
       <DataTable table-key="identity-users" :filter-schema="userFilterSchema" :load-page="tableQueries.users()" :query-context="page + permissionTab" :data="users">
-        <template v-if="page === 'users'" #actions><el-button @click="showDisabled">已停用账号</el-button><el-button type="primary" @click="editUser()">创建用户</el-button></template>
+        <template v-if="page === 'users'" #actions><el-button type="primary" @click="editUser()">创建用户</el-button><el-button @click="showDisabled">已停用账号</el-button></template>
         <el-table-column prop="userName" label="账号" min-width="120" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
         <el-table-column prop="roles" label="角色" min-width="160"><template #default="{ row }"><el-tag v-for="r in row.roles" :key="r" class="permission-tag">{{ r }}</el-tag></template></el-table-column>
