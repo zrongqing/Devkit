@@ -81,7 +81,6 @@
                x:Name="TbApiFolder"
                hc:InfoElement.Title="扫码路径"
                hc:InfoElement.TitlePlacement="Left"
-               IsReadOnly="True"
                behaviors:TextBoxBehavior.EnterCommand="{Binding ScanSourceCodeCommand}"
                Style="{StaticResource TextBoxExtend}"
                Text="{Binding SourceCodePath,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />

@@ -75,11 +75,10 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
     {
         return RunWithLoadingAsync(async cancellationToken =>
         {
-            await RefreshSourcePathAsync(cancellationToken);
-            ValidateSourcePath();
+            var sourcePath = GetValidatedSourcePath();
 
             var allApiSourceInfos = await Task.Run(
-                                        () => _apiUpdateServer.GetAllApiSourceInfos(SourceCodePath),
+                                        () => _apiUpdateServer.GetAllApiSourceInfos(sourcePath),
                                         cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -93,8 +92,7 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
     {
         return RunWithLoadingAsync(async cancellationToken =>
         {
-            await RefreshSourcePathAsync(cancellationToken);
-            ValidateSourcePath();
+            var sourcePath = GetValidatedSourcePath();
 
             var apiCode = StrSelectApiCodes?.Trim();
             var apiName = StrSelectApiName?.Trim();
@@ -107,17 +105,17 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
             {
                 var executionSource = !string.IsNullOrWhiteSpace(apiCode)
                                           ? _apiUpdateServer.GetExecutionSourceCodeByApiCode(
-                                              SourceCodePath,
+                                              sourcePath,
                                               apiCode)
                                           : _apiUpdateServer.GetExecutionSourceCodeByApiName(
-                                              SourceCodePath,
+                                              sourcePath,
                                               apiName!);
                 var extendSource = !string.IsNullOrWhiteSpace(apiCode)
                                        ? _apiUpdateServer.GetSourceCodeByApiCode(
-                                           SourceCodePath,
+                                           sourcePath,
                                            apiCode)
                                        : _apiUpdateServer.GetSourceCodeByApiName(
-                                           SourceCodePath,
+                                           sourcePath,
                                            apiName!);
                 return (executionSource, extendSource);
             }, cancellationToken);
@@ -134,8 +132,7 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
     {
         return RunWithLoadingAsync(async cancellationToken =>
         {
-            await RefreshSourcePathAsync(cancellationToken);
-            ValidateSourcePath();
+            var sourcePath = GetValidatedSourcePath();
 
             var updateApiCodes = ParseIdentifiers(StrUpdateApis);
             var lookupKind = updateApiCodes.Count > 0 ? ApiLookupKind.Code : ApiLookupKind.Name;
@@ -158,6 +155,7 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
                 environmentKey,
                 cancellationToken);
             var results = await Task.Run(() => UpdateApis(
+                              sourcePath,
                               updateIdentifiers,
                               lookupKind,
                               connectionString,
@@ -174,12 +172,13 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
     }
 
     private List<string> UpdateApis(
+        string sourcePath,
         IEnumerable<string> updateIdentifiers,
         ApiLookupKind lookupKind,
         string connectionString,
         CancellationToken cancellationToken)
     {
-        var apiInfos = _apiUpdateServer.GetAllApiSourceInfos(SourceCodePath);
+        var apiInfos = _apiUpdateServer.GetAllApiSourceInfos(sourcePath);
         var updates = new List<ApiExtendUpdateRequest>();
 
         foreach (var identifier in updateIdentifiers)
@@ -190,10 +189,10 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
                                  : _apiUpdateServer.GetSourceCodeByApiName(apiInfos, identifier);
             var executionSource = lookupKind == ApiLookupKind.Code
                                       ? _apiUpdateServer.GetExecutionSourceCodeByApiCode(
-                                          SourceCodePath,
+                                          sourcePath,
                                           identifier)
                                       : _apiUpdateServer.GetExecutionSourceCodeByApiName(
-                                          SourceCodePath,
+                                          sourcePath,
                                           identifier);
             updates.Add(new ApiExtendUpdateRequest(lookupKind, identifier, extendCode, executionSource));
         }
@@ -221,17 +220,20 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
         ShowError(exception.Message);
     }
 
-    private void ValidateSourcePath()
+    private string GetValidatedSourcePath()
     {
-        if (string.IsNullOrWhiteSpace(SourceCodePath))
+        var sourcePath = SourceCodePath?.Trim();
+        if (string.IsNullOrWhiteSpace(sourcePath))
         {
-            throw new Barcode2ConfigurationException("请先配置源代码目录。");
+            throw new Barcode2ConfigurationException("请输入扫码路径。");
         }
 
-        if (!Directory.Exists(SourceCodePath))
+        if (!Directory.Exists(sourcePath))
         {
-            throw new DirectoryNotFoundException($"源代码目录不存在：{SourceCodePath}");
+            throw new DirectoryNotFoundException($"源代码目录不存在：{sourcePath}");
         }
+
+        return sourcePath;
     }
 
     private Task SaveSettingsAsync(CancellationToken cancellationToken)
@@ -245,11 +247,6 @@ public partial class ApiUpdateViewModel : LoadingViewModelBase
         settings.SelectedApiCode = StrSelectApiCodes ?? string.Empty;
         settings.SelectedApiName = StrSelectApiName ?? string.Empty;
         await _configuration.SaveAsync(settings, cancellationToken);
-    }
-
-    private async Task RefreshSourcePathAsync(CancellationToken cancellationToken)
-    {
-        SourceCodePath = (await _configuration.GetAsync(cancellationToken)).SourceCodePath;
     }
 
     private void ShowInformation(string message)
