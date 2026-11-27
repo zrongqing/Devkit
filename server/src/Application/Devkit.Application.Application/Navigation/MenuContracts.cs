@@ -9,6 +9,7 @@ public sealed record MenuManifestRequest(MenuDeclaration[] Menus);
 public sealed record MenuSyncItem(string MenuCode, string[] ApplyFields);
 public sealed record MenuSyncRequest(int Version, MenuDeclaration[] Menus, MenuSyncItem[] Items);
 public sealed record MenuEditRequest(int Version, string Title, string? ParentCode, string? IconKey, int Order, bool Enabled);
+public sealed record MenuReorderRequest(int Version, string MenuCode, string TargetCode, string Position);
 public sealed record DirectoryCreateRequest(int Version, [property: RegularExpression("^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)*$"), MaxLength(120)] string MenuCode, string Title, string? ParentCode, string? IconKey, int Order);
 public sealed record MenuGrantRequest(string[] MenuCodes);
 public sealed record MenuView(string MenuCode, string Type, string? ParentCode, string Title,

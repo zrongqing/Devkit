@@ -152,6 +152,39 @@ public sealed class WebMenuService(IWebMenuStore store, IWebMenuDefaults default
         await store.CommitAsync(snapshot.Version, snapshot.Menus, null, ct);
         return View(await store.ReadAsync(ct));
     }
+    public async Task<MenuTreeView> ReorderAsync(AuthorizationSubject actor, MenuReorderRequest request, CancellationToken ct)
+    {
+        actor.Require("system.menus.manage");
+        if (!ValidCode(request.MenuCode) || !ValidCode(request.TargetCode) || request.MenuCode == request.TargetCode
+            || request.Position is not ("before" or "after")) throw Invalid("请选择有效的拖动菜单、目标菜单和放置位置。");
+
+        var snapshot = await SnapshotAsync(ct);
+        if (snapshot.Version != request.Version) throw Conflict();
+        var source = snapshot.Menus.SingleOrDefault(x => x.MenuCode == request.MenuCode);
+        var target = snapshot.Menus.SingleOrDefault(x => x.MenuCode == request.TargetCode);
+        if (source is null || target is null || source.ParentCode != target.ParentCode)
+            throw Invalid("只能在同一父目录下调整菜单顺序。");
+
+        var siblings = snapshot.Menus.Where(x => x.ParentCode == source.ParentCode)
+            .OrderBy(x => x.Order).ThenBy(x => x.MenuCode, StringComparer.Ordinal).ToList();
+        var originalIndex = siblings.IndexOf(source);
+        siblings.RemoveAt(originalIndex);
+        var newIndex = siblings.IndexOf(target) + (request.Position == "after" ? 1 : 0);
+        if (originalIndex == newIndex) return View(snapshot);
+        siblings.Insert(newIndex, source);
+
+        for (var i = 0; i < siblings.Count; i++)
+        {
+            var menu = siblings[i];
+            var order = i * 10;
+            if (menu.Order == order) continue;
+            menu.Order = order;
+            menu.Revision++;
+        }
+        await store.CommitAsync(snapshot.Version, snapshot.Menus, null, ct);
+        return View(await store.ReadAsync(ct));
+    }
+
     public async Task<MenuTreeView> DeleteDirectoryAsync(AuthorizationSubject actor, string code, int version, CancellationToken ct)
     {
         actor.Require("system.menus.manage");

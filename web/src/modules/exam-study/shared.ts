@@ -21,14 +21,7 @@ export function useOperation() {
   return { busy, error, run };
 }
 export { labels, label } from "../../api/queryOptions";
-export const date = (value?: string | null) =>
-  value
-    ? new Date(
-        value.endsWith("Z") || /[+-]\d\d:\d\d$/.test(value)
-          ? value
-          : `${value}Z`,
-      ).toLocaleString("zh-CN")
-    : "—";
+export { formatDisplayTime as date } from "../../stores/systemSettings";
 export const bytes = (value: number | null) =>
   value === null
     ? "未知"

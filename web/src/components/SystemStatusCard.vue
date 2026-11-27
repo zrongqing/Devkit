@@ -3,12 +3,13 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { getSystemRuntime, type SystemRuntime } from "../api/system";
 import { bytes } from "../modules/exam-study/shared";
+import { formatDisplayTime } from "../stores/systemSettings";
 const props = defineProps<{ service: 'application' | 'business' }>();
 const route = useRoute();
 const runtime = ref<SystemRuntime>();
 const error = ref("");
 const loading = ref(false);
-const lastChecked = ref("");
+const lastChecked = ref<number>();
 const latency = ref(0);
 const automatic = ref(true);
 const uptime = computed(() => {
@@ -26,7 +27,7 @@ async function refresh() {
     runtime.value = await getSystemRuntime(controller.signal, props.service);
     latency.value = Math.round(performance.now() - started);
     error.value = "";
-    lastChecked.value = new Date().toLocaleString("zh-CN");
+    lastChecked.value = Date.now();
   } catch (reason) {
     if (!(reason instanceof DOMException && reason.name === "AbortError"))
       error.value = reason instanceof Error ? reason.message : "无法连接服务端";
@@ -44,7 +45,7 @@ onUnmounted(() => { clearInterval(timer); controller?.abort(); });
   <el-card class="status-card" shadow="never" v-loading="loading && !runtime">
     <template #header>
       <div class="card-heading monitor-heading">
-        <div><strong>服务运行状态</strong><span>{{ lastChecked ? `最近成功采样：${lastChecked}` : '等待首次采样' }}</span></div>
+        <div><strong>服务运行状态</strong><span>{{ lastChecked ? `最近成功采样：${formatDisplayTime(lastChecked)}` : '等待首次采样' }}</span></div>
         <div class="study-actions"><el-switch v-model="automatic" active-text="每 30 秒刷新" /><el-button type="primary" plain :loading="loading" @click="refresh">刷新</el-button></div>
       </div>
     </template>
@@ -58,8 +59,8 @@ onUnmounted(() => { clearInterval(timer); controller?.abort(); });
       <el-descriptions :column="1" border>
         <el-descriptions-item label="服务">{{ runtime.info.serviceName }}</el-descriptions-item>
         <el-descriptions-item label="版本 / 环境">{{ runtime.info.version }} / {{ runtime.info.environment }}</el-descriptions-item>
-        <el-descriptions-item label="服务时间">{{ new Date(runtime.info.serverTime).toLocaleString('zh-CN') }}</el-descriptions-item>
-        <el-descriptions-item label="启动时间">{{ new Date(runtime.startedAtUtc).toLocaleString('zh-CN') }}</el-descriptions-item>
+        <el-descriptions-item label="服务时间">{{ formatDisplayTime(runtime.info.serverTime) }}</el-descriptions-item>
+        <el-descriptions-item label="启动时间">{{ formatDisplayTime(runtime.startedAtUtc) }}</el-descriptions-item>
         <el-descriptions-item label="线程 / 可用处理器">{{ runtime.threadCount }} / {{ runtime.processorCount }}</el-descriptions-item>
         <el-descriptions-item label="进程累计 CPU 时间">{{ runtime.totalProcessorSeconds.toFixed(1) }} 秒</el-descriptions-item>
       </el-descriptions>

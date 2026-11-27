@@ -10,6 +10,7 @@ import {
   type Version,
 } from '../../api/codeSystem'
 import type { TableFilterSchema } from '../../components/tablePresentation'
+import { formatDisplayTime } from '../../stores/systemSettings'
 import { ref } from 'vue'
 const props = defineProps<{
   id: string
@@ -50,7 +51,9 @@ async function version(no: number) {
   >
     <el-table-column prop="versionNo" label="版本号" />
     <template v-if="kind === 'versions'">
-      <el-table-column prop="publishedAtUtc" label="发布时间" /><el-table-column
+      <el-table-column prop="publishedAtUtc" label="发布时间" min-width="180">
+        <template #default="{ row }">{{ formatDisplayTime(row.publishedAtUtc) }}</template>
+      </el-table-column><el-table-column
         prop="publishedBy"
         label="发布人 ID"
       />
@@ -71,7 +74,9 @@ async function version(no: number) {
       <el-table-column prop="revision" label="修订号" /><el-table-column
         prop="actorId"
         label="操作人 ID"
-      /><el-table-column prop="occurredAtUtc" label="操作时间" />
+      /><el-table-column prop="occurredAtUtc" label="操作时间" min-width="180">
+        <template #default="{ row }">{{ formatDisplayTime(row.occurredAtUtc) }}</template>
+      </el-table-column>
       <el-table-column prop="reason" label="变更原因" />
     </template>
     <template v-else>
@@ -82,7 +87,9 @@ async function version(no: number) {
       <el-table-column prop="sequenceValue" label="流水值" /><el-table-column
         prop="issuedBy"
         label="经办人 ID"
-      /><el-table-column prop="issuedAtUtc" label="签发时间" />
+      /><el-table-column prop="issuedAtUtc" label="签发时间" min-width="180">
+        <template #default="{ row }">{{ formatDisplayTime(row.issuedAtUtc) }}</template>
+      </el-table-column>
     </template>
   </DataTable>
   <PageDialog

@@ -107,7 +107,69 @@ public sealed class WebMenuEndpointTests
         using var documentClient = factory.CreateIdentityClient();
         var doc=await documentClient.GetFromJsonAsync<JsonElement>("/openapi/v1.json");
         Assert.True(doc.GetProperty("paths").TryGetProperty(Root+"/sync",out _));
+        Assert.True(doc.GetProperty("paths").GetProperty(Root + "/menus/reorder").TryGetProperty("post", out _));
         Assert.True(doc.GetProperty("paths").TryGetProperty("/api/v1/identity/users/{id}/menus",out _));
+    }
+
+    [Fact]
+    public async Task Reorder_persists_sibling_order_in_configuration_and_navigation()
+    {
+        const string parent = "knowledge.practice";
+        const string exam = "knowledge.practice.exam";
+        const string questions = "knowledge.practice.questions";
+        const string progress = "knowledge.practice.progress";
+        const string path = Root + "/menus/reorder";
+        using var factory = new DevkitApiFactory(builtInAdmin: true);
+        using var admin = factory.CreateClient();
+        await Login(admin);
+
+        var initial = await Tree(admin);
+        var moved = await Data<MenuTreeView>(await admin.PostAsJsonAsync(path, new MenuReorderRequest(initial.Version, progress, exam, "before")));
+        Assert.Equal(initial.Version + 1, moved.Version);
+        Assert.Equal(new[] { progress, exam, questions }, moved.Menus.Where(m => m.ParentCode == parent).Select(m => m.MenuCode));
+        foreach (var previous in initial.Menus)
+        {
+            var current = Assert.Single(moved.Menus, m => m.MenuCode == previous.MenuCode);
+            var expectedMenu = previous.ParentCode == parent && previous.Order != current.Order
+                ? previous with { Order = current.Order, Revision = previous.Revision + 1 }
+                : previous;
+            Assert.Equal(JsonData.Write(expectedMenu), JsonData.Write(current));
+        }
+
+        var noChange = await Data<MenuTreeView>(await admin.PostAsJsonAsync(path, new MenuReorderRequest(moved.Version, progress, exam, "before")));
+        Assert.Equal(moved.Version, noChange.Version);
+        var restored = await Data<MenuTreeView>(await admin.PostAsJsonAsync(path, new MenuReorderRequest(moved.Version, progress, questions, "after")));
+        var expected = new[] { exam, questions, progress };
+        Assert.Equal(expected, restored.Menus.Where(m => m.ParentCode == parent).Select(m => m.MenuCode));
+        var page = await Data<JsonElement>(await admin.PostAsJsonAsync(Root + "/menus/query", new { page = 1, pageSize = 20 }));
+        Assert.Equal(expected, page.GetProperty("items").EnumerateArray()
+            .Where(m => m.TryGetProperty("parentCode", out var code) && code.GetString() == parent).Select(m => m.GetProperty("menuCode").GetString()));
+        var navigation = await Data<JsonElement>(await admin.GetAsync("/api/v1/web/navigation/menus"));
+        Assert.Equal(expected, navigation.EnumerateArray()
+            .Where(m => m.TryGetProperty("parentId", out var id) && id.GetString() == parent).Select(m => m.GetProperty("menuCode").GetString()));
+    }
+
+    [Fact]
+    public async Task Reorder_rejects_unauthorized_invalid_and_stale_requests_without_changes()
+    {
+        const string path = Root + "/menus/reorder";
+        using var factory = new DevkitApiFactory(builtInAdmin: true);
+        using var admin = factory.CreateClient();
+        await Login(admin);
+        var initial = await Tree(admin);
+        var request = new MenuReorderRequest(initial.Version, "knowledge.practice.progress", "knowledge.practice.exam", "before");
+
+        using var user = factory.CreateClient();
+        await Problem(await user.PostAsJsonAsync(path, request), HttpStatusCode.Unauthorized, "unauthorized");
+        await StudyUser(admin, "ordinary");
+        await Login(user, "ordinary", "StrongPassword123");
+        await Problem(await user.PostAsJsonAsync(path, request), HttpStatusCode.Forbidden, "forbidden");
+        await Problem(await admin.PostAsJsonAsync(path, request with { TargetCode = "home" }), HttpStatusCode.BadRequest, "invalid_menu");
+        await Problem(await admin.PostAsJsonAsync(path, request with { TargetCode = request.MenuCode }), HttpStatusCode.BadRequest, "invalid_menu");
+        await Problem(await admin.PostAsJsonAsync(path, request with { TargetCode = "missing.menu" }), HttpStatusCode.BadRequest, "invalid_menu");
+        await Problem(await admin.PostAsJsonAsync(path, request with { Position = "inside" }), HttpStatusCode.BadRequest, "invalid_menu");
+        await Problem(await admin.PostAsJsonAsync(path, request with { Version = initial.Version - 1 }), HttpStatusCode.Conflict, "menu_conflict");
+        Assert.Equal(JsonData.Write(initial), JsonData.Write(await Tree(admin)));
     }
 
     [Fact]

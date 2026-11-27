@@ -9,7 +9,13 @@ export interface ColumnOption {
 export interface TableFilterTag { key: string; label: string; value: string; external?: boolean }
 
 export interface FilterOption { value: string; label: string }
-export type FilterDraft = string | string[] | { min: string; max: string }
+export interface RangeFilterDraft {
+  min: string
+  max: string
+  invalidMin?: { value: string; message: string }
+  invalidMax?: { value: string; message: string }
+}
+export type FilterDraft = string | string[] | RangeFilterDraft
 export interface ColumnFilterConfig {
   type: 'text' | 'select' | 'numberRange' | 'dateRange'
   /** Filtering may use a stable relation ID while sorting uses the displayed column. */

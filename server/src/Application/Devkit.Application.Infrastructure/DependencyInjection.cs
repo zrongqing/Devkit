@@ -2,7 +2,9 @@ using Devkit.Infrastructure.Persistence;
 using Devkit.Application.Application.Authorization;
 using Devkit.Application.Application.Administration;
 using Devkit.Application.Application.Navigation;
+using Devkit.Application.Application.Settings;
 using Devkit.Application.Domain.Navigation;
+using Devkit.Application.Domain.Settings;
 using Devkit.Application.Infrastructure.Authorization;
 using Devkit.Application.Application.Abstractions;
 using Devkit.Application.Domain.Identity;
@@ -110,6 +112,8 @@ public static class DependencyInjection
         services.AddScoped<IWebMenuStore, WebMenuStore>();
         services.AddScoped<IWebMenuDefaults, WebMenuDefaults>();
         services.AddScoped<WebMenuService>();
+        services.AddScoped<ISystemSettingsStore, SystemSettingsStore>();
+        services.AddScoped<SystemSettingsService>();
         services.AddHostedService<WebMenuBootstrapHostedService>();
 
         services.AddHealthChecks()

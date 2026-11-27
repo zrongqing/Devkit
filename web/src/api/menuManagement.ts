@@ -8,6 +8,7 @@ export const menuApi = {
   sync: (version: number, menus: MenuDeclaration[], items: { menuCode: string; applyFields: string[] }[]) => request<MenuTree>(`${base}/sync`, json({ version, menus, items })),
   createDirectory: (body: { version: number; menuCode: string; title: string; parentCode: string | null; iconKey: string | null; order: number }) => request<MenuTree>(`${base}/menus`, json(body)),
   edit: (code: string, body: { version: number; title: string; parentCode: string | null; iconKey: string | null; order: number; enabled: boolean }) => request<MenuTree>(`${base}/menus/${encodeURIComponent(code)}`, json(body, 'PUT')),
+  reorder: (body: { version: number; menuCode: string; targetCode: string; position: 'before' | 'after' }) => request<MenuTree>(`${base}/menus/reorder`, json(body)),
   removeDirectory: (code: string, version: number) => request<MenuTree>(`${base}/menus/${encodeURIComponent(code)}?version=${version}`, { method: 'DELETE' }),
   userMenus: (id: string, menuCodes: string[]) => request(`/api/v1/identity/users/${id}/menus`, json({ menuCodes }, 'PUT')),
   roleMenus: (id: string, menuCodes: string[]) => request(`/api/v1/identity/roles/${id}/menus`, json({ menuCodes }, 'PUT')),

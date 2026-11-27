@@ -744,6 +744,32 @@ namespace Devkit.Application.Infrastructure.Persistence.Migrations.SqlServer
                     b.ToTable("sys_position", (string)null);
                 });
 
+            modelBuilder.Entity("Devkit.Application.Domain.Settings.SystemSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    b.Property<string>("TimeZone")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("time_zone");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sys_system_settings");
+
+                    b.ToTable("sys_system_settings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sys_system_settings_singleton", "id = 1");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1
+                        });
+                });
+
             modelBuilder.Entity("Devkit.Application.Domain.Identity.RefreshToken", b =>
                 {
                     b.HasOne("Devkit.Application.Domain.Identity.User", "User")

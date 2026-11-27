@@ -1,5 +1,5 @@
-import { cloneVNode, Comment, defineComponent, Fragment, h, isVNode, nextTick, onBeforeUnmount, ref, watch, type PropType, type VNode } from 'vue'
-import { ElAlert, ElButton, ElMessage, ElPagination, ElTable, type TableColumnCtx, type TableInstance } from 'element-plus'
+import { cloneVNode, Comment, computed, defineComponent, Fragment, h, isVNode, nextTick, onBeforeUnmount, reactive, ref, watch, type PropType, type VNode } from 'vue'
+import { ElAlert, ElButton, ElMessage, ElPagination, ElTable, type TableColumnCtx, type TableInstance, type TableProps } from 'element-plus'
 import type { FieldSort, PageLoader, PageQuery } from '../api/tableQueries'
 import TableToolbar from './TableToolbar.vue'
 import type { ColumnOption, ColumnPin, FilterDraft, FilterOption, TableFilterSchema, TableFilterTag } from './tablePresentation'
@@ -15,12 +15,17 @@ function flatten(nodes: VNode[]): VNode[] {
 /** Server owns queries; column pin and width preferences are stored locally. */
 export default defineComponent({
   name: 'DataTable', inheritAttrs: false,
-  emits: ['resetFilters', 'removeFilter'],
+  emits: ['resetFilters', 'removeFilter', 'expandChange'],
   props: {
     data: { type: Array as PropType<Row[]>, default: () => [] },
     tableKey: { type: String, required: true },
     loadPage: { type: Function as PropType<PageLoader>, required: true },
     queryContext: { type: String, default: '' },
+    rowKey: [String, Function] as PropType<TableProps<Row>['rowKey']>,
+    treeProps: Object as PropType<TableProps<Row>['treeProps']>,
+    lazy: Boolean,
+    defaultExpandAll: Boolean,
+    expandRowKeys: Array as PropType<string[]>,
     searchField: String,
     externalFilters: { type: Array as PropType<TableFilterTag[]>, default: () => [] },
     filterSchema: { type: Object as PropType<TableFilterSchema>, default: () => ({}) },
@@ -28,6 +33,45 @@ export default defineComponent({
   setup(props, { attrs, slots, expose, emit }) {
     const page = ref(1), pageSize = ref(20), total = ref(0)
     const rows = ref<Row[]>([]), loading = ref(false), error = ref('')
+    const rowIdentity = computed(() => {
+      const key = props.rowKey
+      if (typeof key === 'function') return (row: Row) => String(key(row))
+      if (key) {
+        const path = key.split('.')
+        return (row: Row) => String(path.reduce((value, field) => value?.[field], row))
+      }
+      return (row: Row) => String(row.id ?? row.menuCode ?? row.key)
+    })
+    const treeExpansion = reactive(new Map<string, boolean>())
+    const treeExpandedKeys = computed(() => {
+      const keys = new Set(props.expandRowKeys)
+      // Element Plus reapplies default-expand-all on every data change. Use it
+      // to seed the keys here so a recorded collapse can take precedence.
+      if (props.defaultExpandAll) {
+        const childrenKey = props.treeProps?.children ?? 'children'
+        const lazyKey = props.treeProps?.hasChildren ?? 'hasChildren'
+        function visit(nodes: Row[]) {
+          for (const node of nodes) {
+            const children = node[childrenKey]
+            if (props.lazy && node[lazyKey]) keys.add(rowIdentity.value(node))
+            else if (Array.isArray(children) && children.length) {
+              keys.add(rowIdentity.value(node))
+              visit(children)
+            }
+          }
+        }
+        visit(rows.value)
+      }
+      for (const [key, expanded] of treeExpansion) {
+        if (expanded) keys.add(key)
+        else keys.delete(key)
+      }
+      return [...keys]
+    })
+    function onExpandChange(row: Row, expanded: boolean | Row[]) {
+      if (typeof expanded === 'boolean') treeExpansion.set(rowIdentity.value(row), expanded)
+      emit('expandChange', row, expanded)
+    }
     const showLoading = ref(false)
     const table = ref<TableInstance>()
     const widths = ref<Record<string, number>>({})
@@ -185,6 +229,7 @@ export default defineComponent({
     }
     watch(() => props.tableKey, () => {
       pins.value = {}; drafts.value = {}; filters.value = {}; sorts.value = []; page.value = 1
+      treeExpansion.clear()
       optionLabels.value = {}
       hidden.value = {}; widths.value = {}; measuredMinimums.value = {}; minimumWidths.clear()
       try {
@@ -267,12 +312,10 @@ export default defineComponent({
         if (node.props) { delete node.props['table-value']; delete node.props['query-field'] }
         return node
       })
-      const requestedRowKey = attrs['row-key'] ?? attrs.rowKey
-      const rowKey = typeof requestedRowKey === 'string' ? requestedRowKey : (row: Row) =>
-        String(typeof requestedRowKey === 'function' ? requestedRowKey(row) : row.id ?? row.menuCode ?? row.key)
+      const hasDetailRows = nodes.some(node => node?.props?.type === 'expand')
       const tags: TableFilterTag[] = Object.entries(filters.value).filter(([, value]) => hasFilter(value)).map(([key, value]) => ({
         key, label: options.find(c => c.field === key)?.label ?? key,
-        value: filterLabel(value, [...(props.filterSchema[key]?.options ?? []), ...(optionLabels.value[key] ?? [])]),
+        value: filterLabel(value, [...(props.filterSchema[key]?.options ?? []), ...(optionLabels.value[key] ?? [])], props.filterSchema[key]?.type),
       })).concat(props.externalFilters.map(tag => ({ ...tag, external: true })))
       return h('div', { class: ['data-table', { 'data-table--pending': loading.value }], 'aria-busy': loading.value }, [
         h(TableToolbar, {
@@ -285,7 +328,10 @@ export default defineComponent({
         h(ElTable, { ...attrs, ref: table, border: true, allowDragLastColumn: false, fit: true,
           scrollbarAlwaysOn: true, tableLayout: 'fixed', data: rows.value,
           onHeaderDragend: resized,
-          rowKey,
+          rowKey: rowIdentity.value, treeProps: props.treeProps, lazy: props.lazy,
+          defaultExpandAll: hasDetailRows && props.defaultExpandAll,
+          expandRowKeys: hasDetailRows ? props.expandRowKeys : treeExpandedKeys.value,
+          onExpandChange,
           // Kept rows may belong to the previous scope while a new query runs.
           // Header controls remain usable; row actions wait for the result.
           onClickCapture: (event: MouseEvent) => {

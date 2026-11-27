@@ -1,4 +1,5 @@
 using Devkit.Commons.Exceptions;
+using Devkit.Application.Application.Settings;
 
 namespace Devkit.Application.Application.Authorization;
 
@@ -28,6 +29,7 @@ public static class PermissionCatalog
         new("system.organization.manage", "组织架构与任职", "系统管理", "system-organization"),
         new("system.audit.view", "管理操作审计", "系统监控", "system-audit"),
         new("system.menus.manage", "菜单配置与同步", "系统管理", "system-menus"),
+        new(SystemSettingsService.ManagePermission, "基础参数配置", "系统管理", "settings"),
         new("system.monitor.view", "运行状态", "系统监控", "system-status"),
         new("study.projects.manage", "项目管理", "知识库", "study-project-management"),
         new("study.knowledge.manage", "知识库管理", "知识库", "study-knowledge"),

@@ -7,6 +7,7 @@
 - 字段筛选：`TableFilterInput.vue` 根据 `filter-schema` 渲染文本、可搜索多选、数字 / 时间范围；`tableFilters.ts` 统一草稿复制、请求和条件标签。`src/api/queryOptions.ts` 维护编码与显示字典，角色选项来自既有授权角色接口，使用 `roleIds/anyOf` 查询。支持远程选项加载、取消与重试，不新增依赖。规范见 `docs/表格筛选开发规范.md`。
 - 路由：Vue Router 4，使用 Hash 模式，避免静态部署必须配置 history fallback。
 - 状态管理：Pinia 3；菜单加载状态和页签状态分别管理。
+- 显示时区：`Intl.DateTimeFormat` 格式化 UTC 时间戳。锁定 `@js-temporal/polyfill` 0.5.1，将日期筛选的当地时间转换为 UTC，并明确拒绝夏令时切换产生的空缺或重复时间。
 - HTTP 封装：当前使用原生 `fetch`，可替换为团队标准客户端
 - 导航接口：运行时由 `GET /api/v1/web/navigation/menus` 返回数据库中的可访问菜单；`routeKey` 必须在本地声明注册器中解析。菜单管理调用封装集中于 `src/api/menuManagement.ts`。
 - 构建类型：使用 `@types/node` 为 Vite 配置提供 Node.js 类型，仅参与开发与 CI 类型检查

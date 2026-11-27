@@ -13,6 +13,32 @@ namespace Devkit.Server.Api.IntegrationTests;
 public sealed class SharedDatabaseMigrationTests
 {
     [Fact]
+    public void Settings_upgrade_only_creates_and_seeds_the_singleton()
+    {
+        using var context = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer().Options);
+        var assembly = context.GetService<IMigrationsAssembly>();
+        var entry = Assert.Single(assembly.Migrations, migration => migration.Key.EndsWith("_SystemSettings"));
+        var migration = assembly.CreateMigration(entry.Value, context.Database.ProviderName!);
+
+        Assert.Collection(migration.UpOperations,
+            operation =>
+            {
+                var table = Assert.IsType<CreateTableOperation>(operation);
+                Assert.Equal("sys_system_settings", table.Name);
+                Assert.True(Assert.Single(table.Columns, column => column.Name == "time_zone").IsNullable);
+                Assert.Equal("id = 1", Assert.Single(table.CheckConstraints).Sql);
+            },
+            operation =>
+            {
+                var seed = Assert.IsType<InsertDataOperation>(operation);
+                Assert.Equal("sys_system_settings", seed.Table);
+                Assert.Equal(1, seed.Values[0, Array.IndexOf(seed.Columns, "id")]);
+                Assert.Null(seed.Values[0, Array.IndexOf(seed.Columns, "time_zone")]);
+            });
+        Assert.Equal("sys_system_settings", Assert.IsType<DropTableOperation>(Assert.Single(migration.DownOperations)).Name);
+    }
+
+    [Fact]
     public void User_role_view_upgrade_and_rollback_only_change_the_view()
     {
         using var context = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer().Options);
@@ -107,7 +133,7 @@ public sealed class SharedDatabaseMigrationTests
                 Assert.All(index.Columns, column => Assert.Contains(table.Columns, c => c.Name == column));
             }
         }
-        Assert.Equal(38, allTables.Count);
+        Assert.Equal(39, allTables.Count);
     }
 
     [Fact]

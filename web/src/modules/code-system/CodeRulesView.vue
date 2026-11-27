@@ -20,6 +20,7 @@ import {
 import { tableQueries } from '../../api/tableQueries'
 import { optionLabel, queryDictionaries } from '../../api/queryOptions'
 import type { TableFilterSchema } from '../../components/tablePresentation'
+import { formatDisplayTime } from '../../stores/systemSettings'
 
 const scenarios = ref<Scenario[]>([]),
   loaded = ref(false),
@@ -215,7 +216,9 @@ function description(d: Definition | null) {
       <el-table-column
         prop="activeVersionNo"
         label="生效版本"
-      /><el-table-column prop="updatedAtUtc" label="最后变更时间" />
+      /><el-table-column prop="updatedAtUtc" label="最后变更时间" min-width="180">
+        <template #default="{ row }">{{ formatDisplayTime(row.updatedAtUtc) }}</template>
+      </el-table-column>
       <el-table-column label="操作"
         ><template #default="{ row }"
           ><el-button link type="primary" @click="show(row.id)"

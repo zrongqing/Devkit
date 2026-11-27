@@ -2,9 +2,10 @@
 import PageDialog from '../../components/PageDialog.vue'
 import DataTable from "../../components/DataTable";
 import { queryDictionaries, optionLabel, tableFilterSchemas } from "../../api/queryOptions";
-import { tableQueries } from "../../api/tableQueries";
+import { tableQueries, type PageLoader } from "../../api/tableQueries";
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Rank } from '@element-plus/icons-vue'
 import { menuApi } from '../../api/menuManagement'
 import { canonicalMenuCode } from '../../api/menuCodeCompatibility'
 import { menuManifest } from '../../router/pageRegistry'
@@ -32,18 +33,80 @@ const fields = [
   { key: 'type', name: '菜单类型' }, { key: 'routeKey', name: '页面路由' }, { key: 'requiredPermissions', name: '所需业务权限' },
   { key: 'isClosable', name: '页签可关闭' }, { key: 'enabled', name: '后台启用状态' },
 ]
-type Node = MenuView & { children: Node[] }
-const nodes = computed(() => {
-  const map = new Map(tree.value.menus.map(m => [m.menuCode, { ...m, children: [] } as Node]))
-  const roots: Node[] = []
-  for (const m of map.values()) {
-    const parent = m.parentCode ? map.get(m.parentCode) : undefined
-    if (parent) parent.children.push(m); else roots.push(m)
+const customMenuView = ref(false)
+const menuPageReady = ref(false)
+const canDrag = computed(() => tree.value.version > 0 && menuPageReady.value && !customMenuView.value && !busy.value && !legacyDatabase.value)
+const menuByCode = computed(() => new Map(tree.value.menus.map(menu => [menu.menuCode, menu])))
+const dragged = ref<{ menu: MenuView; version: number }>()
+const dropTarget = ref<{ targetCode: string; position: 'before' | 'after' }>()
+
+const loadMenuPage: PageLoader = async (query, signal) => {
+  menuPageReady.value = false
+  customMenuView.value = query.filters.length > 0 || query.sorts.length > 0
+  clearDrag()
+  const page = await tableQueries.menuTree(query, signal)
+  if (!signal.aborted) menuPageReady.value = true
+  return page
+}
+
+function startDrag(event: DragEvent, row: MenuView) {
+  const menu = menuByCode.value.get(row.menuCode)
+  if (!canDrag.value || !event.dataTransfer || !menu || menu.parentCode !== row.parentCode) {
+    event.preventDefault()
+    return
   }
-  const sort = (values: Node[]) => { values.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title)); values.forEach(x => sort(x.children)) }
-  sort(roots)
-  return roots
-})
+  dragged.value = { menu, version: tree.value.version }
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', menu.menuCode)
+}
+function clearDrag() {
+  dragged.value = undefined
+  dropTarget.value = undefined
+}
+function resolveDrop(event: DragEvent) {
+  const source = dragged.value
+  if (!canDrag.value || !source || source.version !== tree.value.version || !(event.target instanceof Element)) return
+  const row = event.target.closest('tr')
+  const code = row?.querySelector<HTMLElement>('[data-menu-code]')?.dataset.menuCode
+  const target = code && menuByCode.value.get(code)
+  if (!row || !target || target.menuCode === source.menu.menuCode || target.parentCode !== source.menu.parentCode) return
+  const { top, height } = row.getBoundingClientRect()
+  const position = event.clientY < top + height / 2 ? 'before' : 'after'
+  return { targetCode: target.menuCode, position } as const
+}
+function dragOver(event: DragEvent) {
+  const target = resolveDrop(event)
+  if (target?.targetCode !== dropTarget.value?.targetCode || target?.position !== dropTarget.value?.position) {
+    dropTarget.value = target
+  }
+  if (!target) return
+  event.preventDefault()
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+}
+function dragLeave(event: DragEvent) {
+  if (event.currentTarget instanceof HTMLElement && event.relatedTarget instanceof Node
+    && event.currentTarget.contains(event.relatedTarget)) return
+  dropTarget.value = undefined
+}
+function menuRowClass({ row }: { row: MenuView }) {
+  if (row.menuCode === dropTarget.value?.targetCode) return `menu-drop-${dropTarget.value.position}`
+  return row.menuCode === dragged.value?.menu.menuCode ? 'menu-dragging' : ''
+}
+async function dropMenu(event: DragEvent) {
+  const source = dragged.value
+  const target = resolveDrop(event)
+  clearDrag()
+  if (!source || !target) return
+  event.preventDefault()
+  await run(async () => {
+    const reordered = await menuApi.reorder({ version: source.version, menuCode: source.menu.menuCode, ...target })
+    if (reordered.version === source.version) return
+    tree.value = reordered
+    ElMessage.success('菜单顺序已保存')
+    await Promise.all([loadComparison(), navigation.load(true)])
+  })
+}
+
 function ancestors(code: string): string[] {
   const result: string[] = []
   let parent = tree.value.menus.find(m => m.menuCode === code)?.parentCode
@@ -54,6 +117,9 @@ const protectedCodes = computed(() => new Set(['home', 'system.menus', ...ancest
 const parents = computed(() => tree.value.menus.filter(m => m.type === 'directory' && m.menuCode !== editing.value?.menuCode && !ancestors(m.menuCode).includes(editing.value?.menuCode ?? '')))
 async function load() {
   tree.value = await menuApi.list()
+  await loadComparison()
+}
+async function loadComparison() {
   comparison.value = legacyDatabase.value ? { version: tree.value.version, items: [] } : await menuApi.compare(menuManifest)
   selected.value = []
   if (legacyDatabase.value) { tab.value = 'tree'; editOpen.value = false }
@@ -110,13 +176,25 @@ const tableValues = {
     <el-alert v-if="legacyDatabase" title="菜单编码升级尚未完成，现有菜单仍可访问。请完成数据库迁移并重启新版服务后，再配置或同步菜单。" type="warning" :closable="false" class="study-error" />
     <el-tabs v-model="tab">
       <el-tab-pane label="菜单配置" name="tree">
-        <div class="study-card" v-loading="busy">
-          <DataTable table-key="menu-tree" :filter-schema="tableFilterSchemas.menu" :load-page="tableQueries.menuTree" :data="nodes" row-key="menuCode" default-expand-all>
+        <div class="study-card" v-loading="busy" @dragover="dragOver" @dragleave="dragLeave" @drop="dropMenu">
+          <DataTable table-key="menu-tree" :filter-schema="tableFilterSchemas.menu" :load-page="loadMenuPage" :data="tree.menus" row-key="menuCode" :row-class-name="menuRowClass" default-expand-all>
             <template #actions><el-button type="primary" :disabled="legacyDatabase" @click="edit()">新增目录</el-button></template>
+            <template #toolbar>
+              <span v-if="!legacyDatabase" class="study-muted menu-order-hint">{{ customMenuView ? '清除列筛选和排序后可拖动' : '拖动排序手柄可调整同级菜单顺序' }}</span>
+            </template>
             <el-table-column prop="title" label="菜单名称" min-width="220" />
             <el-table-column prop="menuCode" label="唯一编码" min-width="200" />
             <el-table-column :table-value="tableValues.menuType" prop="type" label="类型" width="90"><template #default="{ row }"><el-tag :type="row.type === 'directory' ? 'info' : 'primary'">{{ optionLabel(queryDictionaries.menuType, row.type) }}</el-tag></template></el-table-column>
-            <el-table-column prop="order" label="排序" width="70" />
+            <el-table-column prop="order" label="排序" width="70">
+              <template #default="{ row }">
+                <span class="menu-order" :data-menu-code="row.menuCode">
+                  <span v-if="canDrag" class="menu-drag-handle" draggable="true" title="拖动到同级菜单的上方或下方，松手保存" @dragstart="startDrag($event, row)" @dragend="clearDrag">
+                    <el-icon><Rank /></el-icon>
+                  </span>
+                  {{ row.order }}
+                </span>
+              </template>
+            </el-table-column>
             <el-table-column :table-value="tableValues.enabled" prop="enabled" label="启用" width="80"><template #default="{ row }"><el-switch :model-value="row.enabled" :disabled="busy || legacyDatabase || protectedCodes.has(row.menuCode)" @change="(v: string | number | boolean) => toggle(row, Boolean(v))" /></template></el-table-column>
             <el-table-column column-key="actions" label="操作" width="140"><template #default="{ row }"><el-button link type="primary" :disabled="legacyDatabase" @click="edit(row)">编辑</el-button><el-button v-if="row.type === 'directory' && !tree.menus.some(m => m.parentCode === row.menuCode) && !protectedCodes.has(row.menuCode)" link type="danger" :disabled="legacyDatabase" @click="remove(row)">删除</el-button></template></el-table-column>
           </DataTable>
@@ -150,6 +228,15 @@ const tableValues = {
   </main>
 </template>
 <style scoped>
+.menu-order-hint { font-size: 13px; }
+.menu-order { display: inline-flex; align-items: center; gap: 6px; }
+.menu-drag-handle { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 4px; color: var(--el-text-color-secondary); cursor: grab; user-select: none; }
+.menu-drag-handle:hover { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
+.menu-drag-handle:active { cursor: grabbing; }
+.menu-drag-handle .el-icon { pointer-events: none; }
+:deep(.menu-dragging > td.el-table__cell) { color: var(--el-text-color-secondary); background-color: var(--el-fill-color-light); }
+:deep(.menu-drop-before > td.el-table__cell) { box-shadow: inset 0 2px var(--el-color-primary); }
+:deep(.menu-drop-after > td.el-table__cell) { box-shadow: inset 0 -2px var(--el-color-primary); }
 .sync-options { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 12px 16px; margin-bottom: 16px; background: var(--el-fill-color-light); border-radius: 8px; font-size: 13px; }
 .sync-options small { flex-basis: 100%; }
 </style>
